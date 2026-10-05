@@ -57,7 +57,8 @@ enum class SettingsSubScreen {
     CONTENT,
     PRIVACY,
     ABOUT,
-    WELCOME
+    WELCOME,
+    THEME
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -122,6 +123,9 @@ fun SettingsScreen(
             SettingsSubScreen.WELCOME -> WelcomeScreen(
                 onFinish = { activeSubScreen = null }
             )
+            SettingsSubScreen.THEME -> ThemeSettingsScreen(
+                onBack = { activeSubScreen = null }
+            )
         }
     }
 }
@@ -141,7 +145,8 @@ fun MainSettingsMenu(
     val currentArtworkStyle by LibraryManager.playerArtworkStyle.collectAsState()
 
     val isDarkMode by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState()
-    var showThemeDialog by remember { mutableStateOf(false) }
+    val themeMode by com.mrtdk.liquid_glass.ui.theme.ThemeManager.themeMode.collectAsState()
+    val isDynamicTheme by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDynamicTheme.collectAsState()
 
     Column(
         modifier = Modifier
@@ -180,7 +185,7 @@ fun MainSettingsMenu(
         ) {
             Material3SettingsGroup(
                 title = stringResource(R.string.settings_section_appearance),
-                items = listOf(
+                items = listOfNotNull(
                     Material3SettingsItem(
                         icon = painterResource(id = R.drawable.lyrics),
                         title = { Text(stringResource(R.string.settings_lyrics)) },
@@ -188,12 +193,19 @@ fun MainSettingsMenu(
                         onClick = { onNavigateTo(SettingsSubScreen.LYRICS) }
                     ),
                     Material3SettingsItem(
-                        icon = rememberPainter(Icons.Default.DarkMode),
-                        title = { Text(stringResource(R.string.theme_app_title)) },
+                        icon = rememberPainter(Icons.Default.Palette),
+                        title = { Text(stringResource(R.string.theme_colors)) },
                         description = {
-                            Text(if (isDarkMode) stringResource(R.string.theme_dark_mode_default) else stringResource(R.string.theme_light_mode))
+                            val modeDesc = when (themeMode) {
+                                com.mrtdk.liquid_glass.ui.theme.ThemeManager.MODE_SYSTEM -> stringResource(R.string.dark_theme_follow_system)
+                                com.mrtdk.liquid_glass.ui.theme.ThemeManager.MODE_LIGHT -> stringResource(R.string.theme_light_mode)
+                                com.mrtdk.liquid_glass.ui.theme.ThemeManager.MODE_AMOLED -> stringResource(R.string.theme_amoled)
+                                else -> stringResource(R.string.theme_dark_mode_default)
+                            }
+                            val paletteDesc = if (isDynamicTheme) stringResource(R.string.palette_dynamic) else stringResource(R.string.color_palette)
+                            Text("$modeDesc • $paletteDesc")
                         },
-                        onClick = { showThemeDialog = true }
+                        onClick = { onNavigateTo(SettingsSubScreen.THEME) }
                     ),
                     Material3SettingsItem(
                         icon = rememberPainter(Icons.Default.Palette),
@@ -249,63 +261,7 @@ fun MainSettingsMenu(
                 )
             )
 
-            if (showThemeDialog) {
-                AlertDialog(
-                    onDismissRequest = { showThemeDialog = false },
-                    title = { Text(stringResource(R.string.theme_app_title), color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor, fontWeight = FontWeight.Bold) },
-                    text = {
-                        Column {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        com.mrtdk.liquid_glass.ui.theme.ThemeManager.setThemeMode(com.mrtdk.liquid_glass.ui.theme.ThemeManager.MODE_DARK)
-                                        showThemeDialog = false
-                                    }
-                                    .padding(vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = isDarkMode,
-                                    onClick = {
-                                        com.mrtdk.liquid_glass.ui.theme.ThemeManager.setThemeMode(com.mrtdk.liquid_glass.ui.theme.ThemeManager.MODE_DARK)
-                                        showThemeDialog = false
-                                    }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.theme_dark_mode_default), color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor)
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        com.mrtdk.liquid_glass.ui.theme.ThemeManager.setThemeMode(com.mrtdk.liquid_glass.ui.theme.ThemeManager.MODE_LIGHT)
-                                        showThemeDialog = false
-                                    }
-                                    .padding(vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = !isDarkMode,
-                                    onClick = {
-                                        com.mrtdk.liquid_glass.ui.theme.ThemeManager.setThemeMode(com.mrtdk.liquid_glass.ui.theme.ThemeManager.MODE_LIGHT)
-                                        showThemeDialog = false
-                                    }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.theme_light_mode), color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor)
-                            }
-                        }
-                    },
-                    confirmButton = {},
-                    dismissButton = {
-                        TextButton(onClick = { showThemeDialog = false }) {
-                            Text(stringResource(R.string.cancelar), color = Color(0xFFFA243C))
-                        }
-                    },
-                    containerColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.surfaceColor
-                )
-            }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 

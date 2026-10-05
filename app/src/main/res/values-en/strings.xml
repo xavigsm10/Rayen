@@ -444,8 +444,20 @@
     <string name="settings_section_spotify_actions">SPOTIFY ACTIONS</string>
 
     <string name="theme_app_title">App theme</string>
-    <string name="theme_dark_mode_default">Dark Mode (Default)</string>
+    <string name="theme_colors">Theme &amp; Colors</string>
+    <string name="theme_mode">Theme Mode</string>
+    <string name="dark_theme_follow_system">Follow system</string>
+    <string name="theme_amoled">AMOLED</string>
+    <string name="color_palette">Color Palette</string>
+    <string name="palette_dynamic">Dynamic palette</string>
+    <string name="palette_hue">Hue</string>
+    <string name="palette_saturation">Saturation</string>
+    <string name="theme_follow_system">Follow system (Default)</string>
+    <string name="theme_follow_system_desc">Automatically matches your device\'s light or dark mode</string>
+    <string name="theme_dark_mode_default">Dark Mode</string>
     <string name="theme_light_mode">Light Mode</string>
+    <string name="theme_dynamic_color_title">Dynamic color</string>
+    <string name="theme_dynamic_color_desc">Use Material You color palette based on your system</string>
     <string name="settings_spotify">Spotify</string>
     <string name="settings_spotify_desc">Sync Spotify account and playlists</string>
     <string name="settings_updates_check_desc">Check for new versions of RayMusic</string>

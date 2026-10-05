@@ -11,6 +11,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
@@ -38,18 +40,53 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun LiquidglassuicomponentTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    pureBlack: Boolean = false,
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
+    themeColor: Color = ThemeManager.DefaultThemeColor,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val context = LocalContext.current
+    val colorScheme = remember(darkTheme, pureBlack, dynamicColor, themeColor) {
+        when {
+            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                val base = if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+                if (pureBlack && darkTheme) {
+                    base.copy(
+                        surface = Color.Black,
+                        background = Color.Black,
+                        surfaceContainerLowest = Color.Black,
+                        surfaceContainerLow = Color(0xFF050505),
+                        surfaceContainer = Color(0xFF0F0F0F)
+                    )
+                } else base
+            }
+            darkTheme -> {
+                darkColorScheme(
+                    primary = themeColor,
+                    secondary = themeColor.copy(alpha = 0.85f),
+                    tertiary = themeColor.copy(alpha = 0.65f),
+                    background = if (pureBlack) Color.Black else Color(0xFF000000),
+                    surface = if (pureBlack) Color.Black else Color(0xFF1C1C1E),
+                    surfaceContainerLowest = Color.Black,
+                    surfaceContainerLow = if (pureBlack) Color(0xFF080808) else Color(0xFF161618),
+                    surfaceContainer = if (pureBlack) Color(0xFF101010) else Color(0xFF222224),
+                    surfaceContainerHigh = if (pureBlack) Color(0xFF181818) else Color(0xFF2C2C2E)
+                )
+            }
+            else -> {
+                lightColorScheme(
+                    primary = themeColor,
+                    secondary = themeColor.copy(alpha = 0.85f),
+                    tertiary = themeColor.copy(alpha = 0.65f),
+                    background = Color(0xFFF2F2F7),
+                    surface = Color(0xFFFFFFFF),
+                    surfaceContainerLow = Color(0xFFF7F7F9),
+                    surfaceContainer = Color(0xFFECECEE),
+                    surfaceContainerHigh = Color(0xFFE5E5EA)
+                )
+            }
         }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
     }
 
     MaterialTheme(

@@ -171,8 +171,8 @@ class AppleMusicSingAudioProcessor : AudioProcessor {
 
     companion object {
         private const val TAG = "SingAudioProcessor"
-        private const val BASS_CROSSOVER_HZ = 140.0
-        private const val AIR_CROSSOVER_HZ = 9200.0
+        private const val BASS_CROSSOVER_HZ = 120.0
+        private const val AIR_CROSSOVER_HZ = 10500.0
     }
 
     private var sampleRate = 0
@@ -192,24 +192,21 @@ class AppleMusicSingAudioProcessor : AudioProcessor {
     private var inputEnded = false
 
     // 4th-order Linkwitz-Riley (LR4) crossover filters (cascaded Butterworth pairs)
-    // Low band (< 140 Hz): 100% untouched kick drum thump, sub bass, 808s
+    // Low band (< 120 Hz): 100% untouched kick drum thump, sub bass, 808s
     private val lowLpfStage1 = StereoBiquad()
     private val lowLpfStage2 = StereoBiquad()
 
-    // Above low (> 140 Hz)
+    // Above low (> 120 Hz)
     private val midHpfStage1 = StereoBiquad()
     private val midHpfStage2 = StereoBiquad()
 
-    // Mid vocal band (140 Hz - 9200 Hz): Contains the entire vocal spectrum
+    // Mid vocal band (120 Hz - 10500 Hz): Contains the entire vocal spectrum
     private val midLpfStage1 = StereoBiquad()
     private val midLpfStage2 = StereoBiquad()
 
-    // Air band (> 9200 Hz): 100% untouched cymbals, air, hi-hats, room sparkle
+    // Air band (> 10500 Hz): 100% untouched cymbals, air, hi-hats, room sparkle
     private val airHpfStage1 = StereoBiquad()
     private val airHpfStage2 = StereoBiquad()
-
-    // Correlation tracker for Center Channel Vocal Separation
-    private var corrSmooth = 0.0
 
     fun setSingEnabled(enabled: Boolean) {
         isSingEnabled = enabled
@@ -229,14 +226,14 @@ class AppleMusicSingAudioProcessor : AudioProcessor {
             throw AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
         }
 
-        // Configure LR4 crossover at 140 Hz (preserves bass, kick fundamentals, 808s)
+        // Configure LR4 crossover at 120 Hz (preserves bass, kick fundamentals, 808s)
         lowLpfStage1.setLowPass(sampleRate, BASS_CROSSOVER_HZ, 0.7071)
         lowLpfStage2.setLowPass(sampleRate, BASS_CROSSOVER_HZ, 0.7071)
 
         midHpfStage1.setHighPass(sampleRate, BASS_CROSSOVER_HZ, 0.7071)
         midHpfStage2.setHighPass(sampleRate, BASS_CROSSOVER_HZ, 0.7071)
 
-        // Configure LR4 crossover at 9200 Hz (preserves cymbals, hi-hats, acoustic sheen)
+        // Configure LR4 crossover at 10500 Hz (preserves cymbals, hi-hats, acoustic sheen)
         midLpfStage1.setLowPass(sampleRate, AIR_CROSSOVER_HZ, 0.7071)
         midLpfStage2.setLowPass(sampleRate, AIR_CROSSOVER_HZ, 0.7071)
 
@@ -276,68 +273,54 @@ class AppleMusicSingAudioProcessor : AudioProcessor {
             val lNorm = leftShort / 32768.0
             val rNorm = rightShort / 32768.0
 
-            // 1. First crossover: Split Low (<140Hz) and AboveLow (>140Hz) with flat LR4 summation
+            // 1. Primer crossover: Separa Bajos (<120Hz) y Medios-Altos (>120Hz) con suma plana LR4
             val lLow = lowLpfStage2.processL(lowLpfStage1.processL(lNorm))
             val rLow = lowLpfStage2.processR(lowLpfStage1.processR(rNorm))
 
             val lAboveLow = midHpfStage2.processL(midHpfStage1.processL(lNorm))
             val rAboveLow = midHpfStage2.processR(midHpfStage1.processR(rNorm))
 
-            // 2. Second crossover: Split Vocal Mid (140Hz - 9200Hz) and Air/Sheen (>9200Hz)
+            // 2. Segundo crossover: Separa Banda Vocal (120Hz - 10500Hz) y Aire/Platillos (>10500Hz)
             val lMid = midLpfStage2.processL(midLpfStage1.processL(lAboveLow))
             val rMid = midLpfStage2.processR(midLpfStage1.processR(rAboveLow))
 
             val lHigh = airHpfStage2.processL(airHpfStage1.processL(lAboveLow))
             val rHigh = airHpfStage2.processR(airHpfStage1.processR(rAboveLow))
 
-            // 3. Mid (Center) and Side (Stereo Difference) of the vocal band
+            // 3. Descomposición Mid/Side de la banda vocal
             val midSignal = (lMid + rMid) * 0.5
             val sideSignal = (lMid - rMid) * 0.5
 
-            // 4. Center-Pan Correlation Tracker:
-            // Quantifies whether the acoustic energy is centered (lead voice) or spread (instruments/choruses).
-            val lr = lMid * rMid
-            val energy = lMid * lMid + rMid * rMid
-            val instCorr = if (energy > 1e-6) (2.0 * lr / energy).coerceIn(-1.0, 1.0) else 0.0
-            corrSmooth += (instCorr - corrSmooth) * 0.008
-
-            // 5. Vocal Presence Mapping:
-            // Centered lead vocal (corrSmooth >= 0.70) maps to 1.0 (100% complete voice extraction).
-            // Panned instruments and choruses (corrSmooth <= 0.35) map to 0.0 (100% preserved instruments).
-            val centerCorr = max(0.0, corrSmooth)
-            val vocalPresence = ((centerCorr - 0.35) / 0.35).coerceIn(0.0, 1.0)
-
-            // Smooth vocal gain transition from the UI slider
-            currentVocalGain += (targetVocalGain - currentVocalGain) * 0.003
+            // Suavizado continuo de ganancia vocal desde el slider (sin saltos ni clics)
+            currentVocalGain += (targetVocalGain - currentVocalGain) * 0.001
             val vocalSuppression = (1.0 - currentVocalGain)
 
-            // 6. Vocal Subtraction:
-            // The lead voice is completely eliminated from the center channel without clipping.
-            val vocalEstimate = midSignal * vocalPresence
-            val mOut = midSignal - vocalSuppression * vocalEstimate
+            // 4. Atenuación central ultra-efectiva (97.5%):
+            // Suprime la voz seca frontal para dejarla como una voz guía muy sutil en el fondo lejano (2.5% / -32 dB).
+            val centerCut = vocalSuppression * 0.975
+            val mOut = midSignal * (1.0 - centerCut)
 
-            // Subtle vocal reverb damping in the side channel only while the lead singer is active
-            val reverbDamp = 1.0 - vocalSuppression * 0.35 * vocalPresence
-            val sOut = sideSignal * reverbDamp
+            // 5. Atenuación lateral del 50% para voces dobladas en estéreo y reverberación:
+            // Aleja todavía más cualquier residuo de voz estéreo o eco ambiental hacia el fondo.
+            val sideDamp = vocalSuppression * 0.50
+            val sOut = sideSignal * (1.0 - sideDamp)
 
-            // 7. Clean, non-distorting loudness compensation (+1.4 dB):
-            // Restores the lost acoustic energy of the mix so the instrumental track ("la pista") doesn't sound quiet,
-            // while preserving 100% clean headroom and zero saturation.
-            val makeupGain = 1.0 + vocalSuppression * 0.16
-
+            // 6. Ganancia de compensación limpia (+1.1 dB):
+            // Mantiene la pegada y potencia de la pista instrumental para que suene con presencia y definición.
+            val makeupGain = 1.0 + vocalSuppression * 0.13
             val lMidOut = (mOut + sOut) * makeupGain
             val rMidOut = (mOut - sOut) * makeupGain
 
-            // 8. Reconstruct master audio with untouched Bass (<140Hz) and Air (>9200Hz)
+            // 7. Reconstrucción master: Bajos potentes (<120Hz) + Pista karaoke con cuerpo + Aire (>10500Hz)
             var lOut = lLow + lMidOut + lHigh
             var rOut = rLow + rMidOut + rHigh
 
-            // 9. Transparent peak limiter (100% linear, zero distortion across normal musical range)
+            // 8. Limitador limpio ultra-transparente (100% lineal hasta 0.98, 0% distorsión armónica/saturación)
             lOut = cleanLimit(lOut)
             rOut = cleanLimit(rOut)
 
-            val outLeftShort = (lOut * 32767.0).toInt().coerceIn(-32768, 32767).toShort()
-            val outRightShort = (rOut * 32767.0).toInt().coerceIn(-32768, 32767).toShort()
+            val outLeftShort = (lOut.coerceIn(-0.999, 0.999) * 32767.0).toInt().toShort()
+            val outRightShort = (rOut.coerceIn(-0.999, 0.999) * 32767.0).toInt().toShort()
 
             outputBuffer.putShort(outLeftShort)
             outputBuffer.putShort(outRightShort)
@@ -348,8 +331,8 @@ class AppleMusicSingAudioProcessor : AudioProcessor {
 
     private fun cleanLimit(x: Double): Double {
         return when {
-            x > 0.98 -> 0.98 + 0.02 * tanh((x - 0.98) / 0.02)
-            x < -0.98 -> -0.98 + 0.02 * tanh((x + 0.98) / 0.02)
+            x > 0.98 -> 0.98 + 0.019 * tanh((x - 0.98) / 0.02)
+            x < -0.98 -> -0.98 + 0.019 * tanh((x + 0.98) / 0.02)
             else -> x
         }
     }
@@ -377,7 +360,6 @@ class AppleMusicSingAudioProcessor : AudioProcessor {
         midLpfStage2.reset()
         airHpfStage1.reset()
         airHpfStage2.reset()
-        corrSmooth = 0.0
     }
 
     override fun reset() {

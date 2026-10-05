@@ -5878,25 +5878,30 @@ fun PlayerBottomControls(
 
                 Box(
                     modifier = Modifier
-                        .size(if (showLyrics) 30.dp else 34.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
-                        .background(if (showLyrics) activeBgColor else Color.Transparent)
                         .clickable { onToggleLyrics() },
                     contentAlignment = Alignment.Center
                 ) {
-                    AsyncImage(
-                        model = "file:///android_asset/img reproductor/Letras.png",
-                        contentDescription = "Lyrics",
-                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
-                            if (showLyrics) contentColor else unselectedIconColor
-                        ),
-                        modifier = Modifier.size(if (showLyrics) 18.dp else 20.dp)
-                    )
+                    if (showLyrics) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_lyrics_active),
+                            contentDescription = "Lyrics",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        AsyncImage(
+                            model = "file:///android_asset/img reproductor/Letras.png",
+                            contentDescription = "Lyrics",
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(unselectedIconColor),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
 
                 Box(
                     modifier = Modifier
-                        .size(34.dp)
+                        .size(40.dp)
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onTap = { AudioRoutingState.showAudioRoutingMenu = true },
@@ -5909,7 +5914,7 @@ fun PlayerBottomControls(
                         model = AudioRoutingState.selectedOutputIcon.assetPath,
                         contentDescription = "Audio output",
                         colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(unselectedIconColor),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(25.dp)
                     )
                 }
 
@@ -5917,7 +5922,7 @@ fun PlayerBottomControls(
                     val isSingActive by com.mrtdk.liquid_glass.playback.sing.AppleMusicSingManager.isSingEnabled.collectAsState()
                     Box(
                         modifier = Modifier
-                            .size(if (isSingActive) 30.dp else 34.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
                             .background(if (isSingActive) activeBgColor else Color.Transparent)
                             .clickable {
@@ -5929,14 +5934,14 @@ fun PlayerBottomControls(
                             imageVector = Icons.Default.Mic,
                             contentDescription = "Apple Music Sing",
                             tint = if (isSingActive) contentColor else unselectedIconColor,
-                            modifier = Modifier.size(if (isSingActive) 18.dp else 20.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
 
                 Box(
                     modifier = Modifier
-                        .size(if (showQueue) 30.dp else 34.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
                         .background(if (showQueue) activeBgColor else Color.Transparent)
                         .clickable { onToggleQueue() },
@@ -5946,7 +5951,7 @@ fun PlayerBottomControls(
                         painter = painterResource(id = R.drawable.nextinfo),
                         contentDescription = "Next Info",
                         tint = if (showQueue) contentColor else unselectedIconColor,
-                        modifier = Modifier.size(if (showQueue) 18.dp else 20.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
@@ -7095,43 +7100,52 @@ fun LandscapePlayerLayout(
 
                     Box(
                         modifier = Modifier
-                            .size(if (showLyrics) 30.dp else 34.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
-                            .background(if (showLyrics) activeBgColor else Color.Transparent)
                             .clickable {
                                 onShowLyricsChange(!showLyrics)
                                 onShowQueueChange(false)
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        AsyncImage(
-                            model = "file:///android_asset/img reproductor/Letras.png",
-                            contentDescription = "Lyrics",
-                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
-                                if (showLyrics) contentColor else unselectedIconColor
-                            ),
-                            modifier = Modifier.size(if (showLyrics) 18.dp else 20.dp)
-                        )
+                        if (showLyrics) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_lyrics_active),
+                                contentDescription = "Lyrics",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            AsyncImage(
+                                model = "file:///android_asset/img reproductor/Letras.png",
+                                contentDescription = "Lyrics",
+                                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(unselectedIconColor),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
 
-                    AsyncImage(
-                        model = AudioRoutingState.selectedOutputIcon.assetPath,
-                        contentDescription = "Audio output",
-                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(unselectedIconColor),
+                    Box(
                         modifier = Modifier
-                            .height(20.dp)
-                            .padding(horizontal = 8.dp)
+                            .size(40.dp)
                             .pointerInput(Unit) {
                                 detectTapGestures(
                                     onTap = { AudioRoutingState.showAudioRoutingMenu = true },
                                     onLongPress = { AudioRoutingState.showIconPickerMenu = true }
                                 )
-                            }
-                    )
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = AudioRoutingState.selectedOutputIcon.assetPath,
+                            contentDescription = "Audio output",
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(unselectedIconColor),
+                            modifier = Modifier.size(25.dp)
+                        )
+                    }
 
                     Box(
                         modifier = Modifier
-                            .size(if (showQueue) 30.dp else 34.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
                             .background(if (showQueue) activeBgColor else Color.Transparent)
                             .clickable {
@@ -7144,7 +7158,7 @@ fun LandscapePlayerLayout(
                             painter = painterResource(id = R.drawable.nextinfo),
                             contentDescription = "Next Info",
                             tint = if (showQueue) contentColor else unselectedIconColor,
-                            modifier = Modifier.size(if (showQueue) 18.dp else 20.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }

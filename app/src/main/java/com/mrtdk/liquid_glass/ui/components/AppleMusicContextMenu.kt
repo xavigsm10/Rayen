@@ -4189,7 +4189,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                         )
                                         val percent = (vocalVolume * 100f).roundToInt()
                                         val label = when {
-                                            percent <= 5 -> "Karaoke (0%)"
+                                            percent <= 5 -> "Karaoke (Voz lejana)"
                                             percent >= 95 -> "Original (100%)"
                                             else -> "$percent%"
                                         }

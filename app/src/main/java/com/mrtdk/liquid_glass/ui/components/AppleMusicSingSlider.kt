@@ -117,7 +117,7 @@ fun AppleMusicSingSlider(
             ) {
                 val percent = (vocalVolume * 100f).roundToInt()
                 val label = when {
-                    percent <= 5 -> "Karaoke (Voz apagada)"
+                    percent <= 5 -> "Karaoke (Voz lejana)"
                     percent >= 95 -> "Voz Original (100%)"
                     else -> "Voz: $percent%"
                 }

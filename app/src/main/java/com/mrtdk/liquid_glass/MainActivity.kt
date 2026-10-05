@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.lazy.LazyColumn
@@ -178,8 +179,33 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val isDarkMode by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState()
-            LiquidglassuicomponentTheme(darkTheme = isDarkMode) {
+            val themeMode by com.mrtdk.liquid_glass.ui.theme.ThemeManager.themeMode.collectAsState()
+            val isSystemDark = isSystemInDarkTheme()
+            val isDarkMode = remember(themeMode, isSystemDark) {
+                when (themeMode) {
+                    com.mrtdk.liquid_glass.ui.theme.ThemeManager.MODE_DARK,
+                    com.mrtdk.liquid_glass.ui.theme.ThemeManager.MODE_AMOLED -> true
+                    com.mrtdk.liquid_glass.ui.theme.ThemeManager.MODE_LIGHT -> false
+                    else -> isSystemDark
+                }
+            }
+            val pureBlack by com.mrtdk.liquid_glass.ui.theme.ThemeManager.pureBlack.collectAsState()
+            val effectivePureBlack = remember(pureBlack, themeMode, isDarkMode) {
+                isDarkMode && (pureBlack || themeMode == com.mrtdk.liquid_glass.ui.theme.ThemeManager.MODE_AMOLED)
+            }
+            val isDynamicTheme by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDynamicTheme.collectAsState()
+            val selectedThemeColor by com.mrtdk.liquid_glass.ui.theme.ThemeManager.selectedThemeColor.collectAsState()
+
+            LaunchedEffect(isDarkMode) {
+                com.mrtdk.liquid_glass.ui.theme.ThemeManager.updateEffectiveDarkMode(isDarkMode)
+            }
+
+            LiquidglassuicomponentTheme(
+                darkTheme = isDarkMode,
+                pureBlack = effectivePureBlack,
+                dynamicColor = isDynamicTheme,
+                themeColor = selectedThemeColor
+            ) {
                 val context = LocalContext.current
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

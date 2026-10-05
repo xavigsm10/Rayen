@@ -444,8 +444,20 @@
     <string name="settings_section_spotify_actions">SPOTIFY İŞLEMLERİ</string>
 
     <string name="theme_app_title">Uygulama teması</string>
-    <string name="theme_dark_mode_default">Karanlık Mod (Varsayılan)</string>
+    <string name="theme_colors">Tema ve Renkler</string>
+    <string name="theme_mode">Tema Modu</string>
+    <string name="dark_theme_follow_system">Sistemi izle</string>
+    <string name="theme_amoled">AMOLED</string>
+    <string name="color_palette">Renk Paleti</string>
+    <string name="palette_dynamic">Dinamik palet</string>
+    <string name="palette_hue">Ton</string>
+    <string name="palette_saturation">Doygunluk</string>
+    <string name="theme_follow_system">Sistemi izle (Varsayılan)</string>
+    <string name="theme_follow_system_desc">Cihazın açık veya koyu moduna otomatik uyum sağlar</string>
+    <string name="theme_dark_mode_default">Karanlık Mod</string>
     <string name="theme_light_mode">Aydınlık Mod</string>
+    <string name="theme_dynamic_color_title">Dinamik renk</string>
+    <string name="theme_dynamic_color_desc">Sisteme dayalı Material You renk paletini kullanın</string>
     <string name="settings_spotify">Spotify</string>
     <string name="settings_spotify_desc">Spotify hesabını ve çalma listelerini senkronize et</string>
     <string name="settings_updates_check_desc">Yeni RayMusic sürümlerini kontrol edin</string>
