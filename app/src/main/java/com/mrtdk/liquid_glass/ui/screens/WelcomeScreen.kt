@@ -67,7 +67,6 @@ fun WelcomeScreen(
     // System Appearance States
     var selectedGlassStyle by remember { mutableStateOf(LibraryManager.getGlassStyle()) }
     var selectedArtworkStyle by remember { mutableStateOf(LibraryManager.getPlayerArtworkStyle()) }
-    var selectedBackdropStyle by remember { mutableStateOf(LibraryManager.getFullArtworkBackdropStyle()) }
     var selectedBottomTabsStyle by remember { mutableStateOf(LibraryManager.getBottomTabsStyle()) }
 
     // Spotify States
@@ -198,11 +197,6 @@ fun WelcomeScreen(
                             onArtworkStyleSelected = {
                                 selectedArtworkStyle = it
                                 LibraryManager.savePlayerArtworkStyle(it)
-                            },
-                            currentBackdropStyle = selectedBackdropStyle,
-                            onBackdropStyleSelected = {
-                                selectedBackdropStyle = it
-                                LibraryManager.saveFullArtworkBackdropStyle(it)
                             },
                             currentBottomTabsStyle = selectedBottomTabsStyle,
                             onBottomTabsStyleSelected = {
@@ -648,8 +642,6 @@ private fun InterfacePreviewCard(
 private fun ArtworkAndBackdropStep(
     currentArtworkStyle: String,
     onArtworkStyleSelected: (String) -> Unit,
-    currentBackdropStyle: String,
-    onBackdropStyleSelected: (String) -> Unit,
     currentBottomTabsStyle: String,
     onBottomTabsStyleSelected: (String) -> Unit
 ) {
@@ -706,7 +698,18 @@ private fun ArtworkAndBackdropStep(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Option 3: Normal
+        // Option 3: Fullartwork Gama Baja
+        ArtworkOptionCard(
+            title = stringResource(R.string.player_artwork_style_fullartwork_low),
+            description = "Reflejo invertido con difuminado suave y armónico optimizado para gama baja.",
+            badge = null,
+            isSelected = currentArtworkStyle == "fullartwork_low",
+            onClick = { onArtworkStyleSelected("fullartwork_low") }
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Option 4: Normal
         ArtworkOptionCard(
             title = stringResource(R.string.welcome_art_normal_title),
             description = stringResource(R.string.welcome_art_normal_desc),
@@ -714,41 +717,6 @@ private fun ArtworkAndBackdropStep(
             isSelected = currentArtworkStyle == "normal",
             onClick = { onArtworkStyleSelected("normal") }
         )
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        // Section: Estilo de Fondo de Fullartwork
-        Text(
-            text = stringResource(R.string.welcome_backdrop_section_title),
-            color = Color.White,
-            fontSize = 17.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            if (!com.mrtdk.liquid_glass.BuildConfig.IS_LITE) {
-                SubSelectorPill(
-                    title = stringResource(R.string.welcome_backdrop_apple_music_title),
-                    subtitle = stringResource(R.string.welcome_backdrop_apple_music_sub),
-                    isSelected = currentBackdropStyle == "apple_music",
-                    modifier = Modifier.weight(1f),
-                    onClick = { onBackdropStyleSelected("apple_music") }
-                )
-            }
-            SubSelectorPill(
-                title = stringResource(R.string.welcome_backdrop_accord_title),
-                subtitle = stringResource(R.string.welcome_backdrop_accord_sub),
-                isSelected = currentBackdropStyle == "accord" || com.mrtdk.liquid_glass.BuildConfig.IS_LITE,
-                modifier = Modifier.weight(1f),
-                onClick = { onBackdropStyleSelected("accord") }
-            )
-        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -763,23 +731,35 @@ private fun ArtworkAndBackdropStep(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                SubSelectorPill(
+                    title = stringResource(R.string.welcome_bottom_tabs_ios26_title),
+                    subtitle = stringResource(R.string.welcome_bottom_tabs_ios26_sub),
+                    isSelected = currentBottomTabsStyle == "ios26",
+                    modifier = Modifier.weight(1f),
+                    onClick = { onBottomTabsStyleSelected("ios26") }
+                )
+                SubSelectorPill(
+                    title = stringResource(R.string.welcome_bottom_tabs_ios27_title),
+                    subtitle = stringResource(R.string.welcome_bottom_tabs_ios27_sub),
+                    isSelected = currentBottomTabsStyle == "ios27",
+                    modifier = Modifier.weight(1f),
+                    onClick = { onBottomTabsStyleSelected("ios27") }
+                )
+            }
             SubSelectorPill(
-                title = stringResource(R.string.welcome_bottom_tabs_ios26_title),
-                subtitle = stringResource(R.string.welcome_bottom_tabs_ios26_sub),
-                isSelected = currentBottomTabsStyle == "ios26",
-                modifier = Modifier.weight(1f),
-                onClick = { onBottomTabsStyleSelected("ios26") }
-            )
-            SubSelectorPill(
-                title = stringResource(R.string.welcome_bottom_tabs_ios27_title),
-                subtitle = stringResource(R.string.welcome_bottom_tabs_ios27_sub),
-                isSelected = currentBottomTabsStyle == "ios27",
-                modifier = Modifier.weight(1f),
-                onClick = { onBottomTabsStyleSelected("ios27") }
+                title = stringResource(R.string.bottom_tabs_style_m3),
+                subtitle = "Barra flotante con etiquetas dinámicas de Echo-Music",
+                isSelected = currentBottomTabsStyle == "m3_expressive",
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onBottomTabsStyleSelected("m3_expressive") }
             )
         }
 

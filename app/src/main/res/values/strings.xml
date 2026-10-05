@@ -130,6 +130,7 @@
     <string name="bottom_tabs_style_title">Estilo de pestañas inferiores</string>
     <string name="bottom_tabs_style_ios26">Estilo iOS 26</string>
     <string name="bottom_tabs_style_ios27">Estilo iOS 27</string>
+    <string name="bottom_tabs_style_m3">Material 3 Expressive</string>
     <string name="search_field_hint">Artistas, canciones, letras y más</string>
     <string name="audio_settings_section">AUDIO</string>
     <string name="audio_quality_label">Calidad de audio</string>
@@ -606,11 +607,10 @@
     <!-- Appearance / Artwork Styles -->
     <string name="player_artwork_style_title">Apariencia</string>
     <string name="player_artwork_style_fullartwork">Fullartwork</string>
+    <string name="player_artwork_style_fullartwork_low">Fullartwork gama baja</string>
     <string name="player_artwork_style_normal">Normal</string>
     <string name="player_artwork_style_animated">Portadas animadas solamente con fullartwork</string>
-    <string name="full_artwork_backdrop_style_title">Efecto de fondo Fullartwork</string>
-    <string name="full_artwork_backdrop_style_apple_music">Apple Music (Desenfoque original)</string>
-    <string name="full_artwork_backdrop_style_accord">Fondo completo</string>
+
     <string name="estilo_solido_material3">Sólido (Material 3)</string>
     <string name="ultra_performance_mode_title">Modo Ultra Rendimiento (Gama Baja)</string>
     <string name="ultra_performance_mode_desc">Optimiza la app para dispositivos modestos desactivando desenfoques pesados y fondos de cristal líquido</string>
@@ -685,11 +685,7 @@
     <string name="welcome_art_full_desc">Todas las portadas (tanto estáticas como animadas) se expanden ocupando toda la pantalla.</string>
     <string name="welcome_art_normal_title">Normal (Tarjeta estándar)</string>
     <string name="welcome_art_normal_desc">Tarjeta cuadrada centrada clásica con bordes redondeados y sombra elegante estilo Apple Music.</string>
-    <string name="welcome_backdrop_section_title">Efecto de fondo en Fullartwork</string>
-    <string name="welcome_backdrop_apple_music_title">Reflejo Apple Music</string>
-    <string name="welcome_backdrop_apple_music_sub">Gradiente dinámico</string>
-    <string name="welcome_backdrop_accord_title">Fondo completo</string>
-    <string name="welcome_backdrop_accord_sub">Fluido animado</string>
+
     <string name="welcome_bottom_tabs_section_title">Estilo de pestañas inferiores</string>
     <string name="welcome_bottom_tabs_ios26_title">Estilo iOS 26</string>
     <string name="welcome_bottom_tabs_ios26_sub">Barra estándar</string>

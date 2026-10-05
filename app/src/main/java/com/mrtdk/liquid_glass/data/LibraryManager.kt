@@ -897,12 +897,6 @@ object LibraryManager {
     }
 
     fun getFullArtworkBackdropStyle(): String {
-        if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE) return "accord"
-        if (isInitialized) return _fullArtworkBackdropStyle.value
-        val fromDb = dbHelper.getSetting("full_artwork_backdrop_style", null)
-        if (fromDb != null) return fromDb
-        val fromPrefs = try { prefs.getString("full_artwork_backdrop_style", null) } catch (_: Exception) { null }
-        if (fromPrefs != null) return fromPrefs
         return "apple_music"
     }
 

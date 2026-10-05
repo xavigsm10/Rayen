@@ -353,8 +353,8 @@ fun BusquedaScreen(
                     )
                 }
 
-                // iOS 27: barra de búsqueda persistente para que el campo de texto no pierda foco ni se destruya al escribir
-                if (bottomTabsStyle == "ios27") {
+                // iOS 27 y Material 3 Expressive: barra de búsqueda integrada
+                if (bottomTabsStyle == "ios27" || bottomTabsStyle == "m3_expressive") {
                     if (query.isEmpty() && !isInputActive) {
                         Box(
                             modifier = Modifier
@@ -579,7 +579,7 @@ fun BusquedaScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(bottom = 180.dp)
                         ) {
-                            if (bottomTabsStyle != "ios27") {
+                            if (bottomTabsStyle != "ios27" && bottomTabsStyle != "m3_expressive") {
                                 item {
                                     Box(
                                         modifier = Modifier

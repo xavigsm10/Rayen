@@ -130,6 +130,7 @@
     <string name="bottom_tabs_style_title">Alt sekmeler</string>
     <string name="bottom_tabs_style_ios26">iOS 26 stili</string>
     <string name="bottom_tabs_style_ios27">iOS 27 stili</string>
+    <string name="bottom_tabs_style_m3">Material 3 Expressive</string>
     <string name="search_field_hint">Sanatçılar, Şarkılar, Sözler ve Daha Fazlası</string>
     <string name="audio_settings_section">SES</string>
     <string name="audio_quality_label">Ses kalitesi</string>
@@ -606,11 +607,10 @@
     <!-- Appearance / Artwork Styles -->
     <string name="player_artwork_style_title">Görünüm</string>
     <string name="player_artwork_style_fullartwork">Tam Albüm Kapağı</string>
+    <string name="player_artwork_style_fullartwork_low">Düşük segment tam kapak</string>
     <string name="player_artwork_style_normal">Normal</string>
     <string name="player_artwork_style_animated">Yalnızca hareketli kapaklarda tam kapak</string>
-    <string name="full_artwork_backdrop_style_title">Tam Kapak Arka Plan Efekti</string>
-    <string name="full_artwork_backdrop_style_apple_music">Apple Music (Orijinal bulanıklık)</string>
-    <string name="full_artwork_backdrop_style_accord">Yumuşak degrade (Düşük donanım)</string>
+
     <string name="estilo_solido_material3">Katı (Material 3)</string>
     <string name="ultra_performance_mode_title">Ultra Performans Modu (Düşük Donanım)</string>
     <string name="ultra_performance_mode_desc">Ağır bulanıklıkları ve sıvı cam arka planlarını devre dışı bırakarak uygulamayı optimize eder</string>
@@ -685,11 +685,7 @@
     <string name="welcome_art_full_desc">Tüm kapaklar (hem statik hem de hareketli) tüm ekranı kaplayacak şekilde genişler.</string>
     <string name="welcome_art_normal_title">Normal (Standart kart)</string>
     <string name="welcome_art_normal_desc">Yuvarlatılmış köşelere ve zarif Apple Music tarzı gölgeye sahip klasik ortalanmış kare kart.</string>
-    <string name="welcome_backdrop_section_title">Fullartwork Arka Plan Efekti</string>
-    <string name="welcome_backdrop_apple_music_title">Apple Music Yansıması</string>
-    <string name="welcome_backdrop_apple_music_sub">Dinamik degrade</string>
-    <string name="welcome_backdrop_accord_title">Tam arka plan</string>
-    <string name="welcome_backdrop_accord_sub">Animasyonlu akışkan</string>
+
     <string name="welcome_bottom_tabs_section_title">Alt Sekme Stili</string>
     <string name="welcome_bottom_tabs_ios26_title">iOS 26 Stili</string>
     <string name="welcome_bottom_tabs_ios26_sub">Standart çubuk</string>

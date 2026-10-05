@@ -139,8 +139,6 @@ fun MainSettingsMenu(
     val currentBottomTabsStyle by LibraryManager.bottomTabsStyle.collectAsState()
     var showArtworkStyleDialog by remember { mutableStateOf(false) }
     val currentArtworkStyle by LibraryManager.playerArtworkStyle.collectAsState()
-    var showBackdropStyleDialog by remember { mutableStateOf(false) }
-    val currentBackdropStyle by LibraryManager.fullArtworkBackdropStyle.collectAsState()
 
     val isDarkMode by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState()
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -221,6 +219,7 @@ fun MainSettingsMenu(
                         description = {
                             val currentStyleName = when (currentBottomTabsStyle) {
                                 "ios27" -> stringResource(R.string.bottom_tabs_style_ios27)
+                                "m3_expressive" -> stringResource(R.string.bottom_tabs_style_m3)
                                 else -> stringResource(R.string.bottom_tabs_style_ios26)
                             }
                             Text(currentStyleName)
@@ -233,28 +232,13 @@ fun MainSettingsMenu(
                         description = {
                             val currentStyleName = when (currentArtworkStyle) {
                                 "normal" -> stringResource(R.string.player_artwork_style_normal)
+                                "fullartwork_low" -> stringResource(R.string.player_artwork_style_fullartwork_low)
                                 "animated_fullartwork" -> if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE) stringResource(R.string.player_artwork_style_fullartwork) else stringResource(R.string.player_artwork_style_animated)
                                 else -> stringResource(R.string.player_artwork_style_fullartwork)
                             }
                             Text(currentStyleName)
                         },
                         onClick = { showArtworkStyleDialog = true }
-                    ),
-                    Material3SettingsItem(
-                        icon = rememberPainter(Icons.Default.Tune),
-                        title = { Text(stringResource(R.string.full_artwork_backdrop_style_title)) },
-                        description = {
-                            val currentBackdropName = if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE) {
-                                stringResource(R.string.full_artwork_backdrop_style_accord)
-                            } else {
-                                when (currentBackdropStyle) {
-                                    "accord" -> stringResource(R.string.full_artwork_backdrop_style_accord)
-                                    else -> stringResource(R.string.full_artwork_backdrop_style_apple_music)
-                                }
-                            }
-                            Text(currentBackdropName)
-                        },
-                        onClick = { showBackdropStyleDialog = true }
                     ),
                     Material3SettingsItem(
                         icon = painterResource(id = R.drawable.splash_logo),
@@ -402,7 +386,8 @@ fun MainSettingsMenu(
             title = stringResource(R.string.bottom_tabs_style_title),
             options = listOf(
                 "ios26" to stringResource(R.string.bottom_tabs_style_ios26),
-                "ios27" to stringResource(R.string.bottom_tabs_style_ios27)
+                "ios27" to stringResource(R.string.bottom_tabs_style_ios27),
+                "m3_expressive" to stringResource(R.string.bottom_tabs_style_m3)
             ),
             selectedValue = currentBottomTabsStyle,
             onDismiss = { showBottomTabsStyleDialog = false },
@@ -416,11 +401,13 @@ fun MainSettingsMenu(
         val artworkOptions = if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE) {
             listOf(
                 "fullartwork" to stringResource(R.string.player_artwork_style_fullartwork),
+                "fullartwork_low" to stringResource(R.string.player_artwork_style_fullartwork_low),
                 "normal" to stringResource(R.string.player_artwork_style_normal)
             )
         } else {
             listOf(
                 "fullartwork" to stringResource(R.string.player_artwork_style_fullartwork),
+                "fullartwork_low" to stringResource(R.string.player_artwork_style_fullartwork_low),
                 "normal" to stringResource(R.string.player_artwork_style_normal),
                 "animated_fullartwork" to stringResource(R.string.player_artwork_style_animated)
             )
@@ -436,27 +423,6 @@ fun MainSettingsMenu(
         )
     }
 
-    if (showBackdropStyleDialog) {
-        val backdropOptions = if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE) {
-            listOf(
-                "accord" to stringResource(R.string.full_artwork_backdrop_style_accord)
-            )
-        } else {
-            listOf(
-                "apple_music" to stringResource(R.string.full_artwork_backdrop_style_apple_music),
-                "accord" to stringResource(R.string.full_artwork_backdrop_style_accord)
-            )
-        }
-        SingleChoiceDialog(
-            title = stringResource(R.string.full_artwork_backdrop_style_title),
-            options = backdropOptions,
-            selectedValue = if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE) "accord" else currentBackdropStyle,
-            onDismiss = { showBackdropStyleDialog = false },
-            onSelect = {
-                LibraryManager.saveFullArtworkBackdropStyle(it)
-            }
-        )
-    }
 }
 
 // Sub-screen: Lyrics

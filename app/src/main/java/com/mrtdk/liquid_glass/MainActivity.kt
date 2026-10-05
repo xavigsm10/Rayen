@@ -254,10 +254,9 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(currentGlassStyleFlow) {
                     glassStyle = currentGlassStyleFlow
                 }
-                val currentBackdropStyle by LibraryManager.fullArtworkBackdropStyle.collectAsState()
                 val bottomTabsStyle by LibraryManager.bottomTabsStyle.collectAsState()
                 val isUltraPerformance by LibraryManager.ultraPerformanceMode.collectAsState()
-                val isLightweightGlass = currentBackdropStyle == "accord" || isUltraPerformance
+                val isLightweightGlass = isUltraPerformance
                 val lastSavedState = remember { com.mrtdk.liquid_glass.data.LibraryManager.getLastPlayerState() }
                 var playerState by remember { mutableStateOf<PlayerState?>(lastSavedState) }
                 var isFirstStateLoad by remember { mutableStateOf(true) }

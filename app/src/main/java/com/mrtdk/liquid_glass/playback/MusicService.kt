@@ -190,32 +190,53 @@ class MusicService : MediaSessionService() {
     }
 
     /**
-     * Rellena upNext con autoplay cuando la cola se vacía, para que "siguiente"
-     * funcione siempre. No toca el automix: solo agrega canciones a la cola.
+     * Rellena upNext con autoplay de forma proactiva (cuando quedan <= 4 canciones),
+     * utilizando continuation tokens si existen al estilo Echo-Music, para que
+     * la música nunca se detenga en segundo plano ni tras 3 canciones.
      */
     private fun triggerRadioRefillIfNeeded() {
         val queue = com.mrtdk.liquid_glass.playback.PlaybackQueue
-        if (queue.upNextSongs.isNotEmpty()) return
+        if (queue.upNextSongs.size > 4) return
         if (com.mrtdk.liquid_glass.data.LibraryManager.getString("autoplay_similar", "true") != "true") return
         if (queue.isExclusiveQueue) return
         val seed = queue.currentSong?.videoId ?: queue.queueSeedVideoId ?: return
         if (radioRefillJob?.isActive == true) return
         radioRefillJob = serviceScope.launch(Dispatchers.IO) {
             try {
-                var result = YouTube.next(com.echo.innertube.models.WatchEndpoint(videoId = seed)).getOrNull()
+                val currentEndpoint = queue.queueEndpoint
+                val currentContinuation = queue.queueContinuation
+                var result: com.echo.innertube.pages.NextResult? = null
+
+                // 1. Si tenemos continuation token, obtener la siguiente página
+                if (currentEndpoint != null && currentContinuation != null) {
+                    result = YouTube.next(currentEndpoint, currentContinuation).getOrNull()
+                }
+
+                // 2. Si no hay continuation o falló, consultar con endpoint inicial
+                if (result == null || result.items.isEmpty()) {
+                    val endpoint = currentEndpoint ?: com.echo.innertube.models.WatchEndpoint(videoId = seed)
+                    result = YouTube.next(endpoint).getOrNull()
+                }
+
+                // 3. Fallback a radio de YouTube con RDAMVM
                 if (result == null || result.items.isEmpty()) {
                     val fallback = com.echo.innertube.models.WatchEndpoint(videoId = seed, playlistId = "RDAMVM$seed")
                     result = YouTube.next(fallback).getOrNull()
                 }
+
                 val res = result ?: return@launch
                 val nonVideo = res.items.filterNot { it.isVideoSong }
                 val finalItems = nonVideo.ifEmpty { res.items }
-                val nextItems = if (finalItems.isNotEmpty() && finalItems.first().id == seed) finalItems.drop(1) else finalItems
+                
+                val currentSongId = queue.currentSong?.videoId
+                val existingIds = (queue.upNextSongs.map { it.id } + listOfNotNull(currentSongId)).toSet()
+                val nextItems = finalItems.filter { it.id !in existingIds }
+
                 if (nextItems.isEmpty()) return@launch
                 withContext(Dispatchers.Main) {
                     queue.queueEndpoint = res.endpoint
                     queue.queueContinuation = res.continuation
-                    queue.upNextSongs = nextItems
+                    queue.upNextSongs = if (queue.upNextSongs.isEmpty()) nextItems else (queue.upNextSongs + nextItems)
                     queue.onQueueChanged?.invoke()
                 }
             } catch (e: Exception) {
@@ -530,8 +551,11 @@ class MusicService : MediaSessionService() {
                     songRetryCounts.clear()
                     applySoundCheckIfNeeded(targetPlayer.audioSessionId)
                     applyDolbyAtmosIfNeeded(targetPlayer.audioSessionId)
-                    if (targetPlayer == activePlayer && com.mrtdk.liquid_glass.playback.PlaybackQueue.isAutomixEnabled) {
-                        startTrackEndMonitor()
+                    if (targetPlayer == activePlayer) {
+                        triggerRadioRefillIfNeeded()
+                        if (com.mrtdk.liquid_glass.playback.PlaybackQueue.isAutomixEnabled) {
+                            startTrackEndMonitor()
+                        }
                     }
                 }
 
@@ -543,6 +567,21 @@ class MusicService : MediaSessionService() {
                         val nextState = com.mrtdk.liquid_glass.playback.PlaybackQueue.getNextSongAndAdvance(activePlayer.repeatMode)
                         if (nextState != null) {
                             playSongState(nextState)
+                        } else {
+                            // Si la cola se agotó pero el usuario tiene activado autoplay similar,
+                            // intentamos recargar inmediatamente y reproducir para que la música no se corte
+                            if (com.mrtdk.liquid_glass.data.LibraryManager.getString("autoplay_similar", "true") == "true" &&
+                                !com.mrtdk.liquid_glass.playback.PlaybackQueue.isExclusiveQueue
+                            ) {
+                                serviceScope.launch {
+                                    triggerRadioRefillIfNeeded()
+                                    radioRefillJob?.join()
+                                    val recoveredNext = com.mrtdk.liquid_glass.playback.PlaybackQueue.getNextSongAndAdvance(activePlayer.repeatMode)
+                                    if (recoveredNext != null) {
+                                        playSongState(recoveredNext)
+                                    }
+                                }
+                            }
                         }
                     }
                 }

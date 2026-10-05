@@ -484,9 +484,13 @@ object YouTube {
     }
 
     suspend fun playlist(playlistId: String): Result<PlaylistPage> = runCatching {
+        val cleanId = playlistId.trim().removePrefix("VL")
+        if (cleanId.isBlank() || cleanId.contains(" ") || cleanId.startsWith("offline_") || cleanId.startsWith("user_playlist_")) {
+            throw IllegalArgumentException("Invalid playlist ID: $playlistId")
+        }
         val response = innerTube.browse(
             client = WEB_REMIX,
-            browseId = "VL$playlistId",
+            browseId = "VL$cleanId",
             setLogin = true
         ).body<BrowseResponse>()
 

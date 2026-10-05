@@ -445,10 +445,16 @@ fun AlbumScreen(
                 tracks = albumSongs
             } else {
                 var loaded = false
-                val isAlbum = albumState.id.startsWith("MPREb") || albumState.id.startsWith("FEmusic")
-                val errors = mutableListOf<String>()
-                if (isAlbum) {
-                    YouTube.album(albumState.id).onSuccess { albumPage ->
+                val cleanId = albumState.id.trim()
+                val cleanPlaylistId = albumState.playlistId.trim().removePrefix("VL")
+                val isDirectAlbum = cleanId.startsWith("MPRE") || cleanId.startsWith("FEmusic")
+                val isValidPlaylist = cleanPlaylistId.isNotBlank() && !cleanPlaylistId.contains(" ") && 
+                        (cleanPlaylistId.startsWith("OLAK") || cleanPlaylistId.startsWith("PL") || cleanPlaylistId.startsWith("RD") || cleanPlaylistId.startsWith("LM"))
+                val isValidIdAsPlaylist = cleanId.isNotBlank() && !cleanId.contains(" ") && 
+                        (cleanId.startsWith("OLAK") || cleanId.startsWith("PL") || cleanId.startsWith("RD") || cleanId.startsWith("LM"))
+
+                if (isDirectAlbum) {
+                    YouTube.album(cleanId).onSuccess { albumPage ->
                         tracks = albumPage.songs
                         albumDescription = albumPage.description
                         loaded = true
@@ -458,50 +464,23 @@ fun AlbumScreen(
                                 artistPageData = artPage
                             }
                         }
-                    }.onFailure { err ->
-                        errors.add("Album API error: ${err.localizedMessage ?: err.toString()}")
-                        val pId = albumState.playlistId.ifEmpty { albumState.id }.removePrefix("VL")
-                        YouTube.playlist(pId).onSuccess { playlistPage ->
-                            tracks = playlistPage.songs
-                            loaded = true
-                        }.onFailure { err2 ->
-                            errors.add("Playlist fallback error: ${err2.localizedMessage ?: err2.toString()}")
+                    }.onFailure {
+                        val fallbackPId = if (isValidPlaylist) cleanPlaylistId else if (isValidIdAsPlaylist) cleanId else null
+                        if (fallbackPId != null) {
+                            YouTube.playlist(fallbackPId).onSuccess { playlistPage ->
+                                tracks = playlistPage.songs
+                                loaded = true
+                            }
                         }
                     }
-                } else {
-                    val pId = albumState.playlistId.ifEmpty { albumState.id }.removePrefix("VL")
+                } else if (isValidPlaylist || isValidIdAsPlaylist) {
+                    val pId = if (isValidPlaylist) cleanPlaylistId else cleanId
                     YouTube.playlist(pId).onSuccess { playlistPage ->
                         tracks = playlistPage.songs
                         loaded = true
-                    }.onFailure { err ->
-                        errors.add("Playlist API error: ${err.localizedMessage ?: err.toString()}")
-                        YouTube.album(albumState.id).onSuccess { albumPage ->
-                            tracks = albumPage.songs
-                            albumDescription = albumPage.description
-                            loaded = true
-                            val artistId = albumPage.album.artists?.firstOrNull()?.id
-                            if (!artistId.isNullOrBlank()) {
-                                YouTube.artist(artistId).onSuccess { artPage ->
-                                    artistPageData = artPage
-                                }
-                            }
-                        }.onFailure { err2 ->
-                            errors.add("Album fallback error: ${err2.localizedMessage ?: err2.toString()}")
-                        }
-                    }
-                }
-                
-                // Fallback to online search if direct ID fetch failed
-                if (!loaded || tracks.isEmpty()) {
-                    try {
-                        val query = "${albumState.title} ${albumState.artist}".trim()
-                        val searchResult = YouTube.search(query, YouTube.SearchFilter.FILTER_ALBUM).getOrNull()
-                        val foundAlbum = searchResult?.items?.filterIsInstance<com.echo.innertube.models.AlbumItem>()?.firstOrNull {
-                            it.title.equals(albumState.title, ignoreCase = true)
-                        } ?: searchResult?.items?.filterIsInstance<com.echo.innertube.models.AlbumItem>()?.firstOrNull()
-
-                        if (foundAlbum != null) {
-                            YouTube.album(foundAlbum.browseId).onSuccess { albumPage ->
+                    }.onFailure {
+                        if (cleanId.startsWith("MPRE") || cleanId.startsWith("FEmusic")) {
+                            YouTube.album(cleanId).onSuccess { albumPage ->
                                 tracks = albumPage.songs
                                 albumDescription = albumPage.description
                                 loaded = true
@@ -511,13 +490,52 @@ fun AlbumScreen(
                                         artistPageData = artPage
                                     }
                                 }
-                            }.onFailure {
-                                if (!foundAlbum.playlistId.isNullOrBlank()) {
+                            }
+                        }
+                    }
+                }
+                
+                // Fallback to online search if direct ID fetch failed or wasn't a valid direct ID
+                if (!loaded || tracks.isEmpty()) {
+                    try {
+                        val cleanTitle = albumState.title.replace(Regex("(?i)\\b(album|single|ep|deluxe|version)\\b"), "").trim()
+                        val query = "$cleanTitle ${albumState.artist}".trim()
+                        if (query.isNotBlank()) {
+                            val searchResult = YouTube.search(query, YouTube.SearchFilter.FILTER_ALBUM).getOrNull()
+                            val foundAlbum = searchResult?.items?.filterIsInstance<com.echo.innertube.models.AlbumItem>()?.firstOrNull {
+                                it.title.equals(albumState.title, ignoreCase = true)
+                            } ?: searchResult?.items?.filterIsInstance<com.echo.innertube.models.AlbumItem>()?.firstOrNull()
+
+                            if (foundAlbum != null) {
+                                if (foundAlbum.browseId.isNotBlank() && (foundAlbum.browseId.startsWith("MPRE") || foundAlbum.browseId.startsWith("FEmusic"))) {
+                                    YouTube.album(foundAlbum.browseId).onSuccess { albumPage ->
+                                        tracks = albumPage.songs
+                                        albumDescription = albumPage.description
+                                        loaded = true
+                                        val artistId = albumPage.album.artists?.firstOrNull()?.id
+                                        if (!artistId.isNullOrBlank()) {
+                                            YouTube.artist(artistId).onSuccess { artPage ->
+                                                artistPageData = artPage
+                                            }
+                                        }
+                                    }
+                                }
+                                if (!loaded && !foundAlbum.playlistId.isNullOrBlank()) {
                                     val fallbackPId = foundAlbum.playlistId.removePrefix("VL")
                                     YouTube.playlist(fallbackPId).onSuccess { playlistPage ->
                                         tracks = playlistPage.songs
                                         loaded = true
                                     }
+                                }
+                            }
+
+                            // If album search returned nothing, fallback to song search to populate the track list
+                            if (!loaded || tracks.isEmpty()) {
+                                val songSearch = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()
+                                val songsFound = songSearch?.items?.filterIsInstance<com.echo.innertube.models.SongItem>().orEmpty()
+                                if (songsFound.isNotEmpty()) {
+                                    tracks = songsFound
+                                    loaded = true
                                 }
                             }
                         }
@@ -540,9 +558,8 @@ fun AlbumScreen(
                         }
                         albumError = null
                     } else {
-                        if (errors.isNotEmpty()) {
-                            albumError = errors.joinToString("\n")
-                        }
+                        // Friendly user message instead of technical HTTP 400 error dump
+                        albumError = "No se pudieron encontrar las canciones de este álbum."
                     }
                 } else {
                     albumError = null

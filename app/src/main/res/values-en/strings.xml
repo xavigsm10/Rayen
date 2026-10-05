@@ -130,6 +130,7 @@
     <string name="bottom_tabs_style_title">Bottom tabs</string>
     <string name="bottom_tabs_style_ios26">iOS 26 style</string>
     <string name="bottom_tabs_style_ios27">iOS 27 style</string>
+    <string name="bottom_tabs_style_m3">Material 3 Expressive</string>
     <string name="search_field_hint">Artists, Songs, Lyrics, and More</string>
     <string name="audio_settings_section">AUDIO</string>
     <string name="audio_quality_label">Audio Quality</string>
@@ -606,11 +607,10 @@
     <!-- Appearance / Artwork Styles -->
     <string name="player_artwork_style_title">Appearance</string>
     <string name="player_artwork_style_fullartwork">Full Artwork</string>
+    <string name="player_artwork_style_fullartwork_low">Low-end fullartwork</string>
     <string name="player_artwork_style_normal">Normal</string>
     <string name="player_artwork_style_animated">Animated covers only with full artwork</string>
-    <string name="full_artwork_backdrop_style_title">Fullartwork backdrop effect</string>
-    <string name="full_artwork_backdrop_style_apple_music">Apple Music (Original blur)</string>
-    <string name="full_artwork_backdrop_style_accord">Smooth fade (Low-end)</string>
+
     <string name="estilo_solido_material3">Solid (Material 3)</string>
     <string name="ultra_performance_mode_title">Ultra Performance Mode (Low-End)</string>
     <string name="ultra_performance_mode_desc">Optimizes the app for modest devices by disabling heavy blurs and liquid glass backdrops</string>
@@ -685,11 +685,7 @@
     <string name="welcome_art_full_desc">All album covers (both static and animated) expand to fill the entire screen.</string>
     <string name="welcome_art_normal_title">Normal (Standard card)</string>
     <string name="welcome_art_normal_desc">Classic centered square card with rounded corners and elegant Apple Music-style shadow.</string>
-    <string name="welcome_backdrop_section_title">Fullartwork Backdrop Effect</string>
-    <string name="welcome_backdrop_apple_music_title">Apple Music Reflection</string>
-    <string name="welcome_backdrop_apple_music_sub">Dynamic gradient</string>
-    <string name="welcome_backdrop_accord_title">Full artwork background</string>
-    <string name="welcome_backdrop_accord_sub">Animated fluid</string>
+
     <string name="welcome_bottom_tabs_section_title">Bottom Tabs Style</string>
     <string name="welcome_bottom_tabs_ios26_title">iOS 26 Style</string>
     <string name="welcome_bottom_tabs_ios26_sub">Standard bar</string>
