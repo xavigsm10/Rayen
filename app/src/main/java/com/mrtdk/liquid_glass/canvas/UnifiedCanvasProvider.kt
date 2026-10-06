@@ -59,46 +59,9 @@ object UnifiedCanvasProvider {
 
         var candidateArtwork: CanvasArtwork? = null
 
-        for ((s, a) in searchPairs) {
-            // 1. EchoMusic direct JSON manifest (motion covers mapped to song/artist)
-            try {
-                val echoRes = EchoMusicCanvasProvider.getBySongArtist(s, a)
-                if (!echoRes?.preferredAnimationUrl.isNullOrBlank()) {
-                    candidateArtwork = echoRes
-                    break
-                }
-            } catch (_: Exception) {}
-
-            // 2. Apple Music by song/artist with album resolution (official studio HLS master streams)
-            try {
-                val amRes = AppleMusicCanvasProvider.getBySongArtist(s, a, requestedAlbum.ifBlank { null }, storefront)
-                if (!amRes?.preferredAnimationUrl.isNullOrBlank()) {
-                    candidateArtwork = amRes
-                    break
-                }
-            } catch (_: Exception) {}
-
-            // 3. Tidal video covers (official studio 1280x1280 60fps)
-            try {
-                val tidalRes = TidalCanvasProvider.getBySongArtist(s, a, requestedAlbum.ifBlank { null })
-                if (!tidalRes?.preferredAnimationUrl.isNullOrBlank()) {
-                    candidateArtwork = tidalRes
-                    break
-                }
-            } catch (_: Exception) {}
-
-            // 4. ArchiveTune / Koiiverse fallback
-            try {
-                val archiveRes = ArtistVideoCanvasProvider.getBySongArtist(s, a, requestedAlbum.ifBlank { null })
-                if (!archiveRes?.preferredAnimationUrl.isNullOrBlank()) {
-                    candidateArtwork = archiveRes
-                    break
-                }
-            } catch (_: Exception) {}
-        }
-
-        // 5. Album motion fallback if song search did not yield direct motion video
-        if (candidateArtwork == null && requestedAlbum.isNotBlank()) {
+        // 1. Si la canción tiene álbum (la inmensa mayoría de portadas animadas oficiales están a nivel de álbum),
+        // consultar el álbum primero para obtener respuesta inmediata (altiro)
+        if (requestedAlbum.isNotBlank()) {
             val albumCandidates = linkedSetOf(requestedAlbum, normalizeCanvasSongTitle(requestedAlbum))
             for (alb in albumCandidates.filter { it.isNotBlank() }) {
                 try {
@@ -113,6 +76,47 @@ object UnifiedCanvasProvider {
                     val tidalAlb = TidalCanvasProvider.getByAlbumArtist(alb, rawArtist)
                     if (!tidalAlb?.preferredAnimationUrl.isNullOrBlank()) {
                         candidateArtwork = tidalAlb
+                        break
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+
+        // 2. Si no se encontró por álbum o es un sencillo, buscar por canción/artista
+        if (candidateArtwork == null) {
+            for ((s, a) in searchPairs) {
+                // EchoMusic direct JSON manifest
+                try {
+                    val echoRes = EchoMusicCanvasProvider.getBySongArtist(s, a)
+                    if (!echoRes?.preferredAnimationUrl.isNullOrBlank()) {
+                        candidateArtwork = echoRes
+                        break
+                    }
+                } catch (_: Exception) {}
+
+                // Apple Music by song/artist
+                try {
+                    val amRes = AppleMusicCanvasProvider.getBySongArtist(s, a, requestedAlbum.ifBlank { null }, storefront)
+                    if (!amRes?.preferredAnimationUrl.isNullOrBlank()) {
+                        candidateArtwork = amRes
+                        break
+                    }
+                } catch (_: Exception) {}
+
+                // Tidal video covers
+                try {
+                    val tidalRes = TidalCanvasProvider.getBySongArtist(s, a, requestedAlbum.ifBlank { null })
+                    if (!tidalRes?.preferredAnimationUrl.isNullOrBlank()) {
+                        candidateArtwork = tidalRes
+                        break
+                    }
+                } catch (_: Exception) {}
+
+                // ArchiveTune / Koiiverse fallback
+                try {
+                    val archiveRes = ArtistVideoCanvasProvider.getBySongArtist(s, a, requestedAlbum.ifBlank { null })
+                    if (!archiveRes?.preferredAnimationUrl.isNullOrBlank()) {
+                        candidateArtwork = archiveRes
                         break
                     }
                 } catch (_: Exception) {}

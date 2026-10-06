@@ -255,12 +255,17 @@ fun AlbumScreen(
         else -> isFavoriteSongs
     }
 
-    LaunchedEffect(albumState.artist, albumState.title, tracks.firstOrNull()?.title) {
+    LaunchedEffect(albumState.artist, albumState.title) {
         val artist = albumState.artist
         val album = albumState.title
-        val firstSong = tracks.firstOrNull()?.title
         if (isAnimatedArtworkBlocked) return@LaunchedEffect
+        val fastCached = com.mrtdk.liquid_glass.ui.components.AnimatedArtworkCache.get(artist, album)
+        if (fastCached != null) {
+            animatedArtworkUrl = fastCached
+            return@LaunchedEffect
+        }
         if (animatedArtworkUrl != null) return@LaunchedEffect
+        val firstSong = tracks.firstOrNull()?.title
         withContext(Dispatchers.IO) {
             // Unified Echo-Music Canvas Provider for Albums (EchoMusic, AppleMusic, Tidal)
             val streamUrl = com.mrtdk.liquid_glass.canvas.UnifiedCanvasProvider.getAlbumCanvas(

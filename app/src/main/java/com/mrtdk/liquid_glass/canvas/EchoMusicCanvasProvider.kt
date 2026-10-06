@@ -42,8 +42,12 @@ object EchoMusicCanvasProvider {
         }
 
         try {
+            val quickClient = CanvasNetworkClient.okHttpClient.newBuilder()
+                .connectTimeout(2, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(2, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
             val request = Request.Builder().url(BASE_URL).build()
-            val response = CanvasNetworkClient.okHttpClient.newCall(request).execute()
+            val response = quickClient.newCall(request).execute()
             if (response.isSuccessful) {
                 val body = response.body?.string().orEmpty()
                 val manifest = json.decodeFromString<EchoMusicCanvasManifest>(body)
@@ -53,9 +57,11 @@ object EchoMusicCanvasProvider {
                 )
                 manifest
             } else {
+                manifestCache = CacheEntry(null, System.currentTimeMillis() + 1000L * 60 * 30)
                 null
             }
         } catch (e: Exception) {
+            manifestCache = CacheEntry(null, System.currentTimeMillis() + 1000L * 60 * 30)
             null
         }
     }

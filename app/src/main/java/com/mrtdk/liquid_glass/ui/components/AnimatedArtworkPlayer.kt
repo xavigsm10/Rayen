@@ -106,7 +106,7 @@ object AnimatedArtworkCache {
 
     fun getForSong(artist: String, title: String, album: String? = null): String? {
         get(artist, title)?.let { return it }
-        if (!album.isNullOrBlank() && title.equals(album, ignoreCase = true)) {
+        if (!album.isNullOrBlank()) {
             get(artist, album)?.let { return it }
         }
         return null
@@ -124,6 +124,9 @@ object AnimatedArtworkCache {
 
     fun putForSong(artist: String, title: String, album: String? = null, url: String) {
         put(artist, title, url)
+        if (!album.isNullOrBlank()) {
+            put(artist, album, url)
+        }
     }
 
     fun remove(artist: String, albumOrTitle: String) {

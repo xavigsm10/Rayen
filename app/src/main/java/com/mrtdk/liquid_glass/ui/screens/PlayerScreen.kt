@@ -1960,6 +1960,19 @@ fun PlayerScreen(
                             )
                         }
                     }
+                    val canvasCached = com.mrtdk.liquid_glass.ui.components.AnimatedArtworkCache.getForSong(qItem.artist, qItem.title, qItem.album) != null
+                    if (!canvasCached) {
+                        launch(Dispatchers.IO) {
+                            val streamUrl = com.mrtdk.liquid_glass.canvas.UnifiedCanvasProvider.getSongCanvas(
+                                songTitle = qItem.title,
+                                artist = qItem.artist,
+                                album = qItem.album
+                            )
+                            if (!streamUrl.isNullOrBlank() && com.mrtdk.liquid_glass.canvas.CanvasArtwork.isValidVideoUrl(streamUrl)) {
+                                com.mrtdk.liquid_glass.ui.components.AnimatedArtworkCache.putForSong(qItem.artist, qItem.title, qItem.album, streamUrl)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1976,6 +1989,19 @@ fun PlayerScreen(
                                 -1,
                                 songItem.album?.name
                             )
+                        }
+                    }
+                    val canvasCached = com.mrtdk.liquid_glass.ui.components.AnimatedArtworkCache.getForSong(artName, songItem.title, songItem.album?.name) != null
+                    if (!canvasCached) {
+                        launch(Dispatchers.IO) {
+                            val streamUrl = com.mrtdk.liquid_glass.canvas.UnifiedCanvasProvider.getSongCanvas(
+                                songTitle = songItem.title,
+                                artist = artName,
+                                album = songItem.album?.name
+                            )
+                            if (!streamUrl.isNullOrBlank() && com.mrtdk.liquid_glass.canvas.CanvasArtwork.isValidVideoUrl(streamUrl)) {
+                                com.mrtdk.liquid_glass.ui.components.AnimatedArtworkCache.putForSong(artName, songItem.title, songItem.album?.name, streamUrl)
+                            }
                         }
                     }
                 }
@@ -2021,13 +2047,16 @@ fun PlayerScreen(
             val album = playerState?.album
             isVideoPlaying = false
             motionCoverBitmap = null
-            if (!isUltraPerformance && !isFullArtworkLow) {
-                coverBitmap = null
-            }
+            coverBitmap = null
             hasGeneratedMotionBackdrop = false
             frameToken++
 
             if (artist.isNullOrBlank() || title.isNullOrBlank()) return@LaunchedEffect
+            val fastCached = com.mrtdk.liquid_glass.ui.components.AnimatedArtworkCache.getForSong(artist, title, album)
+            if (fastCached != null) {
+                animatedArtworkUrl = fastCached
+                return@LaunchedEffect
+            }
             if (animatedArtworkUrl != null) return@LaunchedEffect
 
             withContext(Dispatchers.IO) {
@@ -2868,12 +2897,12 @@ fun PlayerScreen(
                         .clipToBounds()
                 ) {
                     val currentBitmap = if (!animatedArtworkUrl.isNullOrBlank()) {
-                        if (isVideoPlaying) coverBitmap else null
+                        if (isVideoPlaying) motionCoverBitmap else null
                     } else {
                         coverBitmap
                     }
                     val mirrorModel = if (!animatedArtworkUrl.isNullOrBlank()) {
-                        if (isVideoPlaying && coverBitmap != null) coverBitmap else mirrorArtModel
+                        if (isVideoPlaying && motionCoverBitmap != null) motionCoverBitmap else if (isVideoPlaying) null else mirrorArtModel
                     } else {
                         mirrorArtModel ?: currentBitmap
                     }
@@ -4058,52 +4087,51 @@ fun PlayerScreen(
                                     }
                                 }
                         ) {
-                            if (isFullArtworkLow) {
-                                // Fullartwork Gama Baja: Difuminado en memoria de 0% GPU shaders con la misma curva y suavizado perfecto
-                                if (curveDiffusedBitmap != null) {
-                                    Image(
-                                        bitmap = curveDiffusedBitmap,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        filterQuality = FilterQuality.Medium,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                } else if (blurArtKey != null) {
-                                    AsyncImage(
-                                        model = ImageRequest.Builder(context)
-                                            .data(blurArtKey)
-                                            .transformations(com.mrtdk.liquid_glass.ui.components.LowEndSmallBlurTransformation())
-                                            .precision(coil.size.Precision.EXACT)
-                                            .allowHardware(false)
-                                            .listener(
-                                                onSuccess = { _, result ->
-                                                    val bmp = (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
-                                                    if (bmp != null) {
-                                                        com.mrtdk.liquid_glass.ui.components.lowResBlurCache.put(blurArtKey, bmp.asImageBitmap())
-                                                    }
-                                                }
-                                            )
-                                            .build(),
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        filterQuality = FilterQuality.Medium,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
+                            if (isVideoPlaying) {
+                                if (isFullArtworkLow) {
+                                    // Fullartwork Gama Baja: Difuminado en memoria de 0% GPU shaders siguiendo la portada animada
+                                    val motionDiffused = remember(motionCoverBitmap) {
+                                        val src = motionCoverBitmap?.asAndroidBitmap()
+                                        if (src != null && !src.isRecycled) {
+                                            try {
+                                                com.mrtdk.liquid_glass.ui.components.blurSmallBitmap(src).asImageBitmap()
+                                            } catch (_: Throwable) {
+                                                null
+                                            }
+                                        } else null
+                                    }
+
+                                    if (motionDiffused != null) {
+                                        Image(
+                                            bitmap = motionDiffused,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            filterQuality = FilterQuality.Medium,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(
+                                                    Brush.verticalGradient(
+                                                        colors = listOf(
+                                                            Color.Transparent,
+                                                            bottomAverageColor.copy(alpha = 0.60f),
+                                                            dominantColor.copy(alpha = 0.85f)
+                                                        )
+                                                    )
+                                                )
+                                        )
+                                    }
                                 } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(bottomAverageColor)
-                                    )
-                                }
-                            } else if (isVideoPlaying) {
-                                val currentMotionBmp = motionCoverBitmap
-                                val token = frameToken
-                                if (currentMotionBmp != null) {
-                                    Canvas(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer {
+                                    val currentMotionBmp = motionCoverBitmap
+                                    val token = frameToken
+                                    if (currentMotionBmp != null) {
+                                        Canvas(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .graphicsLayer {
                                                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                                                     renderEffect = android.graphics.RenderEffect
                                                         .createBlurEffect(20f, 20f, android.graphics.Shader.TileMode.MIRROR)
@@ -4158,7 +4186,46 @@ fun PlayerScreen(
                                             )
                                     )
                                 }
+                            }
+                        } else if (isFullArtworkLow) {
+                            // Fullartwork Gama Baja: Canción sin portada animada (portada estática pura)
+                            if (curveDiffusedBitmap != null) {
+                                Image(
+                                    bitmap = curveDiffusedBitmap,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    filterQuality = FilterQuality.Medium,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else if (blurArtKey != null) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(blurArtKey)
+                                        .transformations(com.mrtdk.liquid_glass.ui.components.LowEndSmallBlurTransformation())
+                                        .precision(coil.size.Precision.EXACT)
+                                        .allowHardware(false)
+                                        .listener(
+                                            onSuccess = { _, result ->
+                                                val bmp = (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                                                if (bmp != null) {
+                                                    com.mrtdk.liquid_glass.ui.components.lowResBlurCache.put(blurArtKey, bmp.asImageBitmap())
+                                                }
+                                            }
+                                        )
+                                        .build(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    filterQuality = FilterQuality.Medium,
+                                    modifier = Modifier.fillMaxSize()
+                                )
                             } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(bottomAverageColor)
+                                )
+                            }
+                        } else {
                                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                                     AsyncImage(
                                         model = ImageRequest.Builder(context)
