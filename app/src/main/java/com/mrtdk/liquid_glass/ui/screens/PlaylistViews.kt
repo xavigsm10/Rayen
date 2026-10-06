@@ -160,6 +160,12 @@ fun PlaylistsListScreen(
     val localBackdrop = rememberLayerBackdrop()
     val pillBackdrop = rememberLayerBackdrop()
 
+    val isDarkThemePlaylists by ThemeManager.isDarkMode.collectAsState()
+    val playlistsTextColor = if (isDarkThemePlaylists) Color.White else Color(0xFF1C1C1E)
+    val playlistsPillIconTint = if (isDarkThemePlaylists) Color(0xFFFA243C) else Color(0xFF1C1C1E)
+    val playlistsChevronColor = if (isDarkThemePlaylists) Color.Gray else Color(0xFF8E8E93)
+    val playlistsDividerColor = if (isDarkThemePlaylists) Color.DarkGray.copy(alpha = 0.5f) else Color(0xFFE5E5EA)
+
     val sortedPlaylists = remember(playlists, sortBy.value) {
         playlists.sortedWith { a, b ->
             if (a.isPinned && !b.isPinned) -1
@@ -225,7 +231,7 @@ fun PlaylistsListScreen(
                                         .androidLiquidGlassEffect(
                                             backdrop = pillBackdrop,
                                             shape = { Capsule() },
-                                            isDark = ThemeManager.isDarkMode.collectAsState().value,
+                                            isDark = isDarkThemePlaylists,
                                             refractionHeight = 24.dp,
                                             refractionAmount = 48.dp
                                         )
@@ -235,14 +241,14 @@ fun PlaylistsListScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Box {
                                             IconButton(onClick = { showCreateOptions = true }, modifier = Modifier.size(36.dp)) {
-                                                Icon(Icons.Default.Add, contentDescription = "Add", tint = Color(0xFFFA243C), modifier = Modifier.size(20.dp))
+                                                Icon(Icons.Default.Add, contentDescription = "Add", tint = playlistsPillIconTint, modifier = Modifier.size(20.dp))
                                             }
                                         }
                                         IconButton(onClick = { showSortMenu = true }, modifier = Modifier.size(36.dp)) {
-                                            Icon(Icons.Default.Sort, contentDescription = "Sort", tint = Color(0xFFFA243C), modifier = Modifier.size(20.dp))
+                                            Icon(Icons.Default.Sort, contentDescription = "Sort", tint = playlistsPillIconTint, modifier = Modifier.size(20.dp))
                                         }
                                         IconButton(onClick = { showMoreMenu = true }, modifier = Modifier.size(36.dp)) {
-                                            Icon(Icons.Default.MoreHoriz, contentDescription = "More", tint = Color(0xFFFA243C), modifier = Modifier.size(20.dp))
+                                            Icon(Icons.Default.MoreHoriz, contentDescription = "More", tint = playlistsPillIconTint, modifier = Modifier.size(20.dp))
                                         }
                                     }
                                 }
@@ -252,7 +258,7 @@ fun PlaylistsListScreen(
                         item(span = { GridItemSpan(2) }) {
                             Text(
                                 text = stringResource(R.string.playlists),
-                                color = Color.White,
+                                color = playlistsTextColor,
                                 fontSize = 34.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 8.dp)
@@ -290,7 +296,7 @@ fun PlaylistsListScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = stringResource(R.string.favorite_songs),
-                                    color = Color.White,
+                                    color = playlistsTextColor,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1,
@@ -338,7 +344,7 @@ fun PlaylistsListScreen(
                                         .onGloballyPositioned { imageCoords = it }
                                         .sharedTransitionElement(pl.id)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFF1C1C1E)),
+                                        .background(if (isDarkThemePlaylists) Color(0xFF1C1C1E) else Color(0xFFE5E5EA)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     val imageUrl = pl.coverUrl ?: (if (pl.items.isNotEmpty()) pl.items.first().thumbnail else null)
@@ -360,7 +366,7 @@ fun PlaylistsListScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = pl.name,
-                                    color = Color.White,
+                                    color = playlistsTextColor,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1,
@@ -402,7 +408,7 @@ fun PlaylistsListScreen(
                                         .androidLiquidGlassEffect(
                                             backdrop = pillBackdrop,
                                             shape = { Capsule() },
-                                            isDark = ThemeManager.isDarkMode.collectAsState().value,
+                                            isDark = isDarkThemePlaylists,
                                             refractionHeight = 24.dp,
                                             refractionAmount = 48.dp
                                         )
@@ -412,14 +418,14 @@ fun PlaylistsListScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Box {
                                             IconButton(onClick = { showCreateOptions = true }, modifier = Modifier.size(36.dp)) {
-                                                Icon(Icons.Default.Add, contentDescription = "Add", tint = Color(0xFFFA243C), modifier = Modifier.size(20.dp))
+                                                Icon(Icons.Default.Add, contentDescription = "Add", tint = playlistsPillIconTint, modifier = Modifier.size(20.dp))
                                             }
                                         }
                                         IconButton(onClick = { showSortMenu = true }, modifier = Modifier.size(36.dp)) {
-                                            Icon(Icons.Default.Sort, contentDescription = "Sort", tint = Color(0xFFFA243C), modifier = Modifier.size(20.dp))
+                                            Icon(Icons.Default.Sort, contentDescription = "Sort", tint = playlistsPillIconTint, modifier = Modifier.size(20.dp))
                                         }
                                         IconButton(onClick = { showMoreMenu = true }, modifier = Modifier.size(36.dp)) {
-                                            Icon(Icons.Default.MoreHoriz, contentDescription = "More", tint = Color(0xFFFA243C), modifier = Modifier.size(20.dp))
+                                            Icon(Icons.Default.MoreHoriz, contentDescription = "More", tint = playlistsPillIconTint, modifier = Modifier.size(20.dp))
                                         }
                                     }
                                 }
@@ -429,7 +435,7 @@ fun PlaylistsListScreen(
                         item {
                             Text(
                                 text = stringResource(R.string.playlists),
-                                color = Color.White,
+                                color = playlistsTextColor,
                                 fontSize = 34.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 16.dp)
@@ -469,7 +475,7 @@ fun PlaylistsListScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = stringResource(R.string.favorite_songs),
-                                        color = Color.White,
+                                        color = playlistsTextColor,
                                         fontSize = 17.sp,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -480,9 +486,9 @@ fun PlaylistsListScreen(
                                         fontSize = 14.sp
                                     )
                                 }
-                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
+                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = playlistsChevronColor)
                             }
-                            androidx.compose.material3.Divider(modifier = Modifier.padding(start = 104.dp), color = Color.DarkGray.copy(alpha = 0.5f), thickness = 0.5.dp)
+                            androidx.compose.material3.Divider(modifier = Modifier.padding(start = 104.dp), color = playlistsDividerColor, thickness = 0.5.dp)
                         }
 
                         items(
@@ -514,7 +520,7 @@ fun PlaylistsListScreen(
                                         .sharedTransitionElement(pl.id)
                                         .size(64.dp)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFF1C1C1E)),
+                                        .background(if (isDarkThemePlaylists) Color(0xFF1C1C1E) else Color(0xFFE5E5EA)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     val imageUrl = pl.coverUrl ?: (if (pl.items.isNotEmpty()) pl.items.first().thumbnail else null)
@@ -537,7 +543,7 @@ fun PlaylistsListScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = pl.name,
-                                        color = Color.White,
+                                        color = playlistsTextColor,
                                         fontSize = 17.sp,
                                         fontWeight = FontWeight.Medium,
                                         maxLines = 1,
@@ -552,9 +558,9 @@ fun PlaylistsListScreen(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
-                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
+                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = playlistsChevronColor)
                             }
-                            androidx.compose.material3.Divider(modifier = Modifier.padding(start = 104.dp), color = Color.DarkGray.copy(alpha = 0.5f), thickness = 0.5.dp)
+                            androidx.compose.material3.Divider(modifier = Modifier.padding(start = 104.dp), color = playlistsDividerColor, thickness = 0.5.dp)
                         }
                     }
                 }
@@ -858,9 +864,15 @@ fun PlaylistDetailScreen(
     } else Color(0xFF2B2B2B)
     val playerArtworkStyle by LibraryManager.playerArtworkStyle.collectAsState()
     val isNormalArtwork = playerArtworkStyle == "normal"
+    val isDarkTheme by ThemeManager.isDarkMode.collectAsState()
     var showAddMusicOverlay by remember { mutableStateOf(false) }
     var dominantColor by remember(currentPlaylist.id) { mutableStateOf(defaultDominantColor) }
-    var contentColor by remember(currentPlaylist.id) { mutableStateOf(Color.White) }
+    var contentColor by remember(currentPlaylist.id) { mutableStateOf(if (defaultDominantColor.luminance() > 0.45f) Color(0xFF1C1C1E) else Color.White) }
+    val isLightBackground = dominantColor.luminance() > 0.45f
+    val playlistIconTint = if (!isDarkTheme) Color(0xFF1C1C1E) else Color.White
+    val playlistButtonTint = if (!isDarkTheme) Color.White.copy(alpha = 0.65f) else dominantColor.copy(alpha = 0.35f)
+    val actionButtonIconTint = if (isLightBackground) Color(0xFF1C1C1E) else Color.White
+    val actionButtonBg = if (isLightBackground) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.22f)
     
     val coverUrl = currentPlaylist.coverUrl ?: (if (currentPlaylist.items.isNotEmpty()) currentPlaylist.items.first().thumbnail else null)
     
@@ -872,14 +884,14 @@ fun PlaylistDetailScreen(
     }
 
     // Exact same color extraction logic
-    LaunchedEffect(coverUrl, isReplay, isMadeForYou) {
+    LaunchedEffect(coverUrl, isReplay, isMadeForYou, isDarkTheme) {
         if (isReplay) {
             dominantColor = Color(0xFF12351B)
-            contentColor = Color.White
+            contentColor = if (Color(0xFF12351B).luminance() > 0.45f) Color(0xFF1C1C1E) else Color.White
         } else if (isMadeForYou) {
             val c = com.mrtdk.liquid_glass.data.MadeForYouRepository.get(currentPlaylist.id)?.gradientColors?.firstOrNull() ?: Color(0xFFE62B00)
             dominantColor = c
-            contentColor = Color.White
+            contentColor = if (c.luminance() > 0.45f) Color(0xFF1C1C1E) else Color.White
         } else if (coverUrl != null) {
             val hdUrl = if (coverUrl is String) {
                 when {
@@ -911,7 +923,7 @@ fun PlaylistDetailScreen(
                     }
                     val sampledColor = Color((r / w).toInt(), (g / w).toInt(), (b / w).toInt())
                     dominantColor = sampledColor
-                    contentColor = if (sampledColor.luminance() > 0.5f) Color.Black else Color.White
+                    contentColor = if (sampledColor.luminance() > 0.45f) Color(0xFF1C1C1E) else Color.White
                 } catch (e: Exception) {}
             }
         }
@@ -1027,14 +1039,14 @@ fun PlaylistDetailScreen(
                                         alpha = popScaleBack
                                     }
                                     .clip(CircleShape)
-                                    .background(dominantColor.copy(alpha = 0.35f))
+                                    .background(playlistButtonTint)
                                     .clickable { dismiss() },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.flecha_atras),
                                         contentDescription = "Back",
-                                        tint = Color.White,
+                                        tint = playlistIconTint,
                                         modifier = Modifier.size(20.dp).offset(x = (-1).dp)
                                     )
                                 }
@@ -1049,7 +1061,7 @@ fun PlaylistDetailScreen(
                                     .width(124.dp)
                                     .height(44.dp)
                                     .clip(ContinuousCapsule)
-                                    .background(dominantColor.copy(alpha = 0.35f)),
+                                    .background(playlistButtonTint),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Row(
@@ -1074,7 +1086,7 @@ fun PlaylistDetailScreen(
                                         Icon(
                                             painter = painterResource(id = R.drawable.compartir),
                                             contentDescription = "Share",
-                                            tint = Color.White,
+                                            tint = playlistIconTint,
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
@@ -1087,7 +1099,7 @@ fun PlaylistDetailScreen(
                                         Icon(
                                             painter = painterResource(id = R.drawable.tres_puntos),
                                             contentDescription = "More",
-                                            tint = Color.White,
+                                            tint = playlistIconTint,
                                             modifier = Modifier.width(22.dp).height(16.dp)
                                         )
                                     }
@@ -1278,7 +1290,7 @@ fun PlaylistDetailScreen(
                                     Icon(
                                         painter = painterResource(id = R.drawable.flecha_atras),
                                         contentDescription = "Back",
-                                        tint = Color.White,
+                                        tint = playlistIconTint,
                                         modifier = Modifier.size(20.dp).offset(x = (-1).dp)
                                     )
                                 }
@@ -1324,7 +1336,7 @@ fun PlaylistDetailScreen(
                                             Icon(
                                                 painter = painterResource(id = R.drawable.compartir),
                                                 contentDescription = "Share",
-                                                tint = Color.White,
+                                                tint = playlistIconTint,
                                                 modifier = Modifier.size(24.dp)
                                             )
                                         }
@@ -1337,7 +1349,7 @@ fun PlaylistDetailScreen(
                                             Icon(
                                                 painter = painterResource(id = R.drawable.tres_puntos),
                                                 contentDescription = "More",
-                                                tint = Color.White,
+                                                tint = playlistIconTint,
                                                 modifier = Modifier.width(22.dp).height(16.dp)
                                             )
                                         }
@@ -1388,14 +1400,12 @@ fun PlaylistDetailScreen(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val darkTranslucent = Color.Black.copy(alpha = 0.35f)
-
                         // Shuffle button
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(darkTranslucent)
+                                .background(actionButtonBg)
                                 .clickable {
                                     if (currentPlaylist.items.isNotEmpty()) {
                                         val songs = currentPlaylist.items.filter { it.type == com.mrtdk.liquid_glass.data.ItemType.SONG }
@@ -1429,7 +1439,7 @@ fun PlaylistDetailScreen(
                             Icon(
                                 imageVector = Icons.Default.Shuffle,
                                 contentDescription = "Shuffle",
-                                tint = Color.White,
+                                tint = actionButtonIconTint,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -1442,7 +1452,7 @@ fun PlaylistDetailScreen(
                                 .width(180.dp)
                                 .height(48.dp)
                                 .clip(RoundedCornerShape(24.dp))
-                                .background(Color.White)
+                                .background(if (isLightBackground) Color(0xFF1C1C1E) else Color.White)
                                 .clickable {
                                     if (currentPlaylist.items.isNotEmpty()) {
                                         val songs = currentPlaylist.items.filter { it.type == com.mrtdk.liquid_glass.data.ItemType.SONG }
@@ -1481,12 +1491,12 @@ fun PlaylistDetailScreen(
                                 Icon(
                                     imageVector = Icons.Default.PlayArrow,
                                     contentDescription = "Play",
-                                    tint = Color.Black,
+                                    tint = if (isLightBackground) Color.White else Color.Black,
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Text(
                                     text = stringResource(R.string.reproducir),
-                                    color = Color.Black,
+                                    color = if (isLightBackground) Color.White else Color.Black,
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -1500,7 +1510,7 @@ fun PlaylistDetailScreen(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(darkTranslucent)
+                                .background(actionButtonBg)
                                 .clickable {
                                     if (isSaved) {
                                         android.widget.Toast.makeText(context, context.getString(R.string.playlist_already_saved), android.widget.Toast.LENGTH_SHORT).show()
@@ -1514,7 +1524,7 @@ fun PlaylistDetailScreen(
                             Icon(
                                 imageVector = if (isSaved) Icons.Default.Check else Icons.Default.Add,
                                 contentDescription = "Add/Remove",
-                                tint = Color.White,
+                                tint = actionButtonIconTint,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -1812,20 +1822,18 @@ fun PlaylistDetailScreen(
                                         horizontalArrangement = Arrangement.Center,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        val darkTranslucent = Color.Black.copy(alpha = 0.35f)
-
                                         // Shuffle button
                                         Box(
                                             modifier = Modifier
                                                 .size(40.dp)
                                                 .clip(CircleShape)
-                                                .background(darkTranslucent),
+                                                .background(actionButtonBg),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Shuffle,
                                                 contentDescription = "Shuffle",
-                                                tint = Color.White,
+                                                tint = actionButtonIconTint,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -1838,7 +1846,7 @@ fun PlaylistDetailScreen(
                                                 .width(140.dp)
                                                 .height(40.dp)
                                                 .clip(RoundedCornerShape(20.dp))
-                                                .background(Color.White),
+                                                .background(if (isLightBackground) Color(0xFF1C1C1E) else Color.White),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Row(
@@ -1848,10 +1856,10 @@ fun PlaylistDetailScreen(
                                                 Icon(
                                                     imageVector = Icons.Default.PlayArrow,
                                                     contentDescription = "Play",
-                                                    tint = Color.Black,
+                                                    tint = if (isLightBackground) Color.White else Color.Black,
                                                     modifier = Modifier.size(20.dp)
                                                 )
-                                                Text(stringResource(R.string.reproducir), color = Color.Black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                                Text(stringResource(R.string.reproducir), color = if (isLightBackground) Color.White else Color.Black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                                             }
                                         }
 
@@ -1862,13 +1870,13 @@ fun PlaylistDetailScreen(
                                             modifier = Modifier
                                                 .size(40.dp)
                                                 .clip(CircleShape)
-                                                .background(darkTranslucent),
+                                                .background(actionButtonBg),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = if (isSaved) Icons.Default.Check else Icons.Default.Add,
                                                 contentDescription = "Add/Remove",
-                                                tint = Color.White,
+                                                tint = actionButtonIconTint,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -2008,20 +2016,18 @@ fun PlaylistDetailScreen(
                                         horizontalArrangement = Arrangement.Center,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        val darkTranslucent = Color.Black.copy(alpha = 0.35f)
-
                                         // Shuffle button
                                         Box(
                                             modifier = Modifier
                                                 .size(40.dp)
                                                 .clip(CircleShape)
-                                                .background(darkTranslucent),
+                                                .background(actionButtonBg),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Shuffle,
                                                 contentDescription = "Shuffle",
-                                                tint = Color.White,
+                                                tint = actionButtonIconTint,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -2034,20 +2040,20 @@ fun PlaylistDetailScreen(
                                                 .width(140.dp)
                                                 .height(40.dp)
                                                 .clip(RoundedCornerShape(20.dp))
-                                                .background(Color.White),
+                                                .background(if (isLightBackground) Color(0xFF1C1C1E) else Color.White),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                            ) {
+                                             ) {
                                                 Icon(
                                                     imageVector = Icons.Default.PlayArrow,
                                                     contentDescription = "Play",
-                                                    tint = Color.Black,
+                                                    tint = if (isLightBackground) Color.White else Color.Black,
                                                     modifier = Modifier.size(20.dp)
                                                 )
-                                                Text(stringResource(R.string.reproducir), color = Color.Black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                                                Text(stringResource(R.string.reproducir), color = if (isLightBackground) Color.White else Color.Black, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                                             }
                                         }
 
@@ -2058,13 +2064,13 @@ fun PlaylistDetailScreen(
                                             modifier = Modifier
                                                 .size(40.dp)
                                                 .clip(CircleShape)
-                                                .background(darkTranslucent),
+                                                .background(actionButtonBg),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = if (isSaved) Icons.Default.Check else Icons.Default.Add,
                                                 contentDescription = "Add/Remove",
-                                                tint = Color.White,
+                                                tint = actionButtonIconTint,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -2092,14 +2098,14 @@ fun PlaylistDetailScreen(
                                         alpha = popScaleBack
                                     }
                                     .clip(CircleShape)
-                                    .background(dominantColor.copy(alpha = 0.35f))
+                                    .background(if (isLightBackground) Color.Black.copy(alpha = 0.08f) else dominantColor.copy(alpha = 0.35f))
                                     .clickable { dismiss() },
                                 contentAlignment = Alignment.Center
                                 ) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.flecha_atras),
                                     contentDescription = "Back",
-                                    tint = Color.White,
+                                    tint = playlistIconTint,
                                     modifier = Modifier.size(20.dp).offset(x = (-1).dp)
                                 )
                             }
@@ -2114,7 +2120,7 @@ fun PlaylistDetailScreen(
                                     .width(124.dp)
                                     .height(44.dp)
                                     .clip(ContinuousCapsule)
-                                    .background(dominantColor.copy(alpha = 0.35f)),
+                                    .background(if (isLightBackground) Color.Black.copy(alpha = 0.08f) else dominantColor.copy(alpha = 0.35f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Row(
@@ -2139,7 +2145,7 @@ fun PlaylistDetailScreen(
                                         Icon(
                                             painter = painterResource(id = R.drawable.compartir),
                                             contentDescription = "Share",
-                                            tint = Color.White,
+                                            tint = playlistIconTint,
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
@@ -2150,7 +2156,7 @@ fun PlaylistDetailScreen(
                                         Icon(
                                             painter = painterResource(id = R.drawable.tres_puntos),
                                             contentDescription = "More",
-                                            tint = Color.White,
+                                            tint = playlistIconTint,
                                             modifier = Modifier.width(22.dp).height(16.dp)
                                         )
                                     }
@@ -2186,9 +2192,11 @@ fun FavoriteSongsScreen(
     val playerArtworkStyle by LibraryManager.playerArtworkStyle.collectAsState()
     val isNormalArtwork = playerArtworkStyle == "normal"
 
-    // Dynamic color extraction from the first song thumbnail - same algorithm as albums/playlists
+    val isDarkThemeFav by ThemeManager.isDarkMode.collectAsState()
     var dominantColor by remember { mutableStateOf(Color(0xFF8B0000)) }
     var contentColor by remember { mutableStateOf(Color.White) }
+    val favTopIconTint = if (!isDarkThemeFav) Color(0xFF1C1C1E) else Color.White
+    val favTopButtonTint = if (!isDarkThemeFav) Color.White.copy(alpha = 0.65f) else dominantColor.copy(alpha = 0.35f)
 
     val firstThumbnail = songs.firstOrNull()?.thumbnail
 
@@ -2229,7 +2237,8 @@ fun FavoriteSongsScreen(
                     }
                     val sampledColor = Color((r / w).toInt(), (g / w).toInt(), (b / w).toInt())
                     dominantColor = sampledColor
-                    contentColor = if (sampledColor.luminance() > 0.5f) Color.Black else Color.White
+                    val isLightFav = sampledColor.luminance() > 0.45f
+                    contentColor = if (isLightFav) Color(0xFF1C1C1E) else Color.White
                 } catch (e: Exception) {}
             }
         }
@@ -2284,14 +2293,14 @@ fun FavoriteSongsScreen(
                                                 alpha = popScaleBack
                                             }
                                             .clip(CircleShape)
-                                            .background(dominantColor.copy(alpha = 0.35f))
+                                            .background(favTopButtonTint)
                                             .clickable { dismiss() },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             painter = painterResource(id = R.drawable.flecha_atras),
                                             contentDescription = "Back",
-                                            tint = contentColor,
+                                            tint = favTopIconTint,
                                             modifier = Modifier.size(20.dp).offset(x = (-1).dp)
                                         )
                                     }
@@ -2305,7 +2314,7 @@ fun FavoriteSongsScreen(
                                             }
                                             .height(48.dp)
                                             .clip(RoundedCornerShape(percent = 50))
-                                            .background(dominantColor.copy(alpha = 0.35f)),
+                                            .background(favTopButtonTint),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Row(
@@ -2320,7 +2329,7 @@ fun FavoriteSongsScreen(
                                                 Icon(
                                                     imageVector = Icons.Default.ArrowCircleDown,
                                                     contentDescription = "Download",
-                                                    tint = contentColor,
+                                                    tint = favTopIconTint,
                                                     modifier = Modifier.size(22.dp)
                                                 )
                                             }
@@ -2331,7 +2340,7 @@ fun FavoriteSongsScreen(
                                                 Icon(
                                                     imageVector = Icons.Default.MoreHoriz,
                                                     contentDescription = "More",
-                                                    tint = contentColor,
+                                                    tint = favTopIconTint,
                                                     modifier = Modifier.size(22.dp)
                                                 )
                                             }
@@ -2480,7 +2489,7 @@ fun FavoriteSongsScreen(
                                                  }
                                                  .clickable { dismiss() },
                                              shape = CircleShape,
-                                             tint = Color.Unspecified,
+                                             tint = if (!isDarkThemeFav) Color.White.copy(alpha = 0.65f) else Color.Unspecified,
                                              blur = 0.8f,
                                              centerDistortion = 0.1f,
                                              scale = 0.02f,
@@ -2491,7 +2500,7 @@ fun FavoriteSongsScreen(
                                              Icon(
                                                  painter = painterResource(id = R.drawable.flecha_atras),
                                                  contentDescription = "Back",
-                                                 tint = contentColor,
+                                                 tint = favTopIconTint,
                                                  modifier = Modifier.size(20.dp).offset(x = (-1).dp)
                                              )
                                          }
@@ -2506,7 +2515,7 @@ fun FavoriteSongsScreen(
                                                  }
                                                  .height(48.dp),
                                              shape = RoundedCornerShape(percent = 50),
-                                             tint = Color.Unspecified,
+                                             tint = if (!isDarkThemeFav) Color.White.copy(alpha = 0.65f) else Color.Unspecified,
                                              blur = 0.8f,
                                              centerDistortion = 0.1f,
                                              scale = 0.02f,
@@ -2520,13 +2529,13 @@ fun FavoriteSongsScreen(
                                                  verticalAlignment = Alignment.CenterVertically
                                              ) {
                                                  IconButton(
-                                                     onClick = { /* TODO: download all */ },
+                                                      onClick = { /* TODO: download all */ },
                                                      modifier = Modifier.size(40.dp)
                                                  ) {
                                                      Icon(
                                                          imageVector = Icons.Default.ArrowCircleDown,
                                                          contentDescription = "Download",
-                                                         tint = contentColor,
+                                                         tint = favTopIconTint,
                                                          modifier = Modifier.size(22.dp)
                                                      )
                                                  }
@@ -2537,7 +2546,7 @@ fun FavoriteSongsScreen(
                                                      Icon(
                                                          imageVector = Icons.Default.MoreHoriz,
                                                          contentDescription = "More",
-                                                         tint = contentColor,
+                                                         tint = favTopIconTint,
                                                          modifier = Modifier.size(22.dp)
                                                      )
                                                  }
@@ -2793,7 +2802,7 @@ fun FavoriteSongsScreen(
                             Icon(
                                 Icons.Default.Star,
                                 "Unfavorite",
-                                tint = Color.White,
+                                tint = contentColor,
                                 modifier = Modifier
                                     .size(20.dp)
                                     .clickable {

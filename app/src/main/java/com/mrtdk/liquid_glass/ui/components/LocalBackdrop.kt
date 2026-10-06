@@ -194,7 +194,7 @@ fun DetailBackPillButton(
     isDarkMode: Boolean = ThemeManager.isDarkMode.collectAsState().value,
     onClick: () -> Unit
 ) {
-    val arrowColor = if (isDarkMode) Color.White else Color.Black
+    val arrowColor = if (isDarkMode) Color.White else Color(0xFF1C1C1E)
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(

@@ -38,7 +38,7 @@ object CanvasVideoCache {
 
         val appContext = context.applicationContext
         val cacheDir = appContext.cacheDir.resolve("canvas_video_cache")
-        val evictor = androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor(100 * 1024 * 1024L) // 100 MB max for motion covers
+        val evictor = androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor(250 * 1024 * 1024L) // 250 MB max for motion covers
         val databaseProvider = androidx.media3.database.StandaloneDatabaseProvider(appContext)
 
         val simpleCache = try {
@@ -84,16 +84,22 @@ object AnimatedArtworkCache {
         val cleanArtist = com.mrtdk.liquid_glass.canvas.UnifiedCanvasProvider.normalizeCanvasArtistName(artist)
         val cleanTitle = cleanTerm(albumOrTitle)
         if (cleanArtist.isBlank() || cleanTitle.isBlank()) return null
-        val key = "echo_motion_v4_${cleanArtist}_${cleanTitle}".lowercase().trim().replace(Regex("[^a-zA-Z0-9_]"), "_")
-        memoryCache[key]?.let { return it }
-        val persisted = com.mrtdk.liquid_glass.data.LibraryManager.getString(key)
-        if (!persisted.isNullOrBlank()) {
-            if (persisted.contains("m8tec.top") || !com.mrtdk.liquid_glass.canvas.CanvasArtwork.isValidVideoUrl(persisted)) {
-                com.mrtdk.liquid_glass.data.LibraryManager.saveString(key, "")
+        val keyV5 = "echo_motion_v5_hq_${cleanArtist}_${cleanTitle}".lowercase().trim().replace(Regex("[^a-zA-Z0-9_]"), "_")
+        memoryCache[keyV5]?.let { return it }
+        val persistedV5 = com.mrtdk.liquid_glass.data.LibraryManager.getString(keyV5)
+        if (!persistedV5.isNullOrBlank()) {
+            if (persistedV5.contains("m8tec.top") || !com.mrtdk.liquid_glass.canvas.CanvasArtwork.isValidVideoUrl(persistedV5)) {
+                com.mrtdk.liquid_glass.data.LibraryManager.saveString(keyV5, "")
                 return null
             }
-            memoryCache[key] = persisted
-            return persisted
+            memoryCache[keyV5] = persistedV5
+            return persistedV5
+        }
+        val keyV4 = "echo_motion_v4_${cleanArtist}_${cleanTitle}".lowercase().trim().replace(Regex("[^a-zA-Z0-9_]"), "_")
+        val persistedV4 = com.mrtdk.liquid_glass.data.LibraryManager.getString(keyV4)
+        if (!persistedV4.isNullOrBlank() && !persistedV4.contains("m8tec.top") && com.mrtdk.liquid_glass.canvas.CanvasArtwork.isValidVideoUrl(persistedV4)) {
+            memoryCache[keyV5] = persistedV4
+            return persistedV4
         }
         return null
     }
@@ -111,7 +117,7 @@ object AnimatedArtworkCache {
         val cleanArtist = com.mrtdk.liquid_glass.canvas.UnifiedCanvasProvider.normalizeCanvasArtistName(artist)
         val cleanTitle = cleanTerm(albumOrTitle)
         if (cleanArtist.isBlank() || cleanTitle.isBlank()) return
-        val key = "echo_motion_v4_${cleanArtist}_${cleanTitle}".lowercase().trim().replace(Regex("[^a-zA-Z0-9_]"), "_")
+        val key = "echo_motion_v5_hq_${cleanArtist}_${cleanTitle}".lowercase().trim().replace(Regex("[^a-zA-Z0-9_]"), "_")
         memoryCache[key] = url
         com.mrtdk.liquid_glass.data.LibraryManager.saveString(key, url)
     }
@@ -124,9 +130,11 @@ object AnimatedArtworkCache {
         val cleanArtist = com.mrtdk.liquid_glass.canvas.UnifiedCanvasProvider.normalizeCanvasArtistName(artist)
         val cleanTitle = cleanTerm(albumOrTitle)
         if (cleanArtist.isBlank() || cleanTitle.isBlank()) return
-        val key = "echo_motion_v4_${cleanArtist}_${cleanTitle}".lowercase().trim().replace(Regex("[^a-zA-Z0-9_]"), "_")
-        memoryCache.remove(key)
-        com.mrtdk.liquid_glass.data.LibraryManager.saveString(key, "")
+        val keyV5 = "echo_motion_v5_hq_${cleanArtist}_${cleanTitle}".lowercase().trim().replace(Regex("[^a-zA-Z0-9_]"), "_")
+        val keyV4 = "echo_motion_v4_${cleanArtist}_${cleanTitle}".lowercase().trim().replace(Regex("[^a-zA-Z0-9_]"), "_")
+        memoryCache.remove(keyV5)
+        com.mrtdk.liquid_glass.data.LibraryManager.saveString(keyV5, "")
+        com.mrtdk.liquid_glass.data.LibraryManager.saveString(keyV4, "")
     }
 
     fun removeForSong(artist: String, title: String, album: String? = null) {
@@ -155,25 +163,24 @@ fun AnimatedArtworkPlayer(
     val context = LocalContext.current
     var isFirstFrameRendered by remember(videoUrl) { mutableStateOf(false) }
 
-    // Initialize ExoPlayer with disk-cached media source to eliminate runaway data usage
+    // Initialize ExoPlayer with disk-cached media source and forced highest bitrate/resolution
     val exoPlayer = remember {
-        val tier = com.mrtdk.liquid_glass.utils.PerformanceProfileManager.getConfig().tier
-        val (maxW, maxH, maxFps) = when (tier) {
-            com.mrtdk.liquid_glass.utils.PerformanceTier.LOW_END -> Triple(720, 1280, 30)
-            com.mrtdk.liquid_glass.utils.PerformanceTier.MID_RANGE -> Triple(1080, 1920, 60)
-            com.mrtdk.liquid_glass.utils.PerformanceTier.HIGH_END -> Triple(1080, 1920, 60)
-        }
         val trackSelector = androidx.media3.exoplayer.trackselection.DefaultTrackSelector(context).apply {
             setParameters(
                 buildUponParameters()
-                    .setMaxVideoSize(maxW, maxH)
-                    .setMaxVideoFrameRate(maxFps)
+                    .setForceHighestSupportedBitrate(true)
+                    .setMaxVideoSize(3840, 3840)
+                    .setMaxVideoBitrate(Int.MAX_VALUE)
+                    .setMaxVideoFrameRate(60)
+                    .setExceedRendererCapabilitiesIfNecessary(true)
+                    .setAllowVideoMixedMimeTypeAdaptiveness(true)
+                    .setAllowVideoNonSeamlessAdaptiveness(true)
             )
         }
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                /* minBufferMs = */ 2_500,
-                /* maxBufferMs = */ 5_000,
+                /* minBufferMs = */ 4_000,
+                /* maxBufferMs = */ 10_000,
                 /* bufferForPlaybackMs = */ 500,
                 /* bufferForPlaybackAfterRebufferMs = */ 1_000
             )
@@ -189,6 +196,9 @@ fun AnimatedArtworkPlayer(
             .build().apply {
                 trackSelectionParameters = trackSelectionParameters.buildUpon()
                     .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_AUDIO, true)
+                    .setMaxVideoSize(3840, 3840)
+                    .setMaxVideoBitrate(Int.MAX_VALUE)
+                    .setMaxVideoFrameRate(60)
                     .build()
                 playWhenReady = !isPaused
                 repeatMode = Player.REPEAT_MODE_ALL

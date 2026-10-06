@@ -1,5 +1,8 @@
 package com.mrtdk.liquid_glass.ui.theme
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.mrtdk.liquid_glass.data.LibraryManager
@@ -34,27 +37,57 @@ object ThemeManager {
     private val _selectedThemeColor = MutableStateFlow(DefaultThemeColor)
     val selectedThemeColor: StateFlow<Color> = _selectedThemeColor
 
+    // Compose snapshot states to ensure immediate and reliable recomposition across all UI
+    var isDarkCompose by mutableStateOf(true)
+        private set
+    var pureBlackCompose by mutableStateOf(false)
+        private set
+    var dynamicThemeCompose by mutableStateOf(true)
+        private set
+    var selectedThemeColorCompose by mutableStateOf(DefaultThemeColor)
+        private set
+
+    private var lastSystemDark: Boolean = false
+
+    fun updateSystemDark(isDark: Boolean) {
+        lastSystemDark = isDark
+        if (_themeMode.value == MODE_SYSTEM) {
+            updateEffectiveDarkMode(isDark)
+        }
+    }
+
     fun init() {
         val savedMode = LibraryManager.getString(KEY_THEME_MODE, MODE_SYSTEM) ?: MODE_SYSTEM
         _themeMode.value = savedMode
 
         val savedPureBlack = LibraryManager.getString(KEY_PURE_BLACK, "false") == "true"
-        _pureBlack.value = savedPureBlack || savedMode == MODE_AMOLED
+        val effectivePureBlack = savedPureBlack || savedMode == MODE_AMOLED
+        _pureBlack.value = effectivePureBlack
+        pureBlackCompose = effectivePureBlack
 
         val savedDynamic = LibraryManager.getString(KEY_DYNAMIC_THEME, "true") != "false"
         _isDynamicTheme.value = savedDynamic
+        dynamicThemeCompose = savedDynamic
 
         val savedColorInt = LibraryManager.getString(KEY_SELECTED_THEME_COLOR, null)?.toIntOrNull()
         if (savedColorInt != null) {
             _selectedThemeColor.value = Color(savedColorInt)
+            selectedThemeColorCompose = Color(savedColorInt)
         } else {
             _selectedThemeColor.value = DefaultThemeColor
+            selectedThemeColorCompose = DefaultThemeColor
         }
 
-        _isDarkMode.value = savedMode != MODE_LIGHT
+        val isDark = when (savedMode) {
+            MODE_DARK, MODE_AMOLED -> true
+            MODE_LIGHT -> false
+            else -> savedMode != MODE_LIGHT
+        }
+        _isDarkMode.value = isDark
+        isDarkCompose = isDark
     }
 
-    fun setThemeMode(mode: String) {
+    fun setThemeMode(mode: String, isSystemDark: Boolean = lastSystemDark) {
         _themeMode.value = mode
         LibraryManager.saveString(KEY_THEME_MODE, mode)
         if (mode == MODE_AMOLED) {
@@ -62,25 +95,35 @@ object ThemeManager {
         } else if (mode == MODE_LIGHT || mode == MODE_DARK) {
             setPureBlack(false)
         }
+        val isDark = when (mode) {
+            MODE_DARK, MODE_AMOLED -> true
+            MODE_LIGHT -> false
+            else -> isSystemDark
+        }
+        updateEffectiveDarkMode(isDark)
     }
 
     fun setPureBlack(enabled: Boolean) {
         _pureBlack.value = enabled
+        pureBlackCompose = enabled
         LibraryManager.saveString(KEY_PURE_BLACK, enabled.toString())
     }
 
     fun setDynamicTheme(enabled: Boolean) {
         _isDynamicTheme.value = enabled
+        dynamicThemeCompose = enabled
         LibraryManager.saveString(KEY_DYNAMIC_THEME, enabled.toString())
     }
 
     fun setSelectedThemeColor(color: Color) {
         _selectedThemeColor.value = color
+        selectedThemeColorCompose = color
         LibraryManager.saveString(KEY_SELECTED_THEME_COLOR, color.toArgb().toString())
     }
 
     fun updateEffectiveDarkMode(isDark: Boolean) {
         _isDarkMode.value = isDark
+        isDarkCompose = isDark
     }
 
     fun getThemeMode(): String {
@@ -88,30 +131,30 @@ object ThemeManager {
     }
 
     val isEffectiveAmoled: Boolean
-        get() = _isDarkMode.value && (_pureBlack.value || _themeMode.value == MODE_AMOLED)
+        get() = isDarkCompose && (pureBlackCompose || _themeMode.value == MODE_AMOLED)
 
     val backgroundColor: Color
-        get() = if (_isDarkMode.value) Color(0xFF000000) else Color(0xFFF2F2F7)
+        get() = if (isDarkCompose) Color(0xFF000000) else Color(0xFFF2F2F7)
 
     val surfaceColor: Color
-        get() = if (_isDarkMode.value) {
+        get() = if (isDarkCompose) {
             if (isEffectiveAmoled) Color(0xFF000000) else Color(0xFF1C1C1E)
         } else Color(0xFFFFFFFF)
 
     val textColor: Color
-        get() = if (_isDarkMode.value) Color(0xFFFFFFFF) else Color(0xFF1C1C1E)
+        get() = if (isDarkCompose) Color(0xFFFFFFFF) else Color(0xFF1C1C1E)
 
     val subtextColor: Color
-        get() = if (_isDarkMode.value) Color(0xFFAAAAAA) else Color(0xFF636366)
+        get() = if (isDarkCompose) Color(0xFFAAAAAA) else Color(0xFF636366)
 
     val dividerColor: Color
-        get() = if (_isDarkMode.value) Color.DarkGray.copy(alpha = 0.5f) else Color(0xFFE5E5EA)
+        get() = if (isDarkCompose) Color.DarkGray.copy(alpha = 0.5f) else Color(0xFFE5E5EA)
 
     val glassContainerColor: Color
-        get() = if (_isDarkMode.value) {
+        get() = if (isDarkCompose) {
             if (isEffectiveAmoled) Color(0xFF000000).copy(alpha = 0.85f) else Color(0xFF1C1C1E).copy(alpha = 0.8f)
         } else Color(0xFFFFFFFF).copy(alpha = 0.9f)
 
     val accentColor: Color
-        get() = if (_isDynamicTheme.value) DefaultThemeColor else _selectedThemeColor.value
+        get() = if (dynamicThemeCompose) DefaultThemeColor else selectedThemeColorCompose
 }

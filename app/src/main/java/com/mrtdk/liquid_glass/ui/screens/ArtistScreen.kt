@@ -2732,7 +2732,12 @@ fun ArtistScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 val isSolid = com.mrtdk.glass.LocalGlassStyle.current == "solid" || LibraryManager.getGlassStyle() == "solid"
-                val artistHeaderIconTint = if (isSolid || isDarkMode) Color.White else Color(0xFF151515)
+                val artistHeaderIconTint = if (!isDarkMode) Color(0xFF1C1C1E) else Color.White
+                val artistGlassTint = if (!isDarkMode) {
+                    if (isSolid) Color.White else Color.White.copy(alpha = 0.65f)
+                } else {
+                    if (isSolid) Color(0xFF242428) else Color.Unspecified
+                }
                 // Circular back button with GlassBox (liquid glass)
                 scope.GlassBox(
                     modifier = Modifier
@@ -2743,7 +2748,7 @@ fun ArtistScreen(
                         }
                         .clickable(enabled = !showArtistMenu) { onBack() },
                     shape = CircleShape,
-                    tint = Color.Unspecified,
+                    tint = artistGlassTint,
                     blur = 0.8f,
                     centerDistortion = 0.1f,
                     scale = 0.02f,
@@ -3296,7 +3301,13 @@ fun ArtistTopRightMorphingPill(
         stop = ContinuousRoundedRectangle(24.dp),
         fraction = morphProgress
     )
-    val morphTint = Color.Unspecified
+    val isDarkThemePill by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState()
+    val isSolidPill = com.mrtdk.glass.LocalGlassStyle.current == "solid" || LibraryManager.getGlassStyle() == "solid"
+    val morphTint = if (!isDarkThemePill) {
+        if (isSolidPill) Color.White else Color.White.copy(alpha = 0.65f)
+    } else {
+        if (isSolidPill) Color(0xFF242428) else Color.Unspecified
+    }
 
     // Smooth crossfade opacities
     val pillIconsAlpha = ((0.28f - morphProgress) / 0.28f).coerceIn(0f, 1f)

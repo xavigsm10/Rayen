@@ -196,6 +196,10 @@ class MainActivity : ComponentActivity() {
             val isDynamicTheme by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDynamicTheme.collectAsState()
             val selectedThemeColor by com.mrtdk.liquid_glass.ui.theme.ThemeManager.selectedThemeColor.collectAsState()
 
+            LaunchedEffect(isSystemDark) {
+                com.mrtdk.liquid_glass.ui.theme.ThemeManager.updateSystemDark(isSystemDark)
+            }
+
             LaunchedEffect(isDarkMode) {
                 com.mrtdk.liquid_glass.ui.theme.ThemeManager.updateEffectiveDarkMode(isDarkMode)
             }

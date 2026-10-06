@@ -4,8 +4,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.FilterQuality
@@ -17,9 +20,20 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.collection.LruCache
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
+
+// Cache LRU en memoria para que los difuminados se muestren de inmediato (0ms)
+internal val lowResBlurCache = LruCache<Any, ImageBitmap>(64)
+
+internal class LowEndSmallBlurTransformation : coil.transform.Transformation {
+    override val cacheKey: String = "lowend_small_blur_v1"
+    override suspend fun transform(input: android.graphics.Bitmap, size: Size): android.graphics.Bitmap {
+        return blurSmallBitmap(input)
+    }
+}
 
 /**
  * Difumina en memoria una matriz diminuta (12x6) con un filtro de caja 2D de 2 pasadas.
@@ -28,6 +42,7 @@ import coil.size.Size
  * convirtiéndola en un campo de luz y color líquido orgánico.
  */
 internal fun blurSmallBitmap(src: android.graphics.Bitmap): android.graphics.Bitmap {
+    if (src.isRecycled) return src
     val safeSrc = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
         src.config == android.graphics.Bitmap.Config.HARDWARE
     ) {
@@ -104,26 +119,32 @@ fun LowEndFullArtworkBackdrop(
     val containerHeightState = remember { mutableIntStateOf(0) }
     val containerHeightPx = containerHeightState.intValue
 
+    val cachedBitmap = remember(imageUrl) {
+        if (imageUrl != null) lowResBlurCache.get(imageUrl) else null
+    }
+
     // Pre-procesamiento de desenfoque suave en memoria: elimina siluetas y preserva la luz del álbum
-    val lowResBitmap: ImageBitmap? = remember(imageUrl) {
-        when (imageUrl) {
-            is ImageBitmap -> {
-                try {
-                    val androidBmp = imageUrl.asAndroidBitmap()
-                    blurSmallBitmap(androidBmp).asImageBitmap()
-                } catch (_: Throwable) {
-                    imageUrl
+    var dynamicLowResBitmap by remember(imageUrl) {
+        mutableStateOf(
+            cachedBitmap ?: when (imageUrl) {
+                is ImageBitmap -> {
+                    try {
+                        val androidBmp = imageUrl.asAndroidBitmap()
+                        if (androidBmp.isRecycled) null else blurSmallBitmap(androidBmp).asImageBitmap()
+                    } catch (_: Throwable) {
+                        null
+                    }
                 }
-            }
-            is android.graphics.Bitmap -> {
-                try {
-                    blurSmallBitmap(imageUrl).asImageBitmap()
-                } catch (_: Throwable) {
-                    imageUrl.asImageBitmap()
+                is android.graphics.Bitmap -> {
+                    try {
+                        if (imageUrl.isRecycled) null else blurSmallBitmap(imageUrl).asImageBitmap()
+                    } catch (_: Throwable) {
+                        null
+                    }
                 }
+                else -> null
             }
-            else -> null
-        }
+        )
     }
 
     Box(
@@ -147,9 +168,9 @@ fun LowEndFullArtworkBackdrop(
                 .fillMaxSize()
                 .then(transformModifier)
         ) {
-            if (lowResBitmap != null) {
+            if (dynamicLowResBitmap != null) {
                 Image(
-                    bitmap = lowResBitmap,
+                    bitmap = dynamicLowResBitmap!!,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     filterQuality = FilterQuality.Medium,
@@ -159,9 +180,21 @@ fun LowEndFullArtworkBackdrop(
                 AsyncImage(
                     model = ImageRequest.Builder(context)
                         .data(imageUrl)
-                        .size(Size(12, 6))
-                        .crossfade(true)
-                        .allowHardware(true)
+                        .transformations(LowEndSmallBlurTransformation())
+                        .precision(coil.size.Precision.EXACT)
+                        .allowHardware(false)
+                        .listener(
+                            onSuccess = { _, result ->
+                                val bmp = (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                                if (bmp != null) {
+                                    val composeBmp = bmp.asImageBitmap()
+                                    if (imageUrl != null) {
+                                        lowResBlurCache.put(imageUrl, composeBmp)
+                                    }
+                                    dynamicLowResBitmap = composeBmp
+                                }
+                            }
+                        )
                         .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
@@ -182,27 +215,14 @@ fun LowEndFullArtworkBackdrop(
             }
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(disperseModifier)
-        ) {
-            if (lowResBitmap != null) {
+        if (dynamicLowResBitmap != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(disperseModifier)
+            ) {
                 Image(
-                    bitmap = lowResBitmap,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    filterQuality = FilterQuality.Medium,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else if (imageUrl != null) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(imageUrl)
-                        .size(Size(12, 6))
-                        .crossfade(true)
-                        .allowHardware(true)
-                        .build(),
+                    bitmap = dynamicLowResBitmap!!,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     filterQuality = FilterQuality.Medium,
@@ -212,3 +232,4 @@ fun LowEndFullArtworkBackdrop(
         }
     }
 }
+

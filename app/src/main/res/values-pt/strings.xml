@@ -622,6 +622,7 @@
     <string name="player_artwork_style_fullartwork_low">Fullartwork gama baixa</string>
     <string name="player_artwork_style_normal">Normal</string>
     <string name="player_artwork_style_animated">Capas animadas apenas com full artwork</string>
+    <string name="player_artwork_style_animated_low">Fullartwork gama baixa apenas com capas animadas</string>
 
     <string name="estilo_solido_material3">Sólido (Material 3)</string>
     <string name="ultra_performance_mode_title">Modo Ultra Desempenho (Linha Básica)</string>

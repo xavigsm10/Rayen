@@ -2700,38 +2700,282 @@ private fun FeaturedSuggestionCard(
                 clickAction()
             }
     ) {
-        // 1. Degradado progresivo con los colores de la imagen en la sección inferior
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .size(width = imageWidth, height = bottomSectionHeight)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.0f to animatedTopColor,
-                            0.45f to animatedMidColor,
-                            1.0f to animatedBottomColor
+        // 1. REFLEJO INVERTIDO Y DIFUMINADO (Mismo efecto visual utilizado en ArtistScreen)
+        if (!hdThumb.isNullOrBlank()) {
+            val sharpFadeStart = (205.dp / imageHeight).coerceIn(0f, 1f)
+            val sharpFadeMid = (248.dp / imageHeight).coerceIn(sharpFadeStart, 1f)
+            val topDifStart = (180.dp / imageHeight).coerceIn(0f, 1f)
+            val topDifFull = (230.dp / imageHeight).coerceIn(0f, 1f)
+            val topDifFade = (255.dp / imageHeight).coerceIn(0f, 1f)
+
+            val reflOverlap = 30.dp
+            val reflFadeIn = (reflOverlap / imageHeight).coerceIn(0f, 1f)
+            val reflRemaining = 1f - reflFadeIn
+            val reflStop1 = reflFadeIn + (30.dp / imageHeight) * reflRemaining
+            val reflStop2 = reflFadeIn + (65.dp / imageHeight) * reflRemaining
+            val reflStop3 = reflFadeIn + (100.dp / imageHeight) * reflRemaining
+            val reflStop4 = reflFadeIn + (130.dp / imageHeight) * reflRemaining
+            val reflStopEnd = reflFadeIn + (160.dp / imageHeight) * reflRemaining
+
+            // 1a. IMAGEN SUPERIOR NÍTIDA (Con desvanecimiento suave en la unión inferior)
+            Box(
+                modifier = Modifier
+                    .size(width = imageWidth, height = imageHeight)
+                    .align(Alignment.TopCenter)
+                    .onGloballyPositioned { imageCoords = it }
+                    .graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
+                    }
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                0.00f to Color.Black,
+                                sharpFadeStart to Color.Black,
+                                sharpFadeMid to Color.Black.copy(alpha = 0.50f),
+                                1.00f to Color.Transparent
+                            ),
+                            blendMode = BlendMode.DstIn
+                        )
+                    }
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(hdThumb)
+                        .size(560)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = titleStr,
+                    contentScale = ContentScale.Crop,
+                    alignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // 1b. DIFUSIÓN SUAVE EN LA PARTE INFERIOR DE LA IMAGEN SUPERIOR
+            Box(
+                modifier = Modifier
+                    .size(width = imageWidth, height = imageHeight)
+                    .align(Alignment.TopCenter)
+                    .graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
+                    }
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                0.00f to Color.Transparent,
+                                topDifStart to Color.Transparent,
+                                topDifFull to Color.Black,
+                                topDifFade to Color.Black.copy(alpha = 0.70f),
+                                1.00f to Color.Transparent
+                            ),
+                            blendMode = BlendMode.DstIn
+                        )
+                    }
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context).data(hdThumb).crossfade(false).build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    alignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                renderEffect = android.graphics.RenderEffect
+                                    .createBlurEffect(22f, 22f, android.graphics.Shader.TileMode.MIRROR)
+                                    .asComposeRenderEffect()
+                            }
+                        }
+                        .then(
+                            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
+                                Modifier.blur(14.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
+                            } else Modifier
+                        )
+                )
+            }
+
+            // 1c. DIFUSIÓN HORIZONTAL EN LA PARTE INFERIOR DE LA IMAGEN SUPERIOR
+            Box(
+                modifier = Modifier
+                    .size(width = imageWidth, height = imageHeight)
+                    .align(Alignment.TopCenter)
+                    .graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
+                    }
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                0.00f to Color.Transparent,
+                                topDifStart to Color.Transparent,
+                                topDifFull to Color.Black.copy(alpha = 0.80f),
+                                topDifFade to Color.Black.copy(alpha = 0.55f),
+                                1.00f to Color.Transparent
+                            ),
+                            blendMode = BlendMode.DstIn
+                        )
+                    }
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context).data(hdThumb).crossfade(false).build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    alignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = 1.04f
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                renderEffect = android.graphics.RenderEffect
+                                    .createBlurEffect(100f, 25f, android.graphics.Shader.TileMode.MIRROR)
+                                    .asComposeRenderEffect()
+                            }
+                        }
+                        .then(
+                            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
+                                Modifier.blur(60.dp, 16.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
+                            } else Modifier
+                        )
+                )
+            }
+
+            // 2. REFLEJO INVERTIDO (Mismo tamaño que la imagen superior, empezando desde la unión hacia abajo)
+            Box(
+                modifier = Modifier
+                    .size(width = imageWidth, height = imageHeight)
+                    .align(Alignment.TopCenter)
+                    .offset(y = imageHeight - reflOverlap)
+                    .graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
+                    }
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                0.00f to Color.Transparent,
+                                (reflFadeIn * 0.5f) to Color.Black.copy(alpha = 0.50f),
+                                reflFadeIn to Color.Black,
+                                reflStop1 to Color.Black.copy(alpha = 0.88f),
+                                reflStop2 to Color.Black.copy(alpha = 0.65f),
+                                reflStop3 to Color.Black.copy(alpha = 0.35f),
+                                reflStop4 to Color.Black.copy(alpha = 0.12f),
+                                reflStopEnd to Color.Transparent,
+                                1.00f to Color.Transparent
+                            ),
+                            blendMode = BlendMode.DstIn
+                        )
+                    }
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context).data(hdThumb).crossfade(false).build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    alignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleY = -1.0f
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                renderEffect = android.graphics.RenderEffect
+                                    .createBlurEffect(36f, 44f, android.graphics.Shader.TileMode.MIRROR)
+                                    .asComposeRenderEffect()
+                            }
+                        }
+                        .then(
+                            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
+                                Modifier.blur(26.dp, 30.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
+                            } else Modifier
+                        )
+                )
+            }
+
+            // 2b. CAPA DE DIFUMINADO HORIZONTAL DEL REFLEJO INVERTIDO
+            Box(
+                modifier = Modifier
+                    .size(width = imageWidth, height = imageHeight)
+                    .align(Alignment.TopCenter)
+                    .offset(y = imageHeight - reflOverlap)
+                    .graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
+                    }
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                0.00f to Color.Transparent,
+                                (reflFadeIn * 0.5f) to Color.Black.copy(alpha = 0.35f),
+                                reflFadeIn to Color.Black.copy(alpha = 0.75f),
+                                reflStop1 to Color.Black.copy(alpha = 0.68f),
+                                reflStop2 to Color.Black.copy(alpha = 0.48f),
+                                reflStop3 to Color.Black.copy(alpha = 0.25f),
+                                reflStop4 to Color.Black.copy(alpha = 0.08f),
+                                reflStopEnd to Color.Transparent,
+                                1.00f to Color.Transparent
+                            ),
+                            blendMode = BlendMode.DstIn
+                        )
+                    }
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context).data(hdThumb).crossfade(false).build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    alignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleY = -1.0f
+                            scaleX = 1.04f
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                renderEffect = android.graphics.RenderEffect
+                                    .createBlurEffect(70f, 32f, android.graphics.Shader.TileMode.MIRROR)
+                                    .asComposeRenderEffect()
+                            }
+                        }
+                        .then(
+                            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
+                                Modifier.blur(40.dp, 22.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
+                            } else Modifier
+                        )
+                )
+            }
+
+            // 3. DIFUMINADO UNIFICADOR DE COLOR PROGRESIVO SOBRE LA UNIÓN Y REFLEJO
+            val gradStart = (190.dp / cardHeight)
+            val gradSeam = (imageHeight / cardHeight)
+            val gradMid = (310.dp / cardHeight)
+            val gradSolid = (350.dp / cardHeight)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            0.00f to Color.Transparent,
+                            gradStart to Color.Transparent,
+                            (gradStart + 0.08f) to animatedTopColor.copy(alpha = 0.20f),
+                            gradSeam to animatedMidColor.copy(alpha = 0.50f),
+                            gradMid to animatedBottomColor.copy(alpha = 0.85f),
+                            gradSolid to animatedBottomColor,
+                            1.00f to animatedBottomColor
                         )
                     )
-                )
-        )
-
-        // 2. Portada Principal (Nítida arriba, en las mismas dimensiones)
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .size(width = imageWidth, height = imageHeight)
-                .onGloballyPositioned { imageCoords = it }
-        ) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(hdThumb)
-                    .size(560)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = titleStr,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            // Fallback degradado si no hay portada
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0.0f to animatedTopColor,
+                                0.45f to animatedMidColor,
+                                1.0f to animatedBottomColor
+                            )
+                        )
+                    )
             )
         }
 

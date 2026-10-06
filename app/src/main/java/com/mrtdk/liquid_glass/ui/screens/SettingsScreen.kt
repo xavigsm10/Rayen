@@ -245,6 +245,7 @@ fun MainSettingsMenu(
                             val currentStyleName = when (currentArtworkStyle) {
                                 "normal" -> stringResource(R.string.player_artwork_style_normal)
                                 "fullartwork_low" -> stringResource(R.string.player_artwork_style_fullartwork_low)
+                                "animated_fullartwork_low" -> if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE) stringResource(R.string.player_artwork_style_fullartwork_low) else stringResource(R.string.player_artwork_style_animated_low)
                                 "animated_fullartwork" -> if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE) stringResource(R.string.player_artwork_style_fullartwork) else stringResource(R.string.player_artwork_style_animated)
                                 else -> stringResource(R.string.player_artwork_style_fullartwork)
                             }
@@ -364,6 +365,7 @@ fun MainSettingsMenu(
             listOf(
                 "fullartwork" to stringResource(R.string.player_artwork_style_fullartwork),
                 "fullartwork_low" to stringResource(R.string.player_artwork_style_fullartwork_low),
+                "animated_fullartwork_low" to stringResource(R.string.player_artwork_style_animated_low),
                 "normal" to stringResource(R.string.player_artwork_style_normal),
                 "animated_fullartwork" to stringResource(R.string.player_artwork_style_animated)
             )
@@ -371,7 +373,7 @@ fun MainSettingsMenu(
         SingleChoiceDialog(
             title = stringResource(R.string.player_artwork_style_title),
             options = artworkOptions,
-            selectedValue = if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE && currentArtworkStyle == "animated_fullartwork") "fullartwork" else currentArtworkStyle,
+            selectedValue = if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE && (currentArtworkStyle == "animated_fullartwork" || currentArtworkStyle == "animated_fullartwork_low")) "fullartwork_low" else currentArtworkStyle,
             onDismiss = { showArtworkStyleDialog = false },
             onSelect = {
                 LibraryManager.savePlayerArtworkStyle(it)

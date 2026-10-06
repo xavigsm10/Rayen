@@ -879,16 +879,16 @@ object LibraryManager {
     fun getPlayerArtworkStyle(): String {
         if (isInitialized) {
             val current = _playerArtworkStyle.value
-            return if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE && current == "animated_fullartwork") "fullartwork" else current
+            return if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE && (current == "animated_fullartwork" || current == "animated_fullartwork_low")) "fullartwork_low" else current
         }
         val fromDb = dbHelper.getSetting("player_artwork_style", null)
         val style = fromDb ?: try { prefs.getString("player_artwork_style", null) } catch (_: Exception) { null } ?: "fullartwork"
-        return if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE && style == "animated_fullartwork") "fullartwork" else style
+        return if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE && (style == "animated_fullartwork" || style == "animated_fullartwork_low")) "fullartwork_low" else style
     }
 
     fun savePlayerArtworkStyle(style: String) {
         if (!isInitialized) return
-        val targetStyle = if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE && style == "animated_fullartwork") "fullartwork" else style
+        val targetStyle = if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE && (style == "animated_fullartwork" || style == "animated_fullartwork_low")) "fullartwork_low" else style
         _playerArtworkStyle.value = targetStyle
         try {
             prefs.edit().putString("player_artwork_style", targetStyle).apply()

@@ -117,6 +117,7 @@ private fun SongMenuInnerContent(
     onShowCreditsDialog: () -> Unit,
     scope: kotlinx.coroutines.CoroutineScope
 ) {
+    val isDark = com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState().value
     if (!isPlaylistsScreen) {
         // Song Details Header
         Row(
@@ -141,7 +142,7 @@ private fun SongMenuInnerContent(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = song.title,
-                    color = Color.White,
+                    color = if (isDark) Color.White else Color(0xFF1C1C1E),
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -150,7 +151,7 @@ private fun SongMenuInnerContent(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = song.artist,
-                    color = Color.Gray,
+                    color = if (isDark) Color.Gray else Color(0xFF3C3C43).copy(alpha = 0.7f),
                     fontSize = 14.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -170,18 +171,18 @@ private fun SongMenuInnerContent(
                 Icon(
                     imageVector = if (isSaved) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = stringResource(R.string.dialog_favorite),
-                    tint = if (isSaved) Color(0xFFFA243C) else Color.White
+                    tint = if (isSaved) Color(0xFFFA243C) else (if (isDark) Color.White else Color(0xFF2C2C2E))
                 )
             }
 
             // Close button
             IconButton(onClick = { onDismiss() }) {
-                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close_action), tint = Color.Gray)
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close_action), tint = if (isDark) Color.Gray else Color(0xFF3C3C43).copy(alpha = 0.7f))
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        Divider(color = Color.White.copy(alpha = 0.1f))
+        Divider(color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f))
         Spacer(modifier = Modifier.height(16.dp))
 
         // Horizontal Action Row (Play Next, Save to Playlist, Share)
@@ -229,7 +230,7 @@ private fun SongMenuInnerContent(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        Divider(color = Color.White.copy(alpha = 0.1f))
+        Divider(color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f))
         Spacer(modifier = Modifier.height(12.dp))
 
         // Vertical Actions List
@@ -352,13 +353,13 @@ private fun SongMenuInnerContent(
             }
             Text(
                 text = stringResource(R.string.menu_anadir_a_playlist),
-                color = Color.White,
+                color = if (isDark) Color.White else Color(0xFF1C1C1E),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = { onDismiss() }) {
-                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close_action), tint = Color.Gray)
+                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close_action), tint = if (isDark) Color.Gray else Color(0xFF3C3C43).copy(alpha = 0.7f))
             }
         }
 
@@ -394,7 +395,7 @@ private fun SongMenuInnerContent(
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            Divider(color = Color.White.copy(alpha = 0.08f))
+            Divider(color = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f))
 
             playlists.forEach { playlist ->
                 Row(
@@ -411,25 +412,25 @@ private fun SongMenuInnerContent(
                     Icon(
                         imageVector = Icons.Default.QueueMusic,
                         contentDescription = null,
-                        tint = Color.Gray,
+                        tint = if (isDark) Color.Gray else Color(0xFF3C3C43).copy(alpha = 0.7f),
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
                         Text(
                             text = playlist.name,
-                            color = Color.White,
+                            color = if (isDark) Color.White else Color(0xFF1C1C1E),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
                             text = stringResource(R.string.menu_canciones_count_format, playlist.items.size),
-                            color = Color.Gray,
+                            color = if (isDark) Color.Gray else Color(0xFF3C3C43).copy(alpha = 0.7f),
                             fontSize = 12.sp
                         )
                     }
                 }
-                Divider(color = Color.White.copy(alpha = 0.08f))
+                Divider(color = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f))
             }
         }
     }
@@ -1741,9 +1742,13 @@ private fun HorizontalActionButton(
     icon: ImageVector? = null,
     painter: androidx.compose.ui.graphics.painter.Painter? = null,
     label: String,
-    tint: Color = Color.White,
+    tint: Color? = null,
     onClick: () -> Unit
 ) {
+    val isDark = com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState().value
+    val resolvedTint = tint ?: if (isDark) Color.White else Color(0xFF2C2C2E)
+    val resolvedText = if (isDark) Color.White else Color(0xFF1C1C1E)
+    val resolvedBg = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -1755,19 +1760,19 @@ private fun HorizontalActionButton(
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color.White.copy(alpha = 0.08f)),
+                .background(resolvedBg),
             contentAlignment = Alignment.Center
         ) {
             if (painter != null) {
-                Icon(painter = painter, contentDescription = label, tint = tint, modifier = Modifier.size(24.dp))
+                Icon(painter = painter, contentDescription = label, tint = resolvedTint, modifier = Modifier.size(24.dp))
             } else if (icon != null) {
-                Icon(imageVector = icon, contentDescription = label, tint = tint)
+                Icon(imageVector = icon, contentDescription = label, tint = resolvedTint)
             }
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = label,
-            color = Color.White,
+            color = resolvedText,
             fontSize = 11.sp,
             textAlign = TextAlign.Center,
             maxLines = 2,
@@ -1781,11 +1786,14 @@ fun VerticalMenuActionItem(
     icon: ImageVector,
     label: String,
     subtitle: String? = null,
-    iconTint: Color = Color.White.copy(alpha = 0.7f),
-    textColor: Color = Color.White,
+    iconTint: Color? = null,
+    textColor: Color? = null,
     trailingContent: (@Composable () -> Unit)? = null,
     onClick: () -> Unit
 ) {
+    val isDark = com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState().value
+    val resolvedIconTint = iconTint ?: if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF3C3C43).copy(alpha = 0.82f)
+    val resolvedTextColor = textColor ?: if (isDark) Color.White else Color(0xFF1C1C1E)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1796,14 +1804,14 @@ fun VerticalMenuActionItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = iconTint,
+            tint = resolvedIconTint,
             modifier = Modifier.size(22.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
-                color = textColor,
+                color = resolvedTextColor,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Normal,
                 maxLines = 1,
@@ -1813,7 +1821,7 @@ fun VerticalMenuActionItem(
                 Spacer(modifier = Modifier.height(1.dp))
                 Text(
                     text = subtitle,
-                    color = textColor.copy(alpha = 0.55f),
+                    color = resolvedTextColor.copy(alpha = 0.55f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Normal,
                     maxLines = 1,
@@ -1946,7 +1954,7 @@ fun GlassBoxScope.AppleMusicPlaylistMenu(
                                     HorizontalActionButton(
                                         icon = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
                                         label = stringResource(R.string.menu_favorite),
-                                        tint = if (isFavorite) Color(0xFFFA243C) else Color.White
+                                        tint = if (isFavorite) Color(0xFFFA243C) else (if (isDark) Color.White else Color(0xFF1C1C1E))
                                     ) {
                                         val newFavList = if (isFavorite) {
                                             favList.filter { it != playlist.id }
@@ -1963,7 +1971,8 @@ fun GlassBoxScope.AppleMusicPlaylistMenu(
 
                                     HorizontalActionButton(
                                         painter = painterResource(id = R.drawable.compartir),
-                                        label = stringResource(R.string.menu_share)
+                                        label = stringResource(R.string.menu_share),
+                                        tint = if (isDark) Color.White else Color(0xFF1C1C1E)
                                     ) {
                                         val shareUrl = if (playlist.id.startsWith("VL") || playlist.id.startsWith("PL")) {
                                             "https://music.youtube.com/playlist?list=${playlist.id.removePrefix("VL")}"
@@ -1980,12 +1989,17 @@ fun GlassBoxScope.AppleMusicPlaylistMenu(
                                     }
                                 }
 
-                                Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+                                val plTextColor = if (isDark) Color.White else Color(0xFF1C1C1E)
+                                val plSubTextColor = if (isDark) Color.White.copy(alpha = 0.5f) else Color(0xFF666668)
+                                val plIconTint = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF3C3C43)
+                                val plDividerColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.08f)
+
+                                Divider(color = plDividerColor, modifier = Modifier.padding(vertical = 4.dp))
 
                                 VerticalMenuActionItem(
                                     icon = Icons.Default.PushPin,
                                     label = if (isPinned) stringResource(R.string.menu_unpin_playlist) else stringResource(R.string.menu_pin_playlist),
-                                    iconTint = if (isPinned) Color(0xFFFA243C) else Color.White.copy(alpha = 0.7f)
+                                    iconTint = if (isPinned) Color(0xFFFA243C) else plIconTint
                                 ) {
                                     LibraryManager.togglePinPlaylist(playlist.id)
                                     handleDismiss()
@@ -2026,20 +2040,20 @@ fun GlassBoxScope.AppleMusicPlaylistMenu(
                                     Icon(
                                         imageVector = Icons.Default.Sort,
                                         contentDescription = null,
-                                        tint = Color.White.copy(alpha = 0.7f),
+                                        tint = plIconTint,
                                         modifier = Modifier.size(22.dp)
                                     )
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Text(
                                         text = stringResource(R.string.menu_sort_by),
-                                        color = Color.White,
+                                        color = plTextColor,
                                         fontSize = 15.sp,
                                         modifier = Modifier.weight(1f)
                                     )
                                     Icon(
                                         imageVector = Icons.Default.ChevronRight,
                                         contentDescription = null,
-                                        tint = Color.White.copy(alpha = 0.5f),
+                                        tint = plSubTextColor,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
@@ -2054,25 +2068,25 @@ fun GlassBoxScope.AppleMusicPlaylistMenu(
                                     Icon(
                                         imageVector = Icons.Default.Folder,
                                         contentDescription = null,
-                                        tint = Color.White.copy(alpha = 0.7f),
+                                        tint = plIconTint,
                                         modifier = Modifier.size(22.dp)
                                     )
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Text(
                                         text = stringResource(R.string.menu_move_to_folder),
-                                        color = Color.White,
+                                        color = plTextColor,
                                         fontSize = 15.sp,
                                         modifier = Modifier.weight(1f)
                                     )
                                     Icon(
                                         imageVector = Icons.Default.ChevronRight,
                                         contentDescription = null,
-                                        tint = Color.White.copy(alpha = 0.5f),
+                                        tint = plSubTextColor,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
 
-                                Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+                                Divider(color = plDividerColor, modifier = Modifier.padding(vertical = 4.dp))
 
                                 VerticalMenuActionItem(
                                     icon = Icons.Default.QueueMusic,
@@ -2107,7 +2121,7 @@ fun GlassBoxScope.AppleMusicPlaylistMenu(
                                 VerticalMenuActionItem(
                                     icon = if (isAnyDownloaded) Icons.Default.DeleteOutline else Icons.Default.ArrowDownward,
                                     label = if (isAnyDownloaded) stringResource(R.string.menu_remove_download) else stringResource(R.string.menu_download),
-                                    iconTint = if (isAnyDownloaded) Color(0xFFFA243C) else Color.White.copy(alpha = 0.7f)
+                                    iconTint = if (isAnyDownloaded) Color(0xFFFA243C) else plIconTint
                                 ) {
                                     val songs = playlist.items.filter { it.type == ItemType.SONG }
                                     if (songs.isNotEmpty()) {
@@ -2146,13 +2160,13 @@ fun GlassBoxScope.AppleMusicPlaylistMenu(
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Text(
                                         text = stringResource(R.string.menu_sort_by),
-                                        color = Color.White,
+                                        color = if (isDark) Color.White else Color(0xFF1C1C1E),
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
 
-                                Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+                                Divider(color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
 
                                 val sortOptions = listOf(
                                     "default" to R.string.menu_sort_default,
@@ -2174,7 +2188,7 @@ fun GlassBoxScope.AppleMusicPlaylistMenu(
                                     ) {
                                         Text(
                                             text = stringResource(stringResId),
-                                            color = Color.White,
+                                            color = if (isDark) Color.White else Color(0xFF1C1C1E),
                                             fontSize = 15.sp,
                                             modifier = Modifier.weight(1f)
                                         )
@@ -2213,13 +2227,13 @@ fun GlassBoxScope.AppleMusicPlaylistMenu(
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Text(
                                         text = stringResource(R.string.menu_move_folder_title),
-                                        color = Color.White,
+                                        color = if (isDark) Color.White else Color(0xFF1C1C1E),
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
 
-                                Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+                                Divider(color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
 
                                 Column(
                                     modifier = Modifier
@@ -2248,7 +2262,7 @@ fun GlassBoxScope.AppleMusicPlaylistMenu(
                                             Spacer(modifier = Modifier.width(12.dp))
                                             Text(
                                                 text = folder,
-                                                color = Color.White,
+                                                color = if (isDark) Color.White else Color(0xFF1C1C1E),
                                                 fontSize = 15.sp,
                                                 modifier = Modifier.weight(1f)
                                             )
@@ -2264,7 +2278,7 @@ fun GlassBoxScope.AppleMusicPlaylistMenu(
                                     }
                                 }
 
-                                Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+                                Divider(color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
 
                                 Row(
                                     modifier = Modifier
@@ -2735,6 +2749,7 @@ fun ArtistMenuInnerContent(
     scope: kotlinx.coroutines.CoroutineScope,
     onDismiss: () -> Unit
 ) {
+    val isDark = com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState().value
     // Horizontal actions: Favorito & Compartir
     Row(
         modifier = Modifier
@@ -2745,7 +2760,7 @@ fun ArtistMenuInnerContent(
         HorizontalActionButton(
             icon = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
             label = if (isFavorite) stringResource(R.string.menu_artist_remove_favorite) else stringResource(R.string.menu_artist_add_favorite),
-            tint = if (isFavorite) Color(0xFFFA243C) else Color.White
+            tint = if (isFavorite) Color(0xFFFA243C) else (if (isDark) Color.White else Color(0xFF2C2C2E))
         ) {
             if (isFavorite) {
                 LibraryManager.removeItem(artistId)
@@ -2771,13 +2786,13 @@ fun ArtistMenuInnerContent(
         }
     }
 
-    Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+    Divider(color = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
 
     val isArtistPinned = LibraryManager.isItemPinned(artistId)
     VerticalMenuActionItem(
         icon = Icons.Default.PushPin,
         label = if (isArtistPinned) "Desfijar artista" else "Fijar artista",
-        iconTint = if (isArtistPinned) Color(0xFFFA243C) else Color.White
+        iconTint = if (isArtistPinned) Color(0xFFFA243C) else (if (isDark) Color.White else Color(0xFF2C2C2E))
     ) {
         val next = !isArtistPinned
         LibraryManager.setItemPinned(artistId, next)
@@ -3027,6 +3042,10 @@ fun GlassBoxScope.PlaylistsPageMoreMenu(
                     .let { if (blurPx > 0.1f && !com.mrtdk.glass.LocalLightweightGlass.current) it.blur(blurPx.dp) else it }
                     .padding(vertical = 8.dp)
             ) {
+                val menuTextColor = if (isDark) Color.White else Color(0xFF1C1C1E)
+                val menuIconTint = if (isDark) Color.White else Color(0xFF1C1C1E)
+                val menuDividerColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.08f)
+
                 // View Mode
                 Row(
                     modifier = Modifier
@@ -3040,13 +3059,13 @@ fun GlassBoxScope.PlaylistsPageMoreMenu(
                 ) {
                     Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
                         if (currentViewMode == "grid") {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Check, contentDescription = null, tint = menuIconTint, modifier = Modifier.size(16.dp))
                         }
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.Default.GridView, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.GridView, contentDescription = null, tint = menuIconTint, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(stringResource(R.string.menu_view_grid), color = Color.White, fontSize = 15.sp)
+                    Text(stringResource(R.string.menu_view_grid), color = menuTextColor, fontSize = 15.sp)
                 }
 
                 Row(
@@ -3061,16 +3080,16 @@ fun GlassBoxScope.PlaylistsPageMoreMenu(
                 ) {
                     Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
                         if (currentViewMode == "list") {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Check, contentDescription = null, tint = menuIconTint, modifier = Modifier.size(16.dp))
                         }
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.Default.List, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.List, contentDescription = null, tint = menuIconTint, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(stringResource(R.string.menu_view_list), color = Color.White, fontSize = 15.sp)
+                    Text(stringResource(R.string.menu_view_list), color = menuTextColor, fontSize = 15.sp)
                 }
 
-                Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+                Divider(color = menuDividerColor, modifier = Modifier.padding(vertical = 4.dp))
 
                 // Sort Options
                 val sortOptions = listOf(
@@ -3094,11 +3113,11 @@ fun GlassBoxScope.PlaylistsPageMoreMenu(
                     ) {
                         Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
                             if (currentSort == optionKey) {
-                                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Check, contentDescription = null, tint = menuIconTint, modifier = Modifier.size(16.dp))
                             }
                         }
                         Spacer(modifier = Modifier.width(20.dp))
-                        Text(optionLabel, color = Color.White, fontSize = 15.sp)
+                        Text(optionLabel, color = menuTextColor, fontSize = 15.sp)
                     }
                 }
             }
@@ -3191,6 +3210,9 @@ fun GlassBoxScope.PlaylistsPageSortMenu(
                     .let { if (blurPx > 0.1f && !com.mrtdk.glass.LocalLightweightGlass.current) it.blur(blurPx.dp) else it }
                     .padding(vertical = 8.dp)
             ) {
+                val menuTextColor = if (isDark) Color.White else Color(0xFF1C1C1E)
+                val menuIconTint = if (isDark) Color.White else Color(0xFF1C1C1E)
+
                 val sortOptions = listOf(
                     "title" to stringResource(R.string.menu_sort_title_label),
                     "date_added" to stringResource(R.string.menu_sort_date_added),
@@ -3212,11 +3234,11 @@ fun GlassBoxScope.PlaylistsPageSortMenu(
                     ) {
                         Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
                             if (currentSort == optionKey) {
-                                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Check, contentDescription = null, tint = menuIconTint, modifier = Modifier.size(16.dp))
                             }
                         }
                         Spacer(modifier = Modifier.width(20.dp))
-                        Text(optionLabel, color = Color.White, fontSize = 15.sp)
+                        Text(optionLabel, color = menuTextColor, fontSize = 15.sp)
                     }
                 }
             }
@@ -3279,6 +3301,9 @@ fun GlassBoxScope.PlayerOptionsMenu(
 
     val isDarkPlayerMenu = com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState().value
     val playerMenuDimColor = rememberAndroidLiquidGlassDimColor(isDarkPlayerMenu)
+    val playerMenuActionIconColor = if (isDarkPlayerMenu) Color.White else Color(0xFF2C2C2E)
+    val playerMenuActionTextColor = if (isDarkPlayerMenu) Color.White else Color(0xFF1C1C1E)
+    val playerMenuDividerColor = if (isDarkPlayerMenu) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.12f)
 
     Box(
         modifier = Modifier
@@ -3374,9 +3399,10 @@ fun GlassBoxScope.PlayerOptionsMenu(
                             val space = 3.5.dp.toPx()
                             val cx = size.width / 2f
                             val cy = size.height / 2f
-                            drawCircle(Color.White, radius = r, center = Offset(cx - space - r * 2, cy))
-                            drawCircle(Color.White, radius = r, center = Offset(cx, cy))
-                            drawCircle(Color.White, radius = r, center = Offset(cx + space + r * 2, cy))
+                            val dotColor = if (isDarkPlayerMenu) Color.White else Color(0xFF2C2C2E)
+                            drawCircle(dotColor, radius = r, center = Offset(cx - space - r * 2, cy))
+                            drawCircle(dotColor, radius = r, center = Offset(cx, cy))
+                            drawCircle(dotColor, radius = r, center = Offset(cx + space + r * 2, cy))
                         }
                     }
                 }
@@ -3411,9 +3437,9 @@ fun GlassBoxScope.PlayerOptionsMenu(
                             .padding(vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(Icons.Default.ArrowCircleDown, contentDescription = stringResource(R.string.player_menu_download), tint = Color.White, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.ArrowCircleDown, contentDescription = stringResource(R.string.player_menu_download), tint = playerMenuActionIconColor, modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(stringResource(R.string.player_menu_download), color = Color.White, fontSize = 11.sp, textAlign = TextAlign.Center)
+                        Text(stringResource(R.string.player_menu_download), color = playerMenuActionTextColor, fontSize = 11.sp, textAlign = TextAlign.Center)
                     }
 
                     // Favorito
@@ -3429,13 +3455,13 @@ fun GlassBoxScope.PlayerOptionsMenu(
                         Icon(
                             imageVector = if (isSaved) Icons.Default.Star else Icons.Default.StarBorder,
                             contentDescription = stringResource(if (isSaved) R.string.player_menu_favorite else R.string.player_menu_add_favorite),
-                            tint = if (isSaved) Color(0xFFFA243C) else Color.White,
+                            tint = if (isSaved) Color(0xFFFA243C) else playerMenuActionIconColor,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = if (isSaved) stringResource(R.string.player_menu_favorite) else stringResource(R.string.player_menu_add_favorite),
-                            color = Color.White,
+                            color = playerMenuActionTextColor,
                             fontSize = 11.sp,
                             textAlign = TextAlign.Center
                         )
@@ -3450,40 +3476,40 @@ fun GlassBoxScope.PlayerOptionsMenu(
                                     if (playerState?.videoId != null) {
                                         val shareUrl = "https://music.youtube.com/watch?v=${playerState.videoId}"
                                         val intent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "text/plain"
-                                            putExtra(Intent.EXTRA_SUBJECT, playerState.title)
-                                            putExtra(Intent.EXTRA_TEXT, shareUrl)
-                                        }
-                                        context.startActivity(Intent.createChooser(intent, context.getString(R.string.compartir)))
-                                    }
-                                }
-                            }
-                            .padding(vertical = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(painter = painterResource(id = R.drawable.compartir), contentDescription = stringResource(R.string.player_menu_share), tint = Color.White, modifier = Modifier.size(24.dp))
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(stringResource(R.string.player_menu_share), color = Color.White, fontSize = 11.sp, textAlign = TextAlign.Center)
-                    }
-                }
+                                             type = "text/plain"
+                                             putExtra(Intent.EXTRA_SUBJECT, playerState.title)
+                                             putExtra(Intent.EXTRA_TEXT, shareUrl)
+                                         }
+                                         context.startActivity(Intent.createChooser(intent, context.getString(R.string.compartir)))
+                                     }
+                                 }
+                             }
+                             .padding(vertical = 8.dp),
+                         horizontalAlignment = Alignment.CenterHorizontally
+                     ) {
+                         Icon(painter = painterResource(id = R.drawable.compartir), contentDescription = stringResource(R.string.player_menu_share), tint = playerMenuActionIconColor, modifier = Modifier.size(24.dp))
+                         Spacer(modifier = Modifier.height(4.dp))
+                         Text(stringResource(R.string.player_menu_share), color = playerMenuActionTextColor, fontSize = 11.sp, textAlign = TextAlign.Center)
+                     }
+                 }
 
-                HorizontalDivider(color = Color.White.copy(alpha = 0.12f), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
+                 HorizontalDivider(color = playerMenuDividerColor, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
 
-                // Vertical Actions List
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    // Fijar canción / Destacar canción
-                    val isPinned = remember(playerState?.videoId) {
-                        LibraryManager.isItemPinned(playerState?.videoId ?: "")
-                    }
-                    VerticalMenuActionItem(
-                        icon = Icons.Default.PushPin,
-                        label = if (isPinned) stringResource(R.string.player_menu_unpin_song) else stringResource(R.string.player_menu_pin_song),
-                        iconTint = if (isPinned) Color(0xFFFA243C) else Color.White
-                    ) {
+                 // Vertical Actions List
+                 Column(
+                     modifier = Modifier
+                         .fillMaxWidth()
+                         .verticalScroll(rememberScrollState())
+                 ) {
+                     // Fijar canción / Destacar canción
+                     val isPinned = remember(playerState?.videoId) {
+                         LibraryManager.isItemPinned(playerState?.videoId ?: "")
+                     }
+                     VerticalMenuActionItem(
+                         icon = Icons.Default.PushPin,
+                         label = if (isPinned) stringResource(R.string.player_menu_unpin_song) else stringResource(R.string.player_menu_pin_song),
+                         iconTint = if (isPinned) Color(0xFFFA243C) else playerMenuActionIconColor
+                     ) {
                         handleDismiss {
                             if (playerState?.videoId != null) {
                                 val next = !isPinned
@@ -3541,7 +3567,7 @@ fun GlassBoxScope.PlayerOptionsMenu(
                         showSleepTimerDialog = true
                     }
 
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.12f), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 4.dp))
+                    HorizontalDivider(color = playerMenuDividerColor, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 4.dp))
 
                     // Ir al álbum (con subtítulo de nombre del álbum estilo Apple Music)
                     VerticalMenuActionItem(
@@ -3922,6 +3948,12 @@ fun GlassBoxScope.LyricsOptionsMenu(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(currentCorner))
+                    .background(if (isDarkLyricsMenu) Color.Transparent else Color.White.copy(alpha = 0.85f * morphProgress))
+                    .border(
+                        width = 0.5.dp,
+                        color = if (isDarkLyricsMenu) Color.White.copy(alpha = 0.12f * morphProgress) else Color.Black.copy(alpha = 0.08f * morphProgress),
+                        shape = RoundedCornerShape(currentCorner)
+                    )
             ) {
                 if (threeDotsAlpha > 0.001f) {
                     Box(
@@ -3940,14 +3972,24 @@ fun GlassBoxScope.LyricsOptionsMenu(
                             val space = 3.5.dp.toPx()
                             val cx = size.width / 2f
                             val cy = size.height / 2f
-                            drawCircle(Color.White, radius = r, center = Offset(cx - space - r * 2, cy))
-                            drawCircle(Color.White, radius = r, center = Offset(cx, cy))
-                            drawCircle(Color.White, radius = r, center = Offset(cx + space + r * 2, cy))
+                            val dotColor = if (isDarkLyricsMenu) Color.White else Color(0xFF1C1C1E)
+                            drawCircle(dotColor, radius = r, center = Offset(cx - space - r * 2, cy))
+                            drawCircle(dotColor, radius = r, center = Offset(cx, cy))
+                            drawCircle(dotColor, radius = r, center = Offset(cx + space + r * 2, cy))
                         }
                     }
                 }
 
                 if (menuContentAlpha > 0.001f) {
+                    val lyricsTextColor = if (isDarkLyricsMenu) Color.White else Color(0xFF1C1C1E)
+                    val lyricsSubTextColor = if (isDarkLyricsMenu) Color.White.copy(alpha = 0.7f) else Color(0xFF666668)
+                    val lyricsIconColor = if (isDarkLyricsMenu) Color.White else Color(0xFF3C3C43)
+                    val lyricsCardBg = if (isDarkLyricsMenu) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
+                    val lyricsCardBorder = if (isDarkLyricsMenu) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
+                    val lyricsDividerColor = if (isDarkLyricsMenu) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.06f)
+                    val lyricsAccentYellow = if (isDarkLyricsMenu) Color(0xFFFDE69B) else Color(0xFFB45309)
+                    val lyricsAccentGreen = if (isDarkLyricsMenu) Color(0xFFC9F8DA) else Color(0xFF059669)
+
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -3967,18 +4009,18 @@ fun GlassBoxScope.LyricsOptionsMenu(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = { showProviderSelection = false }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.lyrics_menu_back), tint = Color.White)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.lyrics_menu_back), tint = lyricsIconColor)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = stringResource(R.string.lyrics_distributors_header, availableProviders.size),
-                            color = Color.White,
+                            color = lyricsTextColor,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 6.dp))
+                    HorizontalDivider(color = lyricsDividerColor, modifier = Modifier.padding(vertical = 6.dp))
 
                     Column(
                         modifier = Modifier
@@ -3990,17 +4032,17 @@ fun GlassBoxScope.LyricsOptionsMenu(
                             availableProviders.forEachIndexed { index, provider ->
                                 val isSelected = index == currentProviderIndex || provider.providerName.equals(selectedProvider, ignoreCase = true)
                                 val itemSyncColor = when (provider.syncType.lowercase()) {
-                                    "syllable", "richsync" -> Color(0xFFFDE69B)
-                                    "word" -> Color(0xFFAAD1FF)
-                                    "line", "linesync" -> Color(0xFFC9F8DA)
-                                    else -> Color.White.copy(alpha = 0.6f)
+                                    "syllable", "richsync" -> lyricsAccentYellow
+                                    "word" -> if (isDarkLyricsMenu) Color(0xFFAAD1FF) else Color(0xFF2563EB)
+                                    "line", "linesync" -> lyricsAccentGreen
+                                    else -> if (isDarkLyricsMenu) Color.White.copy(alpha = 0.6f) else Color(0xFF666668)
                                 }
 
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(if (isSelected) Color.White.copy(alpha = 0.12f) else Color.Transparent)
+                                        .background(if (isSelected) (if (isDarkLyricsMenu) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)) else Color.Transparent)
                                         .clickable {
                                             onSelectProviderIndex(index)
                                             onSelectProvider(provider.providerName)
@@ -4013,7 +4055,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
                                         text = provider.providerName,
-                                        color = if (isSelected) itemSyncColor else Color.White,
+                                        color = if (isSelected) itemSyncColor else lyricsTextColor,
                                         fontSize = 14.5.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                         modifier = Modifier.weight(1f)
@@ -4035,7 +4077,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(if (isSelected) Color.White.copy(alpha = 0.12f) else Color.Transparent)
+                                        .background(if (isSelected) (if (isDarkLyricsMenu) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)) else Color.Transparent)
                                         .clickable {
                                             onSelectProvider(name)
                                             showProviderSelection = false
@@ -4045,7 +4087,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                 ) {
                                     Text(
                                         text = name,
-                                        color = if (isSelected) Color(0xFFFDE69B) else Color.White,
+                                        color = if (isSelected) lyricsAccentYellow else lyricsTextColor,
                                         fontSize = 14.5.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                         modifier = Modifier.weight(1f)
@@ -4054,7 +4096,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                         Icon(
                                             imageVector = Icons.Default.Check,
                                             contentDescription = stringResource(R.string.lyrics_menu_selected),
-                                            tint = Color(0xFFFDE69B),
+                                            tint = lyricsAccentYellow,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -4070,18 +4112,18 @@ fun GlassBoxScope.LyricsOptionsMenu(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = { showExportFormatSelection = false }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.lyrics_menu_back), tint = Color.White)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.lyrics_menu_back), tint = lyricsIconColor)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = stringResource(R.string.lyrics_menu_export_lyrics),
-                            color = Color.White,
+                            color = lyricsTextColor,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 6.dp))
+                    HorizontalDivider(color = lyricsDividerColor, modifier = Modifier.padding(vertical = 6.dp))
 
                     val formats = listOf("LRC", "ELRC", "TTML")
                     Column(
@@ -4102,7 +4144,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                             ) {
                                 Text(
                                     text = format,
-                                    color = Color.White,
+                                    color = lyricsTextColor,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Normal,
                                     modifier = Modifier.weight(1f)
@@ -4110,7 +4152,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                 Icon(
                                     imageVector = Icons.Default.ContentCopy,
                                     contentDescription = stringResource(R.string.copy_action),
-                                    tint = Color.White.copy(alpha = 0.6f),
+                                    tint = lyricsSubTextColor,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -4127,7 +4169,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                         // Title
                         Text(
                             text = stringResource(R.string.lyrics_settings_title),
-                            color = Color.White.copy(alpha = 0.95f),
+                            color = lyricsTextColor,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)
@@ -4138,8 +4180,8 @@ fun GlassBoxScope.LyricsOptionsMenu(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
-                                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                                .background(lyricsCardBg)
+                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(16.dp))
                         ) {
                             val isSingEnabled by AppleMusicSingManager.isSingEnabled.collectAsState()
                             val vocalVolume by AppleMusicSingManager.vocalVolume.collectAsState()
@@ -4154,8 +4196,8 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                             AppleMusicSingManager.toggleSing()
                                         },
                                         colors = androidx.compose.material3.SwitchDefaults.colors(
-                                            checkedThumbColor = Color(0xFFFDE69B),
-                                            checkedTrackColor = Color(0xFFFDE69B).copy(alpha = 0.4f)
+                                            checkedThumbColor = lyricsAccentYellow,
+                                            checkedTrackColor = lyricsAccentYellow.copy(alpha = 0.4f)
                                         ),
                                         modifier = Modifier.graphicsLayer { scaleX = 0.8f; scaleY = 0.8f }
                                     )
@@ -4175,7 +4217,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                         .fillMaxWidth()
                                         .padding(horizontal = 14.dp, vertical = 8.dp)
                                 ) {
-                                    HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(bottom = 8.dp))
+                                    HorizontalDivider(color = lyricsDividerColor, modifier = Modifier.padding(bottom = 8.dp))
 
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -4184,7 +4226,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                     ) {
                                         Text(
                                             text = "Volumen de la voz",
-                                            color = Color.White.copy(alpha = 0.8f),
+                                            color = lyricsSubTextColor,
                                             fontSize = 13.sp
                                         )
                                         val percent = (vocalVolume * 100f).roundToInt()
@@ -4195,7 +4237,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                         }
                                         Text(
                                             text = label,
-                                            color = Color(0xFFFDE69B),
+                                            color = lyricsAccentYellow,
                                             fontSize = 12.5.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -4211,7 +4253,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                         Icon(
                                             imageVector = Icons.Default.MicOff,
                                             contentDescription = "Mute",
-                                            tint = Color.White.copy(alpha = 0.5f),
+                                            tint = lyricsSubTextColor,
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Slider(
@@ -4220,15 +4262,15 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                             valueRange = 0f..1f,
                                             modifier = Modifier.weight(1f).height(24.dp),
                                             colors = SliderDefaults.colors(
-                                                thumbColor = Color(0xFFFDE69B),
-                                                activeTrackColor = Color(0xFFFDE69B),
-                                                inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                                                thumbColor = lyricsAccentYellow,
+                                                activeTrackColor = lyricsAccentYellow,
+                                                inactiveTrackColor = if (isDarkLyricsMenu) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.12f)
                                             )
                                         )
                                         Icon(
                                             imageVector = Icons.Default.Mic,
                                             contentDescription = "Full Voice",
-                                            tint = Color.White.copy(alpha = 0.8f),
+                                            tint = lyricsIconColor,
                                             modifier = Modifier.size(16.dp)
                                         )
                                     }
@@ -4249,15 +4291,15 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .clip(RoundedCornerShape(8.dp))
-                                                    .background(if (isSelected) Color(0xFFFDE69B).copy(alpha = 0.22f) else Color.White.copy(alpha = 0.08f))
-                                                    .border(1.dp, if (isSelected) Color(0xFFFDE69B).copy(alpha = 0.5f) else Color.Transparent, RoundedCornerShape(8.dp))
+                                                    .background(if (isSelected) lyricsAccentYellow.copy(alpha = 0.22f) else lyricsCardBg)
+                                                    .border(1.dp, if (isSelected) lyricsAccentYellow.copy(alpha = 0.5f) else Color.Transparent, RoundedCornerShape(8.dp))
                                                     .clickable { AppleMusicSingManager.setVocalVolume(presetVal) }
                                                     .padding(vertical = 5.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text(
                                                     text = presetName,
-                                                    color = if (isSelected) Color(0xFFFDE69B) else Color.White.copy(alpha = 0.85f),
+                                                    color = if (isSelected) lyricsAccentYellow else lyricsTextColor,
                                                     fontSize = 11.sp,
                                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                                 )
@@ -4273,16 +4315,16 @@ fun GlassBoxScope.LyricsOptionsMenu(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
-                                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                                .background(lyricsCardBg)
+                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(16.dp))
                         ) {
                             val activeProvName = availableProviders.getOrNull(currentProviderIndex)?.providerName ?: selectedProvider.ifEmpty { "Better Lyrics" }
                             val activeSyncType = availableProviders.getOrNull(currentProviderIndex)?.syncType ?: "syllable"
                             val provSyncColor = when (activeSyncType.lowercase()) {
-                                "syllable", "richsync" -> Color(0xFFFDE69B)
-                                "word" -> Color(0xFFAAD1FF)
-                                "line", "linesync" -> Color(0xFFC9F8DA)
-                                else -> Color.White.copy(alpha = 0.6f)
+                                "syllable", "richsync" -> lyricsAccentYellow
+                                "word" -> if (isDarkLyricsMenu) Color(0xFFAAD1FF) else Color(0xFF2563EB)
+                                "line", "linesync" -> lyricsAccentGreen
+                                else -> if (isDarkLyricsMenu) Color.White.copy(alpha = 0.6f) else Color(0xFF666668)
                             }
 
                             VerticalMenuActionItem(
@@ -4304,7 +4346,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                 }
                             )
 
-                            HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(horizontal = 12.dp))
+                            HorizontalDivider(color = lyricsDividerColor, modifier = Modifier.padding(horizontal = 12.dp))
 
                             var currentFont by remember { 
                                 mutableStateOf(com.mrtdk.liquid_glass.data.LibraryManager.getString("lyrics_font_family") ?: "SF Pro") 
@@ -4316,7 +4358,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                 trailingContent = {
                                     Text(
                                         text = displayFontText,
-                                        color = Color.White.copy(alpha = 0.75f),
+                                        color = lyricsSubTextColor,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -4339,8 +4381,8 @@ fun GlassBoxScope.LyricsOptionsMenu(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
-                                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                                .background(lyricsCardBg)
+                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(16.dp))
                         ) {
                             var isGlowEnabled by remember {
                                 mutableStateOf((com.mrtdk.liquid_glass.data.LibraryManager.getString("lyrics_glow_enabled") ?: "true") == "true")
@@ -4356,8 +4398,8 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                             com.mrtdk.liquid_glass.data.LibraryManager.saveString("lyrics_glow_enabled", it.toString())
                                         },
                                         colors = androidx.compose.material3.SwitchDefaults.colors(
-                                            checkedThumbColor = Color(0xFFFDE69B),
-                                            checkedTrackColor = Color(0xFFFDE69B).copy(alpha = 0.4f)
+                                            checkedThumbColor = lyricsAccentYellow,
+                                            checkedTrackColor = lyricsAccentYellow.copy(alpha = 0.4f)
                                         ),
                                         modifier = Modifier.graphicsLayer { scaleX = 0.8f; scaleY = 0.8f }
                                     )
@@ -4368,7 +4410,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                 }
                             )
 
-                            HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(horizontal = 12.dp))
+                            HorizontalDivider(color = lyricsDividerColor, modifier = Modifier.padding(horizontal = 12.dp))
 
                             var scrollMode by remember {
                                 mutableStateOf(com.mrtdk.liquid_glass.data.LibraryManager.getString("lyrics_scroll_mode") ?: "GlassyFlow")
@@ -4379,7 +4421,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                 trailingContent = {
                                     Text(
                                         text = scrollMode,
-                                        color = Color(0xFFC9F8DA),
+                                        color = lyricsAccentGreen,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -4397,8 +4439,8 @@ fun GlassBoxScope.LyricsOptionsMenu(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
-                                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                                .background(lyricsCardBg)
+                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(16.dp))
                         ) {
                             VerticalMenuActionItem(
                                 icon = Icons.Default.Translate,
@@ -4421,7 +4463,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                 }
                             )
 
-                            HorizontalDivider(color = Color.White.copy(alpha = 0.06f), modifier = Modifier.padding(horizontal = 12.dp))
+                            HorizontalDivider(color = lyricsDividerColor, modifier = Modifier.padding(horizontal = 12.dp))
 
                             Column(
                                 modifier = Modifier
@@ -4434,12 +4476,12 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Icon(Icons.Default.Schedule, contentDescription = null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
-                                        Text(stringResource(R.string.lyrics_time_offset_title), color = Color.White, fontSize = 14.sp)
+                                        Icon(Icons.Default.Schedule, contentDescription = null, tint = lyricsSubTextColor, modifier = Modifier.size(18.dp))
+                                        Text(stringResource(R.string.lyrics_time_offset_title), color = lyricsTextColor, fontSize = 14.sp)
                                     }
                                     Text(
                                         text = "${if (lyricsOffset >= 0) "+" else ""}${String.format("%.1f", lyricsOffset / 1000f)}s",
-                                        color = Color(0xFFFDE69B),
+                                        color = lyricsAccentYellow,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -4455,56 +4497,56 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(Color.White.copy(alpha = 0.10f))
+                                            .background(if (isDarkLyricsMenu) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.06f))
                                             .clickable { onAdjustOffsetDelta(-0.5f) }
                                             .padding(horizontal = 8.dp, vertical = 4.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text("-0.5s", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("-0.5s", color = lyricsTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
 
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(Color.White.copy(alpha = 0.10f))
+                                            .background(if (isDarkLyricsMenu) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.06f))
                                             .clickable { onAdjustOffsetDelta(-0.1f) }
                                             .padding(horizontal = 8.dp, vertical = 4.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text("-0.1s", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("-0.1s", color = lyricsTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
 
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(Color.White.copy(alpha = 0.18f))
+                                            .background(if (isDarkLyricsMenu) Color.White.copy(alpha = 0.18f) else Color.Black.copy(alpha = 0.12f))
                                             .clickable { onResetOffset() }
                                             .padding(horizontal = 10.dp, vertical = 4.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text("0.0s", color = Color(0xFFFDE69B), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("0.0s", color = lyricsAccentYellow, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
 
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(Color.White.copy(alpha = 0.10f))
+                                            .background(if (isDarkLyricsMenu) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.06f))
                                             .clickable { onAdjustOffsetDelta(0.1f) }
                                             .padding(horizontal = 8.dp, vertical = 4.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text("+0.1s", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("+0.1s", color = lyricsTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
 
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(Color.White.copy(alpha = 0.10f))
+                                            .background(if (isDarkLyricsMenu) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.06f))
                                             .clickable { onAdjustOffsetDelta(0.5f) }
                                             .padding(horizontal = 8.dp, vertical = 4.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text("+0.5s", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("+0.5s", color = lyricsTextColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -4515,8 +4557,8 @@ fun GlassBoxScope.LyricsOptionsMenu(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
-                                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                                .background(lyricsCardBg)
+                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(16.dp))
                                 .padding(vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
@@ -4531,9 +4573,9 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                     .padding(vertical = 4.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.lyrics_menu_edit), tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.lyrics_menu_edit), tint = lyricsIconColor, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.height(2.dp))
-                                Text(stringResource(R.string.lyrics_menu_edit), color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
+                                Text(stringResource(R.string.lyrics_menu_edit), color = lyricsTextColor, fontSize = 11.sp)
                             }
 
                             Column(
@@ -4545,9 +4587,9 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                     .padding(vertical = 4.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.Share, contentDescription = "Compartir", tint = lyricsIconColor, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.height(2.dp))
-                                Text("Compartir", color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
+                                Text("Compartir", color = lyricsTextColor, fontSize = 11.sp)
                             }
 
                             Column(
@@ -4560,9 +4602,9 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                     .padding(vertical = 4.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.lyrics_menu_reload), tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.lyrics_menu_reload), tint = lyricsIconColor, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.height(2.dp))
-                                Text(stringResource(R.string.lyrics_menu_reload), color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
+                                Text(stringResource(R.string.lyrics_menu_reload), color = lyricsTextColor, fontSize = 11.sp)
                             }
 
                             Column(
@@ -4575,9 +4617,9 @@ fun GlassBoxScope.LyricsOptionsMenu(
                                     .padding(vertical = 4.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(Icons.Default.Flag, contentDescription = stringResource(R.string.lyrics_report_action), tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.Flag, contentDescription = stringResource(R.string.lyrics_report_action), tint = lyricsIconColor, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.height(2.dp))
-                                Text(stringResource(R.string.lyrics_report_action), color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
+                                Text(stringResource(R.string.lyrics_report_action), color = lyricsTextColor, fontSize = 11.sp)
                             }
                         }
                     }
@@ -4714,6 +4756,12 @@ fun GlassBoxScope.ArtistOptionsMenu(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(currentCorner))
+                    .background(if (isDark) Color.Transparent else Color.White.copy(alpha = 0.85f * morphProgress))
+                    .border(
+                        width = 0.5.dp,
+                        color = if (isDark) Color.White.copy(alpha = 0.12f * morphProgress) else Color.Black.copy(alpha = 0.08f * morphProgress),
+                        shape = RoundedCornerShape(currentCorner)
+                    )
             ) {
                 if (threeDotsAlpha > 0.001f) {
                     Box(
@@ -4732,14 +4780,20 @@ fun GlassBoxScope.ArtistOptionsMenu(
                             val space = 3.5.dp.toPx()
                             val cx = size.width / 2f
                             val cy = size.height / 2f
-                            drawCircle(Color.White, radius = r, center = Offset(cx - space - r * 2, cy))
-                            drawCircle(Color.White, radius = r, center = Offset(cx, cy))
-                            drawCircle(Color.White, radius = r, center = Offset(cx + space + r * 2, cy))
+                            val dotColor = if (isDark) Color.White else Color(0xFF1C1C1E)
+                            drawCircle(dotColor, radius = r, center = Offset(cx - space - r * 2, cy))
+                            drawCircle(dotColor, radius = r, center = Offset(cx, cy))
+                            drawCircle(dotColor, radius = r, center = Offset(cx + space + r * 2, cy))
                         }
                     }
                 }
 
                 if (menuContentAlpha > 0.001f) {
+                    val artistTextColor = if (isDark) Color.White else Color(0xFF1C1C1E)
+                    val artistSubTextColor = if (isDark) Color.White.copy(alpha = 0.65f) else Color(0xFF666668)
+                    val artistIconTint = if (isDark) Color.White.copy(alpha = 0.9f) else Color(0xFF1C1C1E)
+                    val artistDividerColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)
+
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -4775,20 +4829,20 @@ fun GlassBoxScope.ArtistOptionsMenu(
                                     Icon(
                                         imageVector = Icons.Default.Album,
                                         contentDescription = null,
-                                        tint = Color.White.copy(alpha = 0.9f),
+                                        tint = artistIconTint,
                                         modifier = Modifier.size(24.dp)
                                     )
                                     Spacer(modifier = Modifier.width(14.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = "Ir al álbum",
-                                            color = Color.White,
+                                            color = artistTextColor,
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.SemiBold
                                         )
                                         Text(
                                             text = displayAlbum,
-                                            color = Color.White.copy(alpha = 0.65f),
+                                            color = artistSubTextColor,
                                             fontSize = 12.5.sp,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -4797,7 +4851,7 @@ fun GlassBoxScope.ArtistOptionsMenu(
                                 }
 
                                 HorizontalDivider(
-                                    color = Color.White.copy(alpha = 0.08f),
+                                    color = artistDividerColor,
                                     thickness = 0.5.dp,
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
                                 )
@@ -4822,20 +4876,20 @@ fun GlassBoxScope.ArtistOptionsMenu(
                                     Icon(
                                         imageVector = Icons.Default.Mic,
                                         contentDescription = null,
-                                        tint = Color.White.copy(alpha = 0.9f),
+                                        tint = artistIconTint,
                                         modifier = Modifier.size(24.dp)
                                     )
                                     Spacer(modifier = Modifier.width(14.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = "Ir al artista",
-                                            color = Color.White,
+                                            color = artistTextColor,
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.SemiBold
                                         )
                                         Text(
                                             text = artist,
-                                            color = Color.White.copy(alpha = 0.65f),
+                                            color = artistSubTextColor,
                                             fontSize = 12.5.sp,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -4844,7 +4898,7 @@ fun GlassBoxScope.ArtistOptionsMenu(
                                 }
                                 if (index < artists.size - 1) {
                                     HorizontalDivider(
-                                        color = Color.White.copy(alpha = 0.08f),
+                                        color = artistDividerColor,
                                         thickness = 0.5.dp,
                                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
                                     )

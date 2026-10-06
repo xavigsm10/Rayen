@@ -68,6 +68,7 @@ import com.mrtdk.liquid_glass.ui.components.shapes.ContinuousRoundedRectangle
 import com.mrtdk.liquid_glass.data.ItemType
 import com.mrtdk.liquid_glass.data.LibraryItem
 import com.mrtdk.liquid_glass.data.LibraryManager
+import com.mrtdk.liquid_glass.ui.theme.ThemeManager
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -247,7 +248,12 @@ fun AlbumScreen(
     }
 
     val hasAnimatedCover = !isAnimatedArtworkBlocked && isVideoPlaying
-    val isNormalArtwork = playerArtworkStyle == "normal" || isFavoriteSongs
+    val isNormalArtwork = when (playerArtworkStyle) {
+        "normal" -> true
+        "animated_fullartwork" -> !hasAnimatedCover
+        "animated_fullartwork_low" -> !hasAnimatedCover
+        else -> isFavoriteSongs
+    }
 
     LaunchedEffect(albumState.artist, albumState.title, tracks.firstOrNull()?.title) {
         val artist = albumState.artist
@@ -589,7 +595,8 @@ fun AlbumScreen(
 
     val localBackdrop = rememberLayerBackdrop()
 
-    val isLightBackground = dominantColor.luminance() > 0.52f
+    val isDarkTheme by ThemeManager.isDarkMode.collectAsState()
+    val isLightBackground = dominantColor.luminance() > 0.45f
     val primaryTextColor = if (isLightBackground) Color(0xFF151515) else Color.White
     val secondaryTextColor = if (isLightBackground) Color(0xFF151515).copy(alpha = 0.72f) else Color.White.copy(alpha = 0.85f)
     val tertiaryTextColor = if (isLightBackground) Color(0xFF151515).copy(alpha = 0.52f) else Color.White.copy(alpha = 0.60f)
@@ -599,8 +606,8 @@ fun AlbumScreen(
     val playButtonBg = if (isLightBackground) Color(0xFF151515) else Color.White
     val playButtonTextColor = if (isLightBackground) Color.White else (if (dominantColor.luminance() > 0.65f) Color(0xFF151515) else dominantColor)
     val isSolid = com.mrtdk.glass.LocalGlassStyle.current == "solid" || com.mrtdk.liquid_glass.data.LibraryManager.getGlassStyle() == "solid"
-    val glassButtonTint = if (isSolid) Color(0xFF242428) else if (isLightBackground) Color.White.copy(alpha = 0.65f) else DarkGrayGlassTint
-    val glassIconTint = if (isSolid) Color.White else if (isLightBackground) Color(0xFF151515) else Color.White
+    val glassButtonTint = if (!isDarkTheme) (if (isSolid) Color.White else Color.White.copy(alpha = 0.65f)) else if (isSolid) Color(0xFF242428) else DarkGrayGlassTint
+    val glassIconTint = if (!isDarkTheme) Color(0xFF1C1C1E) else Color.White
 
     SharedElementTransitionContainer(
         onBack = onBack,
@@ -909,6 +916,21 @@ fun AlbumScreen(
                                                     contentScale = ContentScale.Crop,
                                                     modifier = Modifier.fillMaxSize()
                                                 )
+
+                                                val currentAnimatedUrl = animatedArtworkUrl
+                                                if (!currentAnimatedUrl.isNullOrBlank() && !isAnimatedArtworkBlocked) {
+                                                    com.mrtdk.liquid_glass.ui.components.AnimatedArtworkPlayer(
+                                                        videoUrl = currentAnimatedUrl,
+                                                        modifier = Modifier.fillMaxSize().graphicsLayer { alpha = if (isVideoPlaying) 1f else 0f },
+                                                        isPaused = isPaused || isHeroOffscreen,
+                                                        onPlaybackStarted = { isVideoPlaying = true },
+                                                        onPlaybackFailed = {
+                                                            isVideoPlaying = false
+                                                            animatedArtworkUrl = null
+                                                            com.mrtdk.liquid_glass.ui.components.AnimatedArtworkCache.remove(albumState.artist, albumState.title)
+                                                        }
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -1766,7 +1788,7 @@ fun AlbumScreen(
                                 }
                                 .clickable(enabled = !showAlbumMenu) { dismiss() },
                             shape = CircleShape,
-                            tint = Color.Unspecified,
+                            tint = glassButtonTint,
                             blur = 0.8f,
                             centerDistortion = 0.1f,
                             scale = 0.02f,
@@ -2473,7 +2495,7 @@ fun AlbumTopRightMorphingPill(
         stop = ContinuousRoundedRectangle(24.dp),
         fraction = morphProgress
     )
-    val morphTint = Color.Unspecified
+    val morphTint = glassButtonTint
 
     // Smooth crossfade opacities
     val pillIconsAlpha = ((0.28f - morphProgress) / 0.28f).coerceIn(0f, 1f)
@@ -2550,6 +2572,12 @@ fun AlbumTopRightMorphingPill(
 
             // 2. Expanded: Apple Music Liquid Glass Menu
             if (menuContentAlpha > 0.001f) {
+                val isDarkThemePill = ThemeManager.isDarkMode.collectAsState().value
+                val menuTextColor = if (isDarkThemePill) Color.White else Color(0xFF1C1C1E)
+                val menuSubTextColor = if (isDarkThemePill) Color.White.copy(alpha = 0.55f) else Color(0xFF666668)
+                val menuIconTint = if (isDarkThemePill) Color.White else Color(0xFF1C1C1E)
+                val menuDividerColor = if (isDarkThemePill) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -2594,13 +2622,13 @@ fun AlbumTopRightMorphingPill(
                                 Icon(
                                     imageVector = if (isSaved) Icons.Default.CheckCircle else Icons.Default.AddCircleOutline,
                                     contentDescription = null,
-                                    tint = if (isSaved) Color(0xFFFA243C) else Color.White,
+                                    tint = if (isSaved) Color(0xFFFA243C) else menuIconTint,
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = if (isSaved) "Agregado" else "Agregar",
-                                    color = Color.White,
+                                    color = menuTextColor,
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1
@@ -2627,13 +2655,13 @@ fun AlbumTopRightMorphingPill(
                                 Icon(
                                     imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
                                     contentDescription = null,
-                                    tint = if (isFavorite) Color(0xFFFA243C) else Color.White,
+                                    tint = if (isFavorite) Color(0xFFFA243C) else menuIconTint,
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = if (isFavorite) "En Favoritos" else "Favorito",
-                                    color = Color.White,
+                                    color = menuTextColor,
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1
@@ -2672,13 +2700,13 @@ fun AlbumTopRightMorphingPill(
                                 Icon(
                                     painter = painterResource(id = R.drawable.compartir),
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = menuIconTint,
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = stringResource(R.string.share_action),
-                                    color = Color.White,
+                                    color = menuTextColor,
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1
@@ -2686,7 +2714,7 @@ fun AlbumTopRightMorphingPill(
                             }
                         }
 
-                        Divider(color = Color.White.copy(alpha = 0.12f), thickness = 0.6.dp)
+                        Divider(color = menuDividerColor, thickness = 0.6.dp)
 
                         // ── Vertical Action Options ──
                         Column(
@@ -2705,18 +2733,18 @@ fun AlbumTopRightMorphingPill(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = menuIconTint,
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(14.dp))
                                 Text(
                                     text = stringResource(R.string.anadir_a_playlist),
-                                    color = Color.White,
+                                    color = menuTextColor,
                                     fontSize = 15.sp
                                 )
                             }
 
-                            Divider(color = Color.White.copy(alpha = 0.08f), thickness = 0.5.dp)
+                            Divider(color = menuDividerColor, thickness = 0.5.dp)
 
                             // 2. Poner a continuación
                             Row(
@@ -2732,18 +2760,18 @@ fun AlbumTopRightMorphingPill(
                                 Icon(
                                     imageVector = Icons.Default.QueuePlayNext,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = menuIconTint,
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(14.dp))
                                 Text(
                                     text = stringResource(R.string.play_next),
-                                    color = Color.White,
+                                    color = menuTextColor,
                                     fontSize = 15.sp
                                 )
                             }
 
-                            Divider(color = Color.White.copy(alpha = 0.08f), thickness = 0.5.dp)
+                            Divider(color = menuDividerColor, thickness = 0.5.dp)
 
                             // 3. Poner después
                             Row(
@@ -2759,19 +2787,19 @@ fun AlbumTopRightMorphingPill(
                                 Icon(
                                     imageVector = Icons.Default.Queue,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = menuIconTint,
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(14.dp))
                                 Column {
                                     Text(
                                         text = stringResource(R.string.play_later),
-                                        color = Color.White,
+                                        color = menuTextColor,
                                         fontSize = 15.sp
                                     )
                                     Text(
                                         text = albumState.title,
-                                        color = Color.White.copy(alpha = 0.55f),
+                                        color = menuSubTextColor,
                                         fontSize = 12.sp,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -2779,7 +2807,7 @@ fun AlbumTopRightMorphingPill(
                                 }
                             }
 
-                            Divider(color = Color.White.copy(alpha = 0.08f), thickness = 0.5.dp)
+                            Divider(color = menuDividerColor, thickness = 0.5.dp)
 
                             // 4. Descargar
                             Row(
@@ -2840,18 +2868,18 @@ fun AlbumTopRightMorphingPill(
                                 Icon(
                                     imageVector = Icons.Default.Download,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = menuIconTint,
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(14.dp))
                                 Text(
                                     text = stringResource(R.string.descargar),
-                                    color = Color.White,
+                                    color = menuTextColor,
                                     fontSize = 15.sp
                                 )
                             }
 
-                            Divider(color = Color.White.copy(alpha = 0.08f), thickness = 0.5.dp)
+                            Divider(color = menuDividerColor, thickness = 0.5.dp)
 
                             // 5. Ver artista
                             Row(
@@ -2872,18 +2900,18 @@ fun AlbumTopRightMorphingPill(
                                     modifier = Modifier
                                         .size(26.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.15f))
+                                        .background(if (isDarkThemePill) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.08f))
                                 )
                                 Spacer(modifier = Modifier.width(14.dp))
                                 Column {
                                     Text(
                                         text = stringResource(R.string.view_artist),
-                                        color = Color.White,
+                                        color = menuTextColor,
                                         fontSize = 15.sp
                                     )
                                     Text(
                                         text = albumState.artist,
-                                        color = Color.White.copy(alpha = 0.55f),
+                                        color = menuSubTextColor,
                                         fontSize = 12.sp,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -2891,7 +2919,7 @@ fun AlbumTopRightMorphingPill(
                                 }
                             }
 
-                            Divider(color = Color.White.copy(alpha = 0.08f), thickness = 0.5.dp)
+                            Divider(color = menuDividerColor, thickness = 0.5.dp)
 
                             // 6. Sugerir menos
                             Row(
@@ -2907,13 +2935,13 @@ fun AlbumTopRightMorphingPill(
                                 Icon(
                                     imageVector = Icons.Default.ThumbDownOffAlt,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = menuIconTint,
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(14.dp))
                                 Text(
                                     text = stringResource(R.string.suggest_less),
-                                    color = Color.White,
+                                    color = menuTextColor,
                                     fontSize = 15.sp
                                 )
                             }
@@ -2944,7 +2972,7 @@ fun AlbumTopRightMorphingPill(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = stringResource(R.string.anadir_a_playlist),
-                                color = Color.White,
+                                color = menuTextColor,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.weight(1f)
@@ -2952,7 +2980,7 @@ fun AlbumTopRightMorphingPill(
                         }
 
                         Spacer(modifier = Modifier.height(10.dp))
-                        Divider(color = Color.White.copy(alpha = 0.1f))
+                        Divider(color = menuDividerColor)
 
                         val playlists by LibraryManager.playlists.collectAsState()
 
@@ -2985,7 +3013,7 @@ fun AlbumTopRightMorphingPill(
                                 )
                             }
 
-                            Divider(color = Color.White.copy(alpha = 0.08f))
+                            Divider(color = menuDividerColor)
 
                             playlists.forEach { playlist ->
                                 Row(
@@ -3025,25 +3053,25 @@ fun AlbumTopRightMorphingPill(
                                     Icon(
                                         Icons.Default.QueueMusic,
                                         contentDescription = null,
-                                        tint = Color.Gray,
+                                        tint = if (isDarkThemePill) Color.Gray else Color(0xFF8E8E93),
                                         modifier = Modifier.size(22.dp)
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text(
                                             text = playlist.name,
-                                            color = Color.White,
+                                            color = menuTextColor,
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Medium
                                         )
                                         Text(
                                             text = stringResource(R.string.num_canciones, playlist.items.size),
-                                            color = Color.Gray,
+                                            color = menuSubTextColor,
                                             fontSize = 12.sp
                                         )
                                     }
                                 }
-                                Divider(color = Color.White.copy(alpha = 0.06f))
+                                Divider(color = menuDividerColor)
                             }
                         }
                     }

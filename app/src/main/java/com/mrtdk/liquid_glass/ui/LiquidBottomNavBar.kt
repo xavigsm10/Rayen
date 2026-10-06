@@ -317,7 +317,11 @@ fun LiquidBottomNavBar(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // 1. Active Tab Pill / Circle (sharedElement morph with tabGroup)
-                        val currentTab = if (selectedIndex in 0..3) MainNavTabs[selectedIndex] else if (selectedIndex == 4) NavTabItem(4, R.string.search_action, iconRes = R.drawable.nav_search) else MainNavTabs.getOrElse(lastActiveMainTab.coerceIn(0, 3)) { MainNavTabs[0] }
+                        val currentTab = if (selectedIndex in 0..3) {
+                            MainNavTabs[selectedIndex]
+                        } else {
+                            MainNavTabs.getOrElse(lastActiveMainTab.coerceIn(0, 3)) { MainNavTabs[0] }
+                        }
 
                         Box(
                             modifier = Modifier
@@ -401,48 +405,45 @@ fun LiquidBottomNavBar(
                         }
 
                         // 3. Standalone Search Circle (sharedElement morph with standaloneTab - 48dp)
-                        // iOS 27 y M3 Expressive tienen la búsqueda integrada en las tabs principales
-                        if (!isIos27 && !isM3Expressive) {
-                            val isSearchSelected = selectedIndex == 4
-                            val searchColor = if (isSearchSelected) activeAccentColor else navUnselectedColor
+                        val isSearchSelected = selectedIndex == 4
+                        val searchColor = if (isSearchSelected) activeAccentColor else navUnselectedColor
 
+                        Box(
+                            modifier = Modifier
+                                .sharedElement(
+                                    sharedContentState = rememberSharedContentState("standaloneTab"),
+                                    animatedVisibilityScope = this@AnimatedContent,
+                                    boundsTransform = morphBoundsTransform,
+                                    zIndexInOverlay = 1f
+                                )
+                                .size(48.dp)
+                                .skipToLookaheadSize()
+                                .then(capsuleGlassModifier())
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    role = Role.Tab,
+                                    onClick = {
+                                        onTabSelected(4)
+                                        scrollConnection.expand()
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .skipToLookaheadSize()
-                                    .sharedElement(
-                                        sharedContentState = rememberSharedContentState("standaloneTab"),
-                                        animatedVisibilityScope = this@AnimatedContent,
-                                        boundsTransform = morphBoundsTransform,
-                                        zIndexInOverlay = 1f
-                                    )
-                                    .then(capsuleGlassModifier())
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                        role = Role.Tab,
-                                        onClick = {
-                                            onTabSelected(4)
-                                            scrollConnection.expand()
-                                        }
-                                    ),
-                                contentAlignment = Alignment.Center
+                                modifier = Modifier.sharedElement(
+                                    sharedContentState = rememberSharedContentState("searchIcon"),
+                                    animatedVisibilityScope = this@AnimatedContent,
+                                    boundsTransform = morphBoundsTransform,
+                                    zIndexInOverlay = 2f
+                                )
                             ) {
-                                Box(
-                                    modifier = Modifier.sharedElement(
-                                        sharedContentState = rememberSharedContentState("searchIcon"),
-                                        animatedVisibilityScope = this@AnimatedContent,
-                                        boundsTransform = morphBoundsTransform,
-                                        zIndexInOverlay = 2f
-                                    )
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.nav_search),
-                                        contentDescription = stringResource(R.string.search_action),
-                                        tint = searchColor,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
+                                Icon(
+                                    painter = painterResource(R.drawable.nav_search),
+                                    contentDescription = stringResource(R.string.search_action),
+                                    tint = searchColor,
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
                         }
                     }

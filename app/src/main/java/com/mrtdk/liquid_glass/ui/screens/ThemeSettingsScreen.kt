@@ -84,6 +84,7 @@ fun ThemeSettingsScreen(
     val isDynamicTheme by ThemeManager.isDynamicTheme.collectAsState()
     val pureBlack by ThemeManager.pureBlack.collectAsState()
     val selectedThemeColor by ThemeManager.selectedThemeColor.collectAsState()
+    val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
 
     Column(
         modifier = Modifier
@@ -122,7 +123,7 @@ fun ThemeSettingsScreen(
             contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Theme Mode Section
+            // Theme Mode Section (Apple Music / iOS style: Claro & Oscuro first, then Automático & AMOLED)
             item {
                 Text(
                     text = stringResource(R.string.theme_mode),
@@ -133,6 +134,32 @@ fun ThemeSettingsScreen(
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    // Row 1: Claro & Oscuro
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        ThemeModeCard(
+                            modifier = Modifier.weight(1f),
+                            title = stringResource(R.string.theme_light_mode),
+                            icon = Icons.Rounded.LightMode,
+                            isSelected = themeMode == ThemeManager.MODE_LIGHT,
+                            onClick = {
+                                ThemeManager.setThemeMode(ThemeManager.MODE_LIGHT, isSystemDark)
+                            }
+                        )
+                        ThemeModeCard(
+                            modifier = Modifier.weight(1f),
+                            title = stringResource(R.string.theme_dark_mode_default),
+                            icon = Icons.Rounded.DarkMode,
+                            isSelected = themeMode == ThemeManager.MODE_DARK && !pureBlack,
+                            onClick = {
+                                ThemeManager.setThemeMode(ThemeManager.MODE_DARK, isSystemDark)
+                                ThemeManager.setPureBlack(false)
+                            }
+                        )
+                    }
+                    // Row 2: Automático (Sistema) & Negro puro (AMOLED)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -143,31 +170,7 @@ fun ThemeSettingsScreen(
                             icon = Icons.Rounded.BrightnessAuto,
                             isSelected = themeMode == ThemeManager.MODE_SYSTEM,
                             onClick = {
-                                ThemeManager.setThemeMode(ThemeManager.MODE_SYSTEM)
-                            }
-                        )
-                        ThemeModeCard(
-                            modifier = Modifier.weight(1f),
-                            title = stringResource(R.string.theme_light_mode),
-                            icon = Icons.Rounded.LightMode,
-                            isSelected = themeMode == ThemeManager.MODE_LIGHT,
-                            onClick = {
-                                ThemeManager.setThemeMode(ThemeManager.MODE_LIGHT)
-                            }
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        ThemeModeCard(
-                            modifier = Modifier.weight(1f),
-                            title = stringResource(R.string.theme_dark_mode_default),
-                            icon = Icons.Rounded.DarkMode,
-                            isSelected = themeMode == ThemeManager.MODE_DARK && !pureBlack,
-                            onClick = {
-                                ThemeManager.setThemeMode(ThemeManager.MODE_DARK)
-                                ThemeManager.setPureBlack(false)
+                                ThemeManager.setThemeMode(ThemeManager.MODE_SYSTEM, isSystemDark)
                             }
                         )
                         ThemeModeCard(
@@ -176,7 +179,7 @@ fun ThemeSettingsScreen(
                             icon = Icons.Rounded.Contrast,
                             isSelected = themeMode == ThemeManager.MODE_AMOLED || (themeMode == ThemeManager.MODE_DARK && pureBlack),
                             onClick = {
-                                ThemeManager.setThemeMode(ThemeManager.MODE_AMOLED)
+                                ThemeManager.setThemeMode(ThemeManager.MODE_AMOLED, isSystemDark)
                             }
                         )
                     }

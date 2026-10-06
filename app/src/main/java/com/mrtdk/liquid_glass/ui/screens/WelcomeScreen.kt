@@ -709,6 +709,18 @@ private fun ArtworkAndBackdropStep(
 
         Spacer(modifier = Modifier.height(14.dp))
 
+        if (!com.mrtdk.liquid_glass.BuildConfig.IS_LITE) {
+            ArtworkOptionCard(
+                title = stringResource(R.string.player_artwork_style_animated_low),
+                description = "Solo las portadas animadas tendrán fullartwork gama baja; las demás estarán en modo normal.",
+                badge = null,
+                isSelected = currentArtworkStyle == "animated_fullartwork_low",
+                onClick = { onArtworkStyleSelected("animated_fullartwork_low") }
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+        }
+
         // Option 4: Normal
         ArtworkOptionCard(
             title = stringResource(R.string.welcome_art_normal_title),
@@ -1176,6 +1188,8 @@ private fun WelcomeReadyStep(
                     value = when (artworkStyle) {
                         "normal" -> stringResource(R.string.welcome_summary_player_normal)
                         "animated_fullartwork" -> stringResource(R.string.welcome_summary_player_animated)
+                        "animated_fullartwork_low" -> stringResource(R.string.player_artwork_style_animated_low)
+                        "fullartwork_low" -> stringResource(R.string.player_artwork_style_fullartwork_low)
                         else -> stringResource(R.string.welcome_summary_player_full)
                     },
                     icon = Icons.Default.Tune

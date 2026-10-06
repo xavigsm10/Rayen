@@ -1199,11 +1199,10 @@ fun GlassBoxScope.AudioIconPickerDialog(
 
 private fun extractPredominantAlbumColor(
     bitmap: android.graphics.Bitmap,
-    fallbackColor: Color = Color(0xFF1E1E1E),
-    isBillieJean: Boolean = false
+    fallbackColor: Color = Color(0xFF595959)
 ): Color {
     val palette = try {
-        androidx.palette.graphics.Palette.from(bitmap).maximumColorCount(24).generate()
+        androidx.palette.graphics.Palette.from(bitmap).maximumColorCount(32).generate()
     } catch (_: Exception) { null }
 
     if (palette == null) return fallbackColor
@@ -1214,49 +1213,77 @@ private fun extractPredominantAlbumColor(
         return if (dom != android.graphics.Color.DKGRAY) Color(dom) else fallbackColor
     }
 
-    val dominantSwatch = palette.dominantSwatch ?: swatches.maxByOrNull { it.population }
+    val totalPop = swatches.sumOf { it.population }.coerceAtLeast(1)
 
-    // If dominant swatch is nearly pure white or light grey (S < 0.08, L > 0.75),
-    // pick the most prominent colored swatch
-    val chosenSwatch = if (dominantSwatch != null && dominantSwatch.hsl[1] < 0.08f && dominantSwatch.hsl[2] > 0.75f) {
-        val minPop = (dominantSwatch.population * 0.08f).toInt()
-        swatches.filter { it.hsl[1] >= 0.12f && it.population >= minPop }
-            .maxByOrNull { it.population * (1f + it.hsl[1]) } ?: dominantSwatch
-    } else {
-        dominantSwatch ?: swatches.first()
+    // 1. Detección precisa de carátulas monocromáticas / blanco y negro / escala de grises:
+    // En portadas como Dangerous Woman, folklore, etc., casi todos los píxeles tienen muy baja saturación.
+    // Si no filtramos esto, cualquier tinte sutil de papel, compresión o artefacto beige/sepia
+    // es tomado como dominante y amplificado, creando un fondo marrón sucio indeseado.
+    val weightedSat = swatches.sumOf { (it.population.toDouble() * it.hsl[1]) } / totalPop
+    val maxSubstantialSat = swatches
+        .filter { (it.population.toFloat() / totalPop) >= 0.05f }
+        .maxOfOrNull { it.hsl[1] } ?: 0f
+    val chromaticPopulationRatio = swatches
+        .filter { it.hsl[1] >= 0.18f && it.hsl[2] in 0.12f..0.88f }
+        .sumOf { it.population }
+        .toFloat() / totalPop
+
+    val isMonochrome = (weightedSat < 0.10f && maxSubstantialSat < 0.18f) || chromaticPopulationRatio < 0.05f
+
+    if (isMonochrome) {
+        // En Apple Music, las carátulas en blanco y negro utilizan un gris pizarra neutro y luminoso
+        // (#595959 / RGB 89, 89, 89) como referencia para el fondo de la carátula,
+        // creando un degradado aterciopelado desde #626262 hasta #2B2B2B sin tonos marrones.
+        return Color(0xFF595959)
     }
 
-    val h = chosenSwatch.hsl[0]
+    // 2. Para carátulas con color real: Seleccionar el swatch más representativo
+    val dominantSwatch = palette.dominantSwatch ?: swatches.maxByOrNull { it.population }
+
+    val chosenSwatch = if (dominantSwatch != null && (dominantSwatch.hsl[2] > 0.80f || dominantSwatch.hsl[2] < 0.15f || dominantSwatch.hsl[1] < 0.14f)) {
+        // Si el swatch predominante es fondo blanco, negro o neutro, buscar el sujeto/color cromático principal
+        val minPop = (totalPop * 0.03f).toInt()
+        val chromaticCandidates = swatches.filter { it.hsl[1] >= 0.18f && it.hsl[2] in 0.15f..0.82f && it.population >= minPop }
+        chromaticCandidates.maxByOrNull { it.population * (0.6f + it.hsl[1] * 1.4f) }
+            ?: palette.vibrantSwatch
+            ?: palette.darkVibrantSwatch
+            ?: palette.mutedSwatch
+            ?: dominantSwatch
+    } else {
+        val vib = palette.vibrantSwatch
+        if (vib != null && vib.population >= (totalPop * 0.08f) && vib.hsl[1] > (dominantSwatch?.hsl?.get(1) ?: 0f) * 1.5f) {
+            vib
+        } else {
+            dominantSwatch ?: swatches.first()
+        }
+    }
+
+    var h = chosenSwatch.hsl[0]
     var s = chosenSwatch.hsl[1]
     var l = chosenSwatch.hsl[2]
 
-    // Tone Lightness and Saturation for an Apple Music full player background:
-    // Ensures high contrast for white text/controls (L in 0.30..0.42) while preserving warm vibrant richness
-    if (l > 0.38f) {
-        l = 0.33f + (l - 0.38f) * 0.18f
-        s = (s * 1.55f).coerceIn(0.38f, 0.85f)
-    } else if (l < 0.14f && s > 0.10f) {
-        l = 0.18f
-        s = (s * 1.30f).coerceIn(0.30f, 0.90f)
+    // Calibración de color para fondo oscuro de reproductor estilo Apple Music:
+    // Evitar tonos lodosos/pantanosos en la zona amarillo/oliva (45°-85°):
+    if (h in 45f..85f && s > 0.20f) {
+        h = 40f
     }
+
+    // Luminancia calibrada para profundidad oscura luminosa y contraste óptimo con controles blancos
+    if (l > 0.40f) {
+        l = 0.30f + (l - 0.40f) * 0.15f
+    } else if (l < 0.24f) {
+        l = 0.26f + (l * 0.20f)
+    }
+    l = l.coerceIn(0.28f, 0.35f)
+
+    // Saturación rica y vívida
+    s = (s * 1.15f).coerceIn(0.30f, 0.78f)
 
     val v = l + s * minOf(l, 1f - l)
     val sv = if (v == 0f) 0f else 2f * (1f - l / v)
     val hsv = floatArrayOf(h, sv.coerceIn(0f, 1f), v.coerceIn(0f, 1f))
     val outRgb = android.graphics.Color.HSVToColor(hsv)
-    val extractedColor = Color(outRgb)
-
-    return if (isBillieJean) {
-        val skinTone = Color(0xFF6E472A)
-        Color(
-            red = (extractedColor.red * 0.5f + skinTone.red * 0.5f),
-            green = (extractedColor.green * 0.5f + skinTone.green * 0.5f),
-            blue = (extractedColor.blue * 0.5f + skinTone.blue * 0.5f),
-            alpha = 1f
-        )
-    } else {
-        extractedColor
-    }
+    return Color(outRgb)
 }
 
 private data class AlbumMeshPalette(
@@ -1283,64 +1310,84 @@ private fun extractAlbumMeshPalette(
     }
 
     val totalPop = swatches.sumOf { it.population }.coerceAtLeast(1)
+    val weightedSat = swatches.sumOf { (it.population.toDouble() * it.hsl[1]) } / totalPop
+    val maxSubstantialSat = swatches
+        .filter { (it.population.toFloat() / totalPop) >= 0.05f }
+        .maxOfOrNull { it.hsl[1] } ?: 0f
+    val chromaticPopulationRatio = swatches
+        .filter { it.hsl[1] >= 0.18f && it.hsl[2] in 0.12f..0.88f }
+        .sumOf { it.population }
+        .toFloat() / totalPop
+
+    val isMonochrome = (weightedSat < 0.10f && maxSubstantialSat < 0.18f) || chromaticPopulationRatio < 0.05f
+
+    if (isMonochrome) {
+        return AlbumMeshPalette(
+            primary = Color(0xFF595959),
+            secondary = Color(0xFF4A4A4A),
+            accent = Color(0xFF6A6A6A)
+        )
+    }
+
     val sorted = swatches.sortedByDescending { it.population }
 
-    // 1. Primario: El color más predominante de la carátula (mayor población de píxeles)
+    // 1. Primario
     val domCandidate = sorted.first()
-    val primarySwatch = if (domCandidate.hsl[1] < 0.06f && (domCandidate.hsl[2] > 0.85f || domCandidate.hsl[2] < 0.12f)) {
-        sorted.firstOrNull { it.hsl[1] >= 0.10f && (it.population.toFloat() / totalPop) >= 0.10f } ?: domCandidate
+    val primarySwatch = if (domCandidate.hsl[1] < 0.12f && (domCandidate.hsl[2] > 0.80f || domCandidate.hsl[2] < 0.15f)) {
+        sorted.firstOrNull { it.hsl[1] >= 0.18f && (it.population.toFloat() / totalPop) >= 0.06f } ?: domCandidate
     } else {
         domCandidate
     }
 
     val priHsv = FloatArray(3)
     android.graphics.Color.colorToHSV(primarySwatch.rgb, priHsv)
-    if (priHsv[1] < 0.15f && priHsv[1] > 0.02f) priHsv[1] = 0.25f
-    priHsv[2] = priHsv[2].coerceIn(0.38f, 0.75f)
+    priHsv[1] = priHsv[1].coerceIn(0.30f, 0.80f)
+    priHsv[2] = priHsv[2].coerceIn(0.35f, 0.70f)
     val primary = Color(android.graphics.Color.HSVToColor(priHsv))
 
-    // 2. Secundario: El segundo color MÁS PREDOMINANTE (por población) que tenga presencia real en la imagen
+    // 2. Secundario: El segundo color MÁS PREDOMINANTE cromático con presencia real
     val secCandidate = sorted.firstOrNull { swatch ->
         if (swatch == primarySwatch) return@firstOrNull false
         val popRatio = swatch.population.toFloat() / totalPop
-        if (popRatio < 0.04f) return@firstOrNull false // Debe representar al menos 4% de la carátula
+        if (popRatio < 0.04f) return@firstOrNull false
+        if (swatch.hsl[1] < 0.18f) return@firstOrNull false
         val dHue = kotlin.math.abs(swatch.hsl[0] - primarySwatch.hsl[0]).let { kotlin.math.min(it, 360f - it) }
         val dLum = kotlin.math.abs(swatch.hsl[2] - primarySwatch.hsl[2])
         dHue > 18f || dLum > 0.18f
-    } ?: sorted.firstOrNull { it != primarySwatch && (it.population.toFloat() / totalPop) >= 0.03f }
+    }
 
     val secondary = if (secCandidate != null) {
         val secHsv = FloatArray(3)
         android.graphics.Color.colorToHSV(secCandidate.rgb, secHsv)
-        if (secHsv[1] < 0.15f && secHsv[1] > 0.02f) secHsv[1] = 0.25f
-        secHsv[2] = secHsv[2].coerceIn(0.40f, 0.75f)
+        secHsv[1] = secHsv[1].coerceIn(0.30f, 0.80f)
+        secHsv[2] = secHsv[2].coerceIn(0.35f, 0.70f)
         Color(android.graphics.Color.HSVToColor(secHsv))
     } else {
-        // Si no hay un segundo color predominante, derivar una variante armónica sutil del primario
         val secHsv = priHsv.clone()
         secHsv[0] = (secHsv[0] + 20f) % 360f
         secHsv[1] = (secHsv[1] * 0.88f).coerceIn(0.30f, 0.70f)
-        secHsv[2] = (secHsv[2] * 0.92f).coerceIn(0.40f, 0.70f)
+        secHsv[2] = (secHsv[2] * 0.92f).coerceIn(0.35f, 0.65f)
         Color(android.graphics.Color.HSVToColor(secHsv))
     }
 
-    // 3. Acento: Tercer color representativo con presencia real en la carátula (al menos 3% de píxeles)
+    // 3. Acento: Tercer color vivo representativo
     val accCandidate = sorted.filter { swatch ->
         swatch != primarySwatch && swatch != secCandidate &&
+        swatch.hsl[1] >= 0.18f &&
         (swatch.population.toFloat() / totalPop) >= 0.03f
-    }.maxByOrNull { it.hsl[1] } // El más vivo dentro de los que tienen presencia real
+    }.maxByOrNull { it.hsl[1] }
 
     val accent = if (accCandidate != null) {
         val accHsv = FloatArray(3)
         android.graphics.Color.colorToHSV(accCandidate.rgb, accHsv)
         accHsv[1] = accHsv[1].coerceIn(0.35f, 0.85f)
-        accHsv[2] = accHsv[2].coerceIn(0.45f, 0.80f)
+        accHsv[2] = accHsv[2].coerceIn(0.40f, 0.75f)
         Color(android.graphics.Color.HSVToColor(accHsv))
     } else {
         val accHsv = priHsv.clone()
         accHsv[0] = (accHsv[0] + 345f) % 360f
         accHsv[1] = (accHsv[1] * 1.10f).coerceIn(0.35f, 0.80f)
-        accHsv[2] = (accHsv[2] * 1.05f).coerceIn(0.48f, 0.80f)
+        accHsv[2] = (accHsv[2] * 1.05f).coerceIn(0.40f, 0.75f)
         Color(android.graphics.Color.HSVToColor(accHsv))
     }
 
@@ -1355,12 +1402,20 @@ private fun deriveFallbackMeshPalette(fallback: Color): AlbumMeshPalette {
     val hsv = FloatArray(3)
     android.graphics.Color.colorToHSV(fallback.toArgb(), hsv)
     val baseHue = hsv[0]
+    val isNearGray = hsv[1] < 0.10f
+    if (isNearGray) {
+        return AlbumMeshPalette(
+            primary = Color(0xFF595959),
+            secondary = Color(0xFF4A4A4A),
+            accent = Color(0xFF6A6A6A)
+        )
+    }
     val baseSat = hsv[1].coerceIn(0.35f, 0.75f)
-    val baseVal = hsv[2].coerceIn(0.42f, 0.75f)
+    val baseVal = hsv[2].coerceIn(0.35f, 0.65f)
 
     val priHsv = floatArrayOf(baseHue, baseSat, baseVal)
-    val secHsv = floatArrayOf((baseHue + 20f) % 360f, (baseSat * 0.88f).coerceIn(0.30f, 0.70f), (baseVal * 0.92f).coerceIn(0.40f, 0.70f))
-    val accHsv = floatArrayOf((baseHue + 345f) % 360f, (baseSat * 1.10f).coerceIn(0.35f, 0.80f), (baseVal * 1.05f).coerceIn(0.45f, 0.75f))
+    val secHsv = floatArrayOf((baseHue + 20f) % 360f, (baseSat * 0.88f).coerceIn(0.30f, 0.70f), (baseVal * 0.92f).coerceIn(0.35f, 0.65f))
+    val accHsv = floatArrayOf((baseHue + 345f) % 360f, (baseSat * 1.10f).coerceIn(0.35f, 0.80f), (baseVal * 1.05f).coerceIn(0.40f, 0.70f))
 
     return AlbumMeshPalette(
         primary = Color(android.graphics.Color.HSVToColor(priHsv)),
@@ -1774,7 +1829,7 @@ fun PlayerScreen(
 
 
 
-        var dominantColor by remember { mutableStateOf(Color(0xFF1E1E1E)) }
+        var dominantColor by remember { mutableStateOf(Color(0xFF484644)) }
         var bottomAverageColor by remember { mutableStateOf(Color(0xFF1E1E1E)) }
         var rightSideAverageColor by remember { mutableStateOf(Color(0xFF1E1E1E)) }
         var meshPrimaryColor by remember { mutableStateOf<Color?>(null) }
@@ -1957,7 +2012,8 @@ fun PlayerScreen(
         var masterAnimatedPlayer by remember { mutableStateOf<androidx.media3.exoplayer.ExoPlayer?>(null) }
         val isUltraPerformance by LibraryManager.ultraPerformanceMode.collectAsState()
         val hideVolumeBar by LibraryManager.hideVolumeBar.collectAsState()
-
+        val playerArtworkStyle by LibraryManager.playerArtworkStyle.collectAsState()
+        val isFullArtworkLow = playerArtworkStyle == "fullartwork_low" || (playerArtworkStyle == "animated_fullartwork_low" && isVideoPlaying)
 
         LaunchedEffect(playerState?.artist, playerState?.title, playerState?.album) {
             val artist = playerState?.artist
@@ -1965,7 +2021,7 @@ fun PlayerScreen(
             val album = playerState?.album
             isVideoPlaying = false
             motionCoverBitmap = null
-            if (!isUltraPerformance) {
+            if (!isUltraPerformance && !isFullArtworkLow) {
                 coverBitmap = null
             }
             hasGeneratedMotionBackdrop = false
@@ -1996,7 +2052,7 @@ fun PlayerScreen(
         val artModelToLoad = hdArtUrl ?: playerState?.artUrl
         LaunchedEffect(artModelToLoad, playerState?.title, playerState?.artist) {
             motionCoverBitmap = null
-            if (!isUltraPerformance) {
+            if (!isUltraPerformance && !isFullArtworkLow) {
                 coverBitmap = null
             }
             frameToken++
@@ -2026,6 +2082,10 @@ fun PlayerScreen(
 
                         if (bitmap != null) {
                             val asComposeBmp = bitmap.asImageBitmap()
+                            try {
+                                val blurred = com.mrtdk.liquid_glass.ui.components.blurSmallBitmap(bitmap).asImageBitmap()
+                                com.mrtdk.liquid_glass.ui.components.lowResBlurCache.put(artModelToLoad, blurred)
+                            } catch (_: Throwable) {}
                             val skew = calculateDominantSkew(bitmap)
 
                             try {
@@ -2059,9 +2119,7 @@ fun PlayerScreen(
                                 }
                                 val rightColor = Color((rRight / countY).toInt(), (gRight / countY).toInt(), (bRight / countY).toInt())
 
-                                val isBillieJean = (playerState?.title?.contains("Billie Jean", ignoreCase = true) == true) ||
-                                        (playerState?.artist?.contains("Michael Jackson", ignoreCase = true) == true)
-                                val bestDominant = extractPredominantAlbumColor(bitmap, avgColor, isBillieJean)
+                                val bestDominant = extractPredominantAlbumColor(bitmap, avgColor)
                                 val meshPalette = extractAlbumMeshPalette(bitmap, bestDominant)
 
                                 withContext(Dispatchers.Main) {
@@ -2415,12 +2473,13 @@ fun PlayerScreen(
             
 
             val playerArtworkStyle by LibraryManager.playerArtworkStyle.collectAsState()
-            val isFullArtworkLow = playerArtworkStyle == "fullartwork_low"
-
             val hasAnimatedCover = isVideoPlaying
+            val isFullArtworkLow = playerArtworkStyle == "fullartwork_low" || (playerArtworkStyle == "animated_fullartwork_low" && hasAnimatedCover)
+
             val isNormalArtwork = when (playerArtworkStyle) {
                 "normal" -> true
                 "animated_fullartwork" -> !hasAnimatedCover
+                "animated_fullartwork_low" -> !hasAnimatedCover
                 else -> false
             }
 
@@ -2667,31 +2726,56 @@ fun PlayerScreen(
 
 
 
-            val normalTopColor = Color(
-                red = (dominantColor.red * 0.95f).coerceIn(0f, 1f),
-                green = (dominantColor.green * 0.95f).coerceIn(0f, 1f),
-                blue = (dominantColor.blue * 0.95f).coerceIn(0f, 1f),
-                alpha = 1.0f
-            )
-            val normalCardGlowColor = Color(
-                red = (dominantColor.red * 1.08f).coerceIn(0f, 1f),
-                green = (dominantColor.green * 1.08f).coerceIn(0f, 1f),
-                blue = (dominantColor.blue * 1.08f).coerceIn(0f, 1f),
-                alpha = 1.0f
-            )
-            val normalMidColor = dominantColor.copy(alpha = 1.0f)
-            val normalLowMidColor = Color(
-                red = (dominantColor.red * 0.88f).coerceIn(0f, 1f),
-                green = (dominantColor.green * 0.88f).coerceIn(0f, 1f),
-                blue = (dominantColor.blue * 0.88f).coerceIn(0f, 1f),
-                alpha = 1.0f
-            )
-            val normalBottomColor = Color(
-                red = (dominantColor.red * 0.78f).coerceIn(0f, 1f),
-                green = (dominantColor.green * 0.78f).coerceIn(0f, 1f),
-                blue = (dominantColor.blue * 0.78f).coerceIn(0f, 1f),
-                alpha = 1.0f
-            )
+            val isMonochromeCover = (kotlin.math.abs(dominantColor.red - dominantColor.green) < 0.025f &&
+                                     kotlin.math.abs(dominantColor.green - dominantColor.blue) < 0.025f &&
+                                     kotlin.math.abs(dominantColor.red - dominantColor.blue) < 0.025f)
+
+            val darkBaseCanvas = Color(0xFF201E1D)
+            val normalTopColor = if (isMonochromeCover) {
+                Color(0xFF626262) // Exacto Apple Music (Y=50): RGB 98, 98, 98
+            } else {
+                Color(
+                    red = (dominantColor.red * 1.15f).coerceIn(0f, 1f),
+                    green = (dominantColor.green * 1.15f).coerceIn(0f, 1f),
+                    blue = (dominantColor.blue * 1.15f).coerceIn(0f, 1f),
+                    alpha = 1.0f
+                )
+            }
+            val normalCardColor = if (isMonochromeCover) {
+                Color(0xFF595959) // Exacto Apple Music (Y=250): RGB 89, 89, 89
+            } else {
+                dominantColor.copy(alpha = 1.0f)
+            }
+            val normalMidColor = if (isMonochromeCover) {
+                Color(0xFF424242) // Exacto Apple Music (Y=520): RGB 66, 66, 66
+            } else {
+                Color(
+                    red = dominantColor.red * 0.70f + darkBaseCanvas.red * 0.30f,
+                    green = dominantColor.green * 0.70f + darkBaseCanvas.green * 0.30f,
+                    blue = dominantColor.blue * 0.70f + darkBaseCanvas.blue * 0.30f,
+                    alpha = 1.0f
+                )
+            }
+            val normalControlsColor = if (isMonochromeCover) {
+                Color(0xFF323232) // Exacto Apple Music (Y=680): RGB 50, 50, 50
+            } else {
+                Color(
+                    red = dominantColor.red * 0.44f + darkBaseCanvas.red * 0.56f,
+                    green = dominantColor.green * 0.44f + darkBaseCanvas.green * 0.56f,
+                    blue = dominantColor.blue * 0.44f + darkBaseCanvas.blue * 0.56f,
+                    alpha = 1.0f
+                )
+            }
+            val normalBottomColor = if (isMonochromeCover) {
+                Color(0xFF2B2B2B) // Exacto Apple Music (Y=750): RGB 43, 43, 43
+            } else {
+                Color(
+                    red = dominantColor.red * 0.20f + darkBaseCanvas.red * 0.80f,
+                    green = dominantColor.green * 0.20f + darkBaseCanvas.green * 0.80f,
+                    blue = dominantColor.blue * 0.20f + darkBaseCanvas.blue * 0.80f,
+                    alpha = 1.0f
+                )
+            }
 
             Box(
                 modifier = Modifier
@@ -2699,20 +2783,19 @@ fun PlayerScreen(
                     .background(Color.Black)
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = if (isNormalArtwork) {
-                                listOf(
-                                    normalTopColor,
-                                    normalCardGlowColor,
-                                    normalMidColor,
-                                    normalLowMidColor,
-                                    normalBottomColor
+                            colorStops = if (isNormalArtwork) {
+                                arrayOf(
+                                    0.00f to normalTopColor,
+                                    0.28f to normalCardColor,
+                                    0.52f to normalMidColor,
+                                    0.75f to normalControlsColor,
+                                    1.00f to normalBottomColor
                                 )
-
                             } else {
-                                listOf(
-                                    dominantColor.copy(alpha = 1.0f),
-                                    Color(0xFF16181B),
-                                    Color(0xFF101113)
+                                arrayOf(
+                                    0.00f to dominantColor.copy(alpha = 1.0f),
+                                    0.60f to Color(0xFF16181B),
+                                    1.00f to Color(0xFF101113)
                                 )
                             }
                         )
@@ -2729,35 +2812,19 @@ fun PlayerScreen(
                             .background(
                                 Brush.radialGradient(
                                     colors = listOf(
-                                        dominantColor.copy(alpha = 0.28f),
-                                        dominantColor.copy(alpha = 0.08f),
+                                        dominantColor.copy(alpha = if (isMonochromeCover) 0.12f else 0.38f),
+                                        dominantColor.copy(alpha = if (isMonochromeCover) 0.04f else 0.15f),
                                         Color.Transparent
                                     ),
                                     center = Offset(
                                         x = with(density) { (maxWidth / 2).toPx() },
                                         y = with(density) { (normalY + normalCardSize / 2).toPx() }
                                     ),
-                                    radius = with(density) { (normalCardSize * 0.95f).toPx() }
+                                    radius = with(density) { (normalCardSize * 1.10f).toPx() }
                                 )
                             )
                     )
                 }
-
-                // Apple Music top drag handle pill
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 12.dp)
-                        .size(width = 36.dp, height = 5.dp)
-                        .clip(RoundedCornerShape(2.5.dp))
-                        .background(Color.White.copy(alpha = 0.35f * contentAlpha))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            triggerCollapse()
-                        }
-                )
 
 
 
@@ -3745,6 +3812,15 @@ fun PlayerScreen(
                                     val drawable = successResult.drawable
                                     val bmp = (drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
                                     if (bmp != null && !bmp.isRecycled) {
+                                        val composeBmp = bmp.asImageBitmap()
+                                        coverBitmap = composeBmp
+                                        frameToken++
+                                        try {
+                                            val blurred = com.mrtdk.liquid_glass.ui.components.blurSmallBitmap(bmp).asImageBitmap()
+                                            artModelToLoad?.let { key ->
+                                                com.mrtdk.liquid_glass.ui.components.lowResBlurCache.put(key, blurred)
+                                            }
+                                        } catch (_: Throwable) {}
                                         scope.launch(Dispatchers.Default) {
                                             try {
                                                 val w = bmp.width
@@ -3762,9 +3838,7 @@ fun PlayerScreen(
                                                     countX++
                                                 }
                                                 val avgColor = Color((r / countX).toInt(), (g / countX).toInt(), (b / countX).toInt())
-                                                val isBillieJean = (playerState?.title?.contains("Billie Jean", ignoreCase = true) == true) ||
-                                                        (playerState?.artist?.contains("Michael Jackson", ignoreCase = true) == true)
-                                                val bestDominant = extractPredominantAlbumColor(bmp, avgColor, isBillieJean)
+                                                val bestDominant = extractPredominantAlbumColor(bmp, avgColor)
                                                 val meshPalette = extractAlbumMeshPalette(bmp, bestDominant)
                                                 withContext(Dispatchers.Main) {
                                                     dominantColor = bestDominant
@@ -3773,10 +3847,7 @@ fun PlayerScreen(
                                                     meshPrimaryColor = meshPalette.primary
                                                     meshSecondaryColor = meshPalette.secondary
                                                     meshAccentColor = meshPalette.accent
-                                                    if (coverBitmap == null) {
-                                                        coverBitmap = bmp.asImageBitmap()
-                                                        frameToken++
-                                                    }
+                                                    coverBitmap = composeBmp
                                                 }
                                             } catch (_: Exception) {}
                                         }
@@ -3912,14 +3983,21 @@ fun PlayerScreen(
                     val blurRadiusMaskPx = with(density) { 18.dp.toPx() }
 
                     val curveDiffusedBitmap = remember(coverBitmap, blurArtKey) {
-                        val src = coverBitmap?.asAndroidBitmap()
-                        if (src != null && !src.isRecycled) {
-                            try {
-                                blurSmallBitmap(src).asImageBitmap()
-                            } catch (_: Throwable) {
-                                coverBitmap
-                            }
-                        } else null
+                        val cached = if (blurArtKey != null) com.mrtdk.liquid_glass.ui.components.lowResBlurCache.get(blurArtKey) else null
+                        cached ?: run {
+                            val src = coverBitmap?.asAndroidBitmap()
+                            if (src != null && !src.isRecycled) {
+                                try {
+                                    val res = com.mrtdk.liquid_glass.ui.components.blurSmallBitmap(src).asImageBitmap()
+                                    if (blurArtKey != null) {
+                                        com.mrtdk.liquid_glass.ui.components.lowResBlurCache.put(blurArtKey, res)
+                                    }
+                                    res
+                                } catch (_: Throwable) {
+                                    null
+                                }
+                            } else null
+                        }
                     }
 
                     key(blurArtKey) {
@@ -3994,9 +4072,17 @@ fun PlayerScreen(
                                     AsyncImage(
                                         model = ImageRequest.Builder(context)
                                             .data(blurArtKey)
-                                            .size(coil.size.Size(12, 6))
-                                            .crossfade(true)
-                                            .allowHardware(true)
+                                            .transformations(com.mrtdk.liquid_glass.ui.components.LowEndSmallBlurTransformation())
+                                            .precision(coil.size.Precision.EXACT)
+                                            .allowHardware(false)
+                                            .listener(
+                                                onSuccess = { _, result ->
+                                                    val bmp = (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                                                    if (bmp != null) {
+                                                        com.mrtdk.liquid_glass.ui.components.lowResBlurCache.put(blurArtKey, bmp.asImageBitmap())
+                                                    }
+                                                }
+                                            )
                                             .build(),
                                         contentDescription = null,
                                         contentScale = ContentScale.Crop,

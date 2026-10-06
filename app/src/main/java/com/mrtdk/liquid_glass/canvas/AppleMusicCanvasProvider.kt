@@ -268,7 +268,7 @@ object AppleMusicCanvasProvider {
     }
 
     private fun extractEditorialVideoUrl(editorialData: JSONObject): String? {
-        val preferredKeys = listOf("motionDetailRaw", "motionDetailTall", "motionDetailSquare", "motionTallVideo3x4", "motionSquareVideo1x1")
+        val preferredKeys = listOf("motionDetailTall", "motionDetailSquare", "motionTallVideo3x4", "motionSquareVideo1x1", "motionDetailRaw")
         for (key in preferredKeys) {
             val obj = editorialData.optJSONObject(key)
             val videoUrl = obj?.optString("video")

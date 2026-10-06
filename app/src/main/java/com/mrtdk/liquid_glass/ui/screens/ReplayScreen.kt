@@ -56,6 +56,8 @@ import com.mrtdk.liquid_glass.R
 import com.mrtdk.liquid_glass.data.LibraryManager
 import com.mrtdk.liquid_glass.data.PlaybackRecord
 import com.mrtdk.liquid_glass.data.Playlist
+import com.mrtdk.liquid_glass.spotify.SpotifyArtistProvider
+import com.mrtdk.liquid_glass.ui.theme.ThemeManager
 import java.util.Calendar
 
 // Data structures for Replay Stats
@@ -79,6 +81,7 @@ fun ReplayScreen(
 ) {
     val context = LocalContext.current
     var currentView by remember { mutableStateOf(ReplayView.MAIN) }
+    val isDarkTheme by ThemeManager.isDarkMode.collectAsState()
 
     // Year & Month Selection (Defaulting to current month)
     val currentCalendar = remember { Calendar.getInstance() }
@@ -166,35 +169,45 @@ fun ReplayScreen(
                 .sortedByDescending { it.minutes }
 
             if (grouped.isNotEmpty()) grouped else listOf(
-                ArtistStat("sample_mj", "Michael Jackson", "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Michael_Jackson_in_1988.jpg/800px-Michael_Jackson_in_1988.jpg", 31),
-                ArtistStat("sample_j5", "Jackson 5", "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Jackson_5_1974.jpg/800px-Jackson_5_1974.jpg", 7),
-                ArtistStat("sample_sc", "Sabrina Carpenter", "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Sabrina_Carpenter_November_2024.jpg/800px-Sabrina_Carpenter_November_2024.jpg", 5),
-                ArtistStat("sample_mg", "Manuel García", "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Manuel_Garc%C3%ADa_en_Concepci%C3%B3n_%28cropped%29.jpg/800px-Manuel_Garc%C3%ADa_en_Concepci%C3%B3n_%28cropped%29.jpg", 4)
+                ArtistStat("sample_mj", "Michael Jackson", SpotifyArtistProvider.getCachedArtistImageUrl("Michael Jackson") ?: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Michael_Jackson_in_1988.jpg/800px-Michael_Jackson_in_1988.jpg", 31),
+                ArtistStat("sample_j5", "Jackson 5", SpotifyArtistProvider.getCachedArtistImageUrl("Jackson 5") ?: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Jackson_5_1974.jpg/800px-Jackson_5_1974.jpg", 7),
+                ArtistStat("sample_sc", "Sabrina Carpenter", SpotifyArtistProvider.getCachedArtistImageUrl("Sabrina Carpenter") ?: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Sabrina_Carpenter_November_2024.jpg/800px-Sabrina_Carpenter_November_2024.jpg", 5),
+                ArtistStat("sample_mg", "Manuel García", SpotifyArtistProvider.getCachedArtistImageUrl("Manuel García") ?: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Manuel_Garc%C3%ADa_en_Concepci%C3%B3n_%28cropped%29.jpg/800px-Manuel_Garc%C3%ADa_en_Concepci%C3%B3n_%28cropped%29.jpg", 4)
             )
         }
     }
 
-    // Official artist portrait thumbnails cache resolved from YouTube Music
+    // Official Apple Music artist portrait thumbnails cache
     val officialArtistImages = remember { mutableStateMapOf<String, String>() }
     LaunchedEffect(artistsList) {
         artistsList.forEach { artist ->
-            if (!officialArtistImages.containsKey(artist.name)) {
+            val cached = SpotifyArtistProvider.getCachedArtistImageUrl(artist.name)
+            if (!cached.isNullOrBlank()) {
+                officialArtistImages[artist.name] = cached
+            } else if (!officialArtistImages.containsKey(artist.name)) {
                 launch(Dispatchers.IO) {
                     try {
-                        val searchRes = com.echo.innertube.YouTube.search(
-                            artist.name,
-                            com.echo.innertube.YouTube.SearchFilter.FILTER_ARTIST
-                        ).getOrNull()
-                        val artistItem = searchRes?.items?.filterIsInstance<com.echo.innertube.models.ArtistItem>()?.firstOrNull {
-                            it.title.equals(artist.name, ignoreCase = true)
-                        } ?: searchRes?.items?.filterIsInstance<com.echo.innertube.models.ArtistItem>()?.firstOrNull()
-
-                        val thumb = artistItem?.thumbnail?.let {
-                            com.mrtdk.liquid_glass.utils.CoilUtils.upgradeThumbQuality(it) ?: it
-                        }
-                        if (!thumb.isNullOrBlank()) {
+                        val appleMusicThumb = SpotifyArtistProvider.getArtistImageUrl(artist.name)
+                        if (!appleMusicThumb.isNullOrBlank()) {
                             withContext(Dispatchers.Main) {
-                                officialArtistImages[artist.name] = thumb
+                                officialArtistImages[artist.name] = appleMusicThumb
+                            }
+                        } else {
+                            val searchRes = com.echo.innertube.YouTube.search(
+                                artist.name,
+                                com.echo.innertube.YouTube.SearchFilter.FILTER_ARTIST
+                            ).getOrNull()
+                            val artistItem = searchRes?.items?.filterIsInstance<com.echo.innertube.models.ArtistItem>()?.firstOrNull {
+                                it.title.equals(artist.name, ignoreCase = true)
+                            } ?: searchRes?.items?.filterIsInstance<com.echo.innertube.models.ArtistItem>()?.firstOrNull()
+
+                            val thumb = artistItem?.thumbnail?.let {
+                                com.mrtdk.liquid_glass.utils.CoilUtils.upgradeThumbQuality(it) ?: it
+                            }
+                            if (!thumb.isNullOrBlank()) {
+                                withContext(Dispatchers.Main) {
+                                    officialArtistImages[artist.name] = thumb
+                                }
                             }
                         }
                     } catch (_: Exception) {}
@@ -502,7 +515,7 @@ fun ReplayScreen(
                                             horizontalArrangement = Arrangement.spacedBy(14.dp)
                                         ) {
                                             itemsIndexed(artistsList, key = { index, artist -> "replay_artist_${artist.id.ifEmpty { "$index" }}" }) { index, artist ->
-                                                val officialThumb = officialArtistImages[artist.name] ?: artist.thumbnail
+                                                val officialThumb = officialArtistImages[artist.name] ?: SpotifyArtistProvider.getCachedArtistImageUrl(artist.name) ?: artist.thumbnail
                                                 Card(
                                                     modifier = Modifier
                                                         .width(220.dp)
@@ -1132,6 +1145,9 @@ fun ReplayScreen(
         glassContent = {
             val scope = this
             // Fixed Top Bar: Preserving the exact RayMusic glass back and share pill buttons
+            val replayGlassTint = if (!isDarkTheme) Color.White.copy(alpha = 0.65f) else Color.Unspecified
+            val replayNavIconTint = if (!isDarkTheme) Color(0xFF1C1C1E) else if (currentView != ReplayView.MAIN) Color(0xFFFA243C) else Color.White
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1152,7 +1168,7 @@ fun ReplayScreen(
                             }
                         },
                     shape = CircleShape,
-                    tint = Color.Unspecified,
+                    tint = replayGlassTint,
                     blur = 0.8f,
                     centerDistortion = 0.1f,
                     scale = 0.02f,
@@ -1163,7 +1179,7 @@ fun ReplayScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.flecha_atras),
                         contentDescription = stringResource(R.string.back_action),
-                        tint = if (currentView != ReplayView.MAIN) Color(0xFFFA243C) else Color.White,
+                        tint = replayNavIconTint,
                         modifier = Modifier.size(20.dp).offset(x = (-1).dp)
                     )
                 }
@@ -1182,7 +1198,7 @@ fun ReplayScreen(
                             context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.compartir)))
                         },
                     shape = CircleShape,
-                    tint = Color.Unspecified,
+                    tint = replayGlassTint,
                     blur = 0.8f,
                     centerDistortion = 0.1f,
                     scale = 0.02f,
@@ -1193,7 +1209,7 @@ fun ReplayScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.compartir),
                         contentDescription = stringResource(R.string.compartir),
-                        tint = if (currentView != ReplayView.MAIN) Color(0xFFFA243C) else Color.White,
+                        tint = replayNavIconTint,
                         modifier = Modifier.size(24.dp)
                     )
                 }

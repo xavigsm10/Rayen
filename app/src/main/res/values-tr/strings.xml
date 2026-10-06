@@ -622,6 +622,7 @@
     <string name="player_artwork_style_fullartwork_low">Düşük segment tam kapak</string>
     <string name="player_artwork_style_normal">Normal</string>
     <string name="player_artwork_style_animated">Yalnızca hareketli kapaklarda tam kapak</string>
+    <string name="player_artwork_style_animated_low">Yalnızca hareketli kapaklarla düşük segment tam kapak</string>
 
     <string name="estilo_solido_material3">Katı (Material 3)</string>
     <string name="ultra_performance_mode_title">Ultra Performans Modu (Düşük Donanım)</string>

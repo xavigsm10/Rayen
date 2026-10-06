@@ -60,7 +60,7 @@ object UnifiedCanvasProvider {
         var candidateArtwork: CanvasArtwork? = null
 
         for ((s, a) in searchPairs) {
-            // 1. EchoMusic direct JSON manifest (0ms instant)
+            // 1. EchoMusic direct JSON manifest (motion covers mapped to song/artist)
             try {
                 val echoRes = EchoMusicCanvasProvider.getBySongArtist(s, a)
                 if (!echoRes?.preferredAnimationUrl.isNullOrBlank()) {
@@ -69,20 +69,20 @@ object UnifiedCanvasProvider {
                 }
             } catch (_: Exception) {}
 
-            // 2. Tidal video covers
-            try {
-                val tidalRes = TidalCanvasProvider.getBySongArtist(s, a, requestedAlbum.ifBlank { null })
-                if (!tidalRes?.preferredAnimationUrl.isNullOrBlank()) {
-                    candidateArtwork = tidalRes
-                    break
-                }
-            } catch (_: Exception) {}
-
-            // 3. Apple Music by song/artist with album resolution
+            // 2. Apple Music by song/artist with album resolution (official studio HLS master streams)
             try {
                 val amRes = AppleMusicCanvasProvider.getBySongArtist(s, a, requestedAlbum.ifBlank { null }, storefront)
                 if (!amRes?.preferredAnimationUrl.isNullOrBlank()) {
                     candidateArtwork = amRes
+                    break
+                }
+            } catch (_: Exception) {}
+
+            // 3. Tidal video covers (official studio 1280x1280 60fps)
+            try {
+                val tidalRes = TidalCanvasProvider.getBySongArtist(s, a, requestedAlbum.ifBlank { null })
+                if (!tidalRes?.preferredAnimationUrl.isNullOrBlank()) {
+                    candidateArtwork = tidalRes
                     break
                 }
             } catch (_: Exception) {}
@@ -222,7 +222,7 @@ object UnifiedCanvasProvider {
         var candidateArtwork: CanvasArtwork? = null
 
         for ((s, a) in searchTasks.filter { (s, a) -> s.isNotBlank() && a.isNotBlank() }) {
-            // 1. EchoMusic direct JSON manifest
+            // 1. EchoMusic direct JSON manifest (motion covers mapped to album / first track)
             try {
                 val echoRes = EchoMusicCanvasProvider.getBySongArtist(s, a)
                 if (!echoRes?.preferredAnimationUrl.isNullOrBlank()) {
@@ -231,7 +231,7 @@ object UnifiedCanvasProvider {
                 }
             } catch (_: Exception) {}
 
-            // 2. Apple Music album editorial video
+            // 2. Apple Music album editorial video (official studio HLS master streams)
             try {
                 val amRes = AppleMusicCanvasProvider.getByAlbumArtist(s, a, storefront)
                 if (!amRes?.preferredAnimationUrl.isNullOrBlank()) {
@@ -240,7 +240,7 @@ object UnifiedCanvasProvider {
                 }
             } catch (_: Exception) {}
 
-            // 3. Tidal album cover
+            // 3. Tidal album cover (official studio 1280x1280)
             try {
                 val tidalRes = TidalCanvasProvider.getByAlbumArtist(s, a)
                 if (!tidalRes?.preferredAnimationUrl.isNullOrBlank()) {
@@ -271,8 +271,9 @@ object UnifiedCanvasProvider {
             val canvasAlbumName = artwork.albumName ?: artwork.name
             val albumMatches = if (canvasAlbumName != null && rawAlbum.isNotBlank()) {
                 val normCanvasAlb = normalizeCanvasSongTitle(canvasAlbumName)
-                isFuzzyMatch(canvasAlbumName, rawAlbum) || isFuzzyMatch(normCanvasAlb, normAlbum)
-            } else false
+                isFuzzyMatch(canvasAlbumName, rawAlbum) || isFuzzyMatch(normCanvasAlb, normAlbum) ||
+                    (!rawFirstSong.isNullOrBlank() && (isFuzzyMatch(canvasAlbumName, rawFirstSong) || isFuzzyMatch(normCanvasAlb, normFirstSong ?: "")))
+            } else true
 
             if (artistMatches && albumMatches) artwork else null
         }

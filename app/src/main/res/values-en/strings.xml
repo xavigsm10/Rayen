@@ -622,6 +622,7 @@
     <string name="player_artwork_style_fullartwork_low">Low-end fullartwork</string>
     <string name="player_artwork_style_normal">Normal</string>
     <string name="player_artwork_style_animated">Animated covers only with full artwork</string>
+    <string name="player_artwork_style_animated_low">Low-end fullartwork only with animated covers</string>
 
     <string name="estilo_solido_material3">Solid (Material 3)</string>
     <string name="ultra_performance_mode_title">Ultra Performance Mode (Low-End)</string>
