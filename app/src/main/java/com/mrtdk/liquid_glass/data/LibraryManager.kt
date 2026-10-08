@@ -68,7 +68,7 @@ object LibraryManager {
     private val _recentSearches = MutableStateFlow<List<RecentSearchItem>>(emptyList())
     val recentSearches: StateFlow<List<RecentSearchItem>> = _recentSearches
 
-    private val _glassStyle = MutableStateFlow("transparent")
+    private val _glassStyle = MutableStateFlow("ios27")
     val glassStyle: StateFlow<String> = _glassStyle
 
     private val _bottomTabsStyle = MutableStateFlow("ios26")
@@ -783,6 +783,14 @@ object LibraryManager {
         return defaultValue
     }
 
+    fun getBoolean(key: String, defaultValue: Boolean = false): Boolean {
+        return getString(key, defaultValue.toString()) == "true"
+    }
+
+    fun saveBoolean(key: String, value: Boolean) {
+        saveString(key, value.toString())
+    }
+
     fun saveInt(key: String, value: Int) {
         if (!isInitialized) return
         settingsCache[key] = value.toString()
@@ -819,7 +827,7 @@ object LibraryManager {
         if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE) return "solid"
         if (isInitialized) return _glassStyle.value
         val fromDb = dbHelper.getSetting("glass_style", null)
-        val style = fromDb ?: try { prefs.getString("glass_style", null) } catch (_: Exception) { null } ?: "transparent"
+        val style = fromDb ?: try { prefs.getString("glass_style", null) } catch (_: Exception) { null } ?: "ios27"
         return if (style == "semitransparent" || style == "semitransparente") "solid" else style
     }
 

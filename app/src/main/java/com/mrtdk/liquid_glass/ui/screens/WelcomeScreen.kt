@@ -524,8 +524,8 @@ private fun InterfaceStyleStep(
                 title = stringResource(R.string.welcome_liquid_glass_title),
                 description = stringResource(R.string.welcome_liquid_glass_desc),
                 imageRes = R.drawable.preview_liquid_glass,
-                isSelected = currentStyle == "transparent",
-                onClick = { onStyleSelected("transparent") }
+                isSelected = currentStyle == "ios27" || currentStyle == "transparent",
+                onClick = { onStyleSelected("ios27") }
             )
 
             Spacer(modifier = Modifier.height(20.dp))

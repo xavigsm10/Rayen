@@ -123,6 +123,7 @@
     <string name="shuffle_label">Karıştır</string>
     <string name="apariencia">Görünüm</string>
     <string name="liquid_glass">Liquid Glass</string>
+    <string name="liquid_glass_ios27">IOS 27 liquid-glass</string>
     <string name="vidrio_liquido_transparente">Şeffaf likit cam</string>
     <string name="semitransparente">Yarı şeffaf</string>
     <string name="apariencia_dialog_title">Liquid Glass stilini seçin</string>

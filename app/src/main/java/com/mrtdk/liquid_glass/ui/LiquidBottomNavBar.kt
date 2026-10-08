@@ -84,6 +84,7 @@ import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.highlight.HighlightStyle
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.shapes.Capsule
 import com.mrtdk.liquid_glass.R
@@ -226,6 +227,10 @@ fun LiquidBottomNavBar(
         }
     }
 
+    val useConvxEffect = glassStyle == "ios27"
+    val convxTint = if (isDarkMode) Color(0xFF4A4A4E).copy(alpha = 0.5f) else Color(0xFFFAFAFA).copy(alpha = 0.55f)
+    val barTint = if (useConvxEffect) convxTint else actualTintColor
+
     val capsuleGlassModifier: @Composable () -> Modifier = {
         if (isSolid) {
             Modifier
@@ -239,22 +244,37 @@ fun LiquidBottomNavBar(
                 effects = {
                     if (!isLightweight) {
                         vibrancy()
-                        blur(6.dp.toPx() * NAV_BACKDROP_SCALE)
+                        val blurDp = if (useConvxEffect) 2.5f else 6f
+                        blur(blurDp.dp.toPx() * NAV_BACKDROP_SCALE)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val lensH = if (useConvxEffect) 19.2f else 16f
+                            val lensA = if (useConvxEffect) 28.8f else 24f
                             lens(
-                                refractionHeight = 16.dp.toPx() * NAV_BACKDROP_SCALE,
-                                refractionAmount = 24.dp.toPx() * NAV_BACKDROP_SCALE,
-                                depthEffect = true,
+                                refractionHeight = lensH.dp.toPx() * NAV_BACKDROP_SCALE,
+                                refractionAmount = lensA.dp.toPx() * NAV_BACKDROP_SCALE,
+                                depthEffect = false,
                                 chromaticAberration = false
                             )
                         }
                     } else {
-                        blur(3.dp.toPx() * NAV_BACKDROP_SCALE)
+                        blur(2.5.dp.toPx() * NAV_BACKDROP_SCALE)
                     }
                 },
-                highlight = { Highlight.Default.copy(alpha = 0.25f) },
+                highlight = {
+                    if (useConvxEffect) {
+                        Highlight(
+                            width = 0.8f.dp,
+                            style = HighlightStyle.Default.copy(
+                                color = Color.White.copy(alpha = 0.35f),
+                                angle = 45f
+                            )
+                        )
+                    } else {
+                        Highlight.Default.copy(alpha = 0.25f)
+                    }
+                },
                 shadow = { Shadow.Default },
-                onDrawSurface = { drawRect(actualTintColor) },
+                onDrawSurface = { drawRect(barTint) },
                 backdropScale = NAV_BACKDROP_SCALE
             )
         }
@@ -273,22 +293,37 @@ fun LiquidBottomNavBar(
                 effects = {
                     if (!isLightweight) {
                         vibrancy()
-                        blur(6.dp.toPx() * NAV_BACKDROP_SCALE)
+                        val blurDp = if (useConvxEffect) 2.5f else 6f
+                        blur(blurDp.dp.toPx() * NAV_BACKDROP_SCALE)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val lensH = if (useConvxEffect) 19.2f else 16f
+                            val lensA = if (useConvxEffect) 28.8f else 24f
                             lens(
-                                refractionHeight = 16.dp.toPx() * NAV_BACKDROP_SCALE,
-                                refractionAmount = 24.dp.toPx() * NAV_BACKDROP_SCALE,
-                                depthEffect = true,
+                                refractionHeight = lensH.dp.toPx() * NAV_BACKDROP_SCALE,
+                                refractionAmount = lensA.dp.toPx() * NAV_BACKDROP_SCALE,
+                                depthEffect = false,
                                 chromaticAberration = false
                             )
                         }
                     } else {
-                        blur(3.dp.toPx() * NAV_BACKDROP_SCALE)
+                        blur(2.5.dp.toPx() * NAV_BACKDROP_SCALE)
                     }
                 },
-                highlight = { Highlight.Default.copy(alpha = 0.25f) },
+                highlight = {
+                    if (useConvxEffect) {
+                        Highlight(
+                            width = 0.8f.dp,
+                            style = HighlightStyle.Default.copy(
+                                color = Color.White.copy(alpha = 0.35f),
+                                angle = 45f
+                            )
+                        )
+                    } else {
+                        Highlight.Default.copy(alpha = 0.25f)
+                    }
+                },
                 shadow = { Shadow.Default },
-                onDrawSurface = { drawRect(actualTintColor) },
+                onDrawSurface = { drawRect(barTint) },
                 backdropScale = NAV_BACKDROP_SCALE
             )
         }
@@ -548,7 +583,7 @@ fun LiquidBottomNavBar(
                                         backdrop = backdrop,
                                         tabsCount = expandedTabs.size,
                                         accentColor = activeAccentColor,
-                                        containerColor = if (isSolid) solidBgColor else actualTintColor,
+                                        containerColor = if (isSolid) solidBgColor else barTint,
                                         backdropScale = NAV_BACKDROP_SCALE,
                                         modifier = Modifier
                                             .fillMaxWidth()

@@ -74,13 +74,39 @@ object PerformanceProfileManager {
         return _config.value
     }
 
+    fun isLowEndDevice(): Boolean = _config.value.tier == PerformanceTier.LOW_END
+    fun isMidRangeDevice(): Boolean = _config.value.tier == PerformanceTier.MID_RANGE
+    fun isHighEndDevice(): Boolean = _config.value.tier == PerformanceTier.HIGH_END
+
+    fun getOptimalBackdropScale(): Float = when (_config.value.tier) {
+        PerformanceTier.LOW_END -> 0.25f
+        PerformanceTier.MID_RANGE -> 0.33f
+        PerformanceTier.HIGH_END -> 0.50f
+    }
+
+    fun getBeyondViewportPageCount(): Int = if (isLowEndDevice()) 0 else 1
+
     fun init(context: Context) {
+        val isCalibrated = LibraryManager.getBoolean("device_profile_calibrated", false)
         val savedTier = LibraryManager.getString("performance_tier_preference", "auto")
-        val resolvedTier = when (savedTier) {
-            "low" -> PerformanceTier.LOW_END
-            "mid" -> PerformanceTier.MID_RANGE
-            "high" -> PerformanceTier.HIGH_END
-            else -> detectTier(context)
+
+        val resolvedTier = if (!isCalibrated || savedTier == "auto") {
+            val detected = detectTier(context)
+            val tierString = when (detected) {
+                PerformanceTier.LOW_END -> "low"
+                PerformanceTier.MID_RANGE -> "mid"
+                PerformanceTier.HIGH_END -> "high"
+            }
+            LibraryManager.saveString("performance_tier_preference", tierString)
+            LibraryManager.saveBoolean("device_profile_calibrated", true)
+            detected
+        } else {
+            when (savedTier) {
+                "low" -> PerformanceTier.LOW_END
+                "mid" -> PerformanceTier.MID_RANGE
+                "high" -> PerformanceTier.HIGH_END
+                else -> detectTier(context)
+            }
         }
         setTier(resolvedTier)
     }

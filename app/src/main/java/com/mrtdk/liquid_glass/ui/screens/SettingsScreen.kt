@@ -216,9 +216,10 @@ fun MainSettingsMenu(
                                 "Material 3 Expressive (Optimizado)"
                             } else {
                                 when (currentStyle) {
+                                    "ios27" -> stringResource(R.string.liquid_glass_ios27)
                                     "transparent" -> stringResource(R.string.vidrio_liquido_transparente)
                                     "solid" -> stringResource(R.string.estilo_solido_material3)
-                                    else -> stringResource(R.string.vidrio_liquido_transparente)
+                                    else -> stringResource(R.string.liquid_glass_ios27)
                                 }
                             }
                             Text(currentStyleName)
@@ -326,6 +327,7 @@ fun MainSettingsMenu(
         SingleChoiceDialog(
             title = stringResource(R.string.liquid_glass),
             options = listOf(
+                "ios27" to stringResource(R.string.liquid_glass_ios27),
                 "transparent" to stringResource(R.string.vidrio_liquido_transparente),
                 "solid" to stringResource(R.string.estilo_solido_material3)
             ),

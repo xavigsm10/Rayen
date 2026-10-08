@@ -54,6 +54,7 @@ import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.highlight.HighlightStyle
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.shapes.Capsule
@@ -311,6 +312,10 @@ fun LiquidBottomTabs(
                 content = content
             )
         } else {
+            val useConvxEffect = glassStyle == "ios27"
+            val convxSurfaceTint = if (isLightTheme) Color(0xFFFAFAFA).copy(alpha = 0.5f) else Color(0xFF4A4A4E).copy(alpha = 0.5f)
+            val barSurfaceColor = containerColor ?: if (useConvxEffect) convxSurfaceTint else actualContainerColor
+
             // Layer 1: Outer capsule container
             Row(
                 Modifier
@@ -323,17 +328,20 @@ fun LiquidBottomTabs(
                         effects = {
                             if (!isLightweight) {
                                 vibrancy()
-                                blur(6f.dp.toPx() * backdropScale)
+                                val blurDp = if (useConvxEffect) 2.5f else 6f
+                                blur(blurDp.dp.toPx() * backdropScale)
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    val lensH = if (useConvxEffect) 19.2f else 16f
+                                    val lensA = if (useConvxEffect) 28.8f else 24f
                                     lens(
-                                        refractionHeight = 16f.dp.toPx() * backdropScale,
-                                        refractionAmount = 24f.dp.toPx() * backdropScale,
-                                        depthEffect = true,
+                                        refractionHeight = lensH.dp.toPx() * backdropScale,
+                                        refractionAmount = lensA.dp.toPx() * backdropScale,
+                                        depthEffect = false,
                                         chromaticAberration = false
                                     )
                                 }
                             } else {
-                                blur(3f.dp.toPx() * backdropScale)
+                                blur(2.5f.dp.toPx() * backdropScale)
                             }
                         },
                         layerBlock = {
@@ -342,9 +350,21 @@ fun LiquidBottomTabs(
                             scaleX = scale
                             scaleY = scale
                         },
-                        highlight = { Highlight.Default.copy(alpha = 0.25f) },
+                        highlight = {
+                            if (useConvxEffect) {
+                                Highlight(
+                                    width = 0.8f.dp,
+                                    style = HighlightStyle.Default.copy(
+                                        color = Color.White.copy(alpha = 0.35f),
+                                        angle = 45f
+                                    )
+                                )
+                            } else {
+                                Highlight.Default.copy(alpha = 0.25f)
+                            }
+                        },
                         shadow = { Shadow.Default },
-                        onDrawSurface = { drawRect(actualContainerColor) },
+                        onDrawSurface = { drawRect(barSurfaceColor) },
                         backdropScale = backdropScale
                     )
                     .then(interactiveHighlight.modifier)
@@ -376,25 +396,28 @@ fun LiquidBottomTabs(
                                 val progress = dampedDragAnimation.pressProgress
                                 if (!isLightweight) {
                                     vibrancy()
-                                    blur(6f.dp.toPx() * backdropScale)
+                                    val blurDp = if (useConvxEffect) 2f else 6f
+                                    blur(blurDp.dp.toPx() * backdropScale)
                                     if (progress > 0.01f && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        val lensH = if (useConvxEffect) 15f else 16f
+                                        val lensA = if (useConvxEffect) 18f else 24f
                                         lens(
-                                            refractionHeight = 16f.dp.toPx() * backdropScale * progress,
-                                            refractionAmount = 24f.dp.toPx() * backdropScale * progress,
-                                            depthEffect = true,
+                                            refractionHeight = lensH.dp.toPx() * backdropScale * progress,
+                                            refractionAmount = lensA.dp.toPx() * backdropScale * progress,
+                                            depthEffect = false,
                                             chromaticAberration = false
                                         )
                                     }
                                 } else {
-                                    blur(3f.dp.toPx() * backdropScale)
+                                    blur(2f.dp.toPx() * backdropScale)
                                 }
                             },
                             highlight = {
                                 val progress = dampedDragAnimation.pressProgress
-                                Highlight.Default.copy(alpha = 0.25f * progress)
+                                Highlight.Default.copy(alpha = progress)
                             },
                             shadow = { Shadow.Default },
-                            onDrawSurface = { drawRect(actualContainerColor) },
+                            onDrawSurface = { drawRect(barSurfaceColor) },
                             backdropScale = backdropScale
                         )
                         .then(interactiveHighlight.modifier)
@@ -407,7 +430,7 @@ fun LiquidBottomTabs(
                 )
             }
 
-            // Layer 3: Original LiquidBottomTabs selection puck from AndroidLiquidGlass
+            // Layer 3: Normal RayMusic selection puck (keeps active tab bright and un-obscured)
             Box(
                 Modifier
                     .padding(horizontal = 4f.dp)

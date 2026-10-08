@@ -319,7 +319,11 @@ private class DrawBackdropNode(
     private val layoutLayerBlock: GraphicsLayerScope.() -> Unit = {
         clip = clipToShape
         shape = shapeProvider.shape
-        compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+        compositingStrategy = if (isRenderEffectSupported()) {
+            androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+        } else {
+            androidx.compose.ui.graphics.CompositingStrategy.Auto
+        }
     }
 
     private var layoutCoordinates: LayoutCoordinates? by mutableStateOf(null, neverEqualPolicy())

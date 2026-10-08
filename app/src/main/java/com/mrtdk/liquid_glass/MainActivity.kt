@@ -286,7 +286,8 @@ class MainActivity : ComponentActivity() {
                 }
                 val bottomTabsStyle by LibraryManager.bottomTabsStyle.collectAsState()
                 val isUltraPerformance by LibraryManager.ultraPerformanceMode.collectAsState()
-                val isLightweightGlass = isUltraPerformance
+                val isLowEnd = remember { com.mrtdk.liquid_glass.utils.PerformanceProfileManager.isLowEndDevice() }
+                val isLightweightGlass = isUltraPerformance || isLowEnd
                 val lastSavedState = remember { com.mrtdk.liquid_glass.data.LibraryManager.getLastPlayerState() }
                 var playerState by remember { mutableStateOf<PlayerState?>(lastSavedState) }
                 var isFirstStateLoad by remember { mutableStateOf(true) }
@@ -700,7 +701,7 @@ class MainActivity : ComponentActivity() {
                                             state = pagerState,
                                             modifier = Modifier.fillMaxSize().background(Color.Black),
                                             userScrollEnabled = false,
-                                            beyondViewportPageCount = if (BuildConfig.IS_LITE) 0 else 1,
+                                            beyondViewportPageCount = if (BuildConfig.IS_LITE || isLowEnd) 0 else 1,
                                         ) { page ->
                                             when (page) {
                                                 0 -> InicioScreen(

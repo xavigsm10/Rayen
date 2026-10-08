@@ -123,6 +123,7 @@
     <string name="shuffle_label">Shuffle</string>
     <string name="apariencia">Appearance</string>
     <string name="liquid_glass">Liquid Glass</string>
+    <string name="liquid_glass_ios27">IOS 27 liquid-glass</string>
     <string name="vidrio_liquido_transparente">Transparent Liquid Glass</string>
     <string name="semitransparente">Semitransparent</string>
     <string name="apariencia_dialog_title">Select Liquid Glass Style</string>
