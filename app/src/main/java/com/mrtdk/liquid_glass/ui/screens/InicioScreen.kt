@@ -783,12 +783,12 @@ fun InicioScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)) {
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor),
+                .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor),
             contentPadding = PaddingValues(
                 top = innerPadding.calculateTopPadding() + 24.dp,
                 bottom = innerPadding.calculateBottomPadding() + 180.dp
@@ -1828,7 +1828,7 @@ fun InicioScreen(
         onClose = { activeSimilarSection = null }
     ) { dismiss ->
         val overlayItems = activeSection!!.items
-        Box(modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)) {
+        Box(modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)) {
             Column(modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding())) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -1987,7 +1987,7 @@ fun InicioScreen(
         snapshotBounds = recentlyPlayedSnapshotBounds,
         onClose = { activeRecentlyPlayedSection = false }
     ) { dismiss ->
-        Box(modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)) {
+        Box(modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)) {
             Column(modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding())) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -2117,7 +2117,7 @@ fun InicioScreen(
         onClose = { activePorqueEscuchasteSection = null }
     ) { dismiss ->
         val overlayItems = activePorqueEscuchaste!!.songs
-        Box(modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)) {
+        Box(modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)) {
             Column(modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding())) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -2221,7 +2221,7 @@ fun InicioScreen(
         onClose = { activeSeleccionesSection = false }
     ) { dismiss ->
         val overlayItems = state.seleccionesParaTi
-        Box(modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)) {
+        Box(modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)) {
             Column(modifier = Modifier.fillMaxSize().padding(top = innerPadding.calculateTopPadding())) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -2704,9 +2704,6 @@ private fun FeaturedSuggestionCard(
         if (!hdThumb.isNullOrBlank()) {
             val sharpFadeStart = (205.dp / imageHeight).coerceIn(0f, 1f)
             val sharpFadeMid = (248.dp / imageHeight).coerceIn(sharpFadeStart, 1f)
-            val topDifStart = (180.dp / imageHeight).coerceIn(0f, 1f)
-            val topDifFull = (230.dp / imageHeight).coerceIn(0f, 1f)
-            val topDifFade = (255.dp / imageHeight).coerceIn(0f, 1f)
 
             val reflOverlap = 30.dp
             val reflFadeIn = (reflOverlap / imageHeight).coerceIn(0f, 1f)
@@ -2749,95 +2746,6 @@ private fun FeaturedSuggestionCard(
                     contentScale = ContentScale.Crop,
                     alignment = Alignment.Center,
                     modifier = Modifier.fillMaxSize()
-                )
-            }
-
-            // 1b. DIFUSIÓN SUAVE EN LA PARTE INFERIOR DE LA IMAGEN SUPERIOR
-            Box(
-                modifier = Modifier
-                    .size(width = imageWidth, height = imageHeight)
-                    .align(Alignment.TopCenter)
-                    .graphicsLayer {
-                        compositingStrategy = CompositingStrategy.Offscreen
-                    }
-                    .drawWithContent {
-                        drawContent()
-                        drawRect(
-                            brush = Brush.verticalGradient(
-                                0.00f to Color.Transparent,
-                                topDifStart to Color.Transparent,
-                                topDifFull to Color.Black,
-                                topDifFade to Color.Black.copy(alpha = 0.70f),
-                                1.00f to Color.Transparent
-                            ),
-                            blendMode = BlendMode.DstIn
-                        )
-                    }
-            ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context).data(hdThumb).crossfade(false).build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    alignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                                renderEffect = android.graphics.RenderEffect
-                                    .createBlurEffect(22f, 22f, android.graphics.Shader.TileMode.MIRROR)
-                                    .asComposeRenderEffect()
-                            }
-                        }
-                        .then(
-                            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
-                                Modifier.blur(14.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
-                            } else Modifier
-                        )
-                )
-            }
-
-            // 1c. DIFUSIÓN HORIZONTAL EN LA PARTE INFERIOR DE LA IMAGEN SUPERIOR
-            Box(
-                modifier = Modifier
-                    .size(width = imageWidth, height = imageHeight)
-                    .align(Alignment.TopCenter)
-                    .graphicsLayer {
-                        compositingStrategy = CompositingStrategy.Offscreen
-                    }
-                    .drawWithContent {
-                        drawContent()
-                        drawRect(
-                            brush = Brush.verticalGradient(
-                                0.00f to Color.Transparent,
-                                topDifStart to Color.Transparent,
-                                topDifFull to Color.Black.copy(alpha = 0.80f),
-                                topDifFade to Color.Black.copy(alpha = 0.55f),
-                                1.00f to Color.Transparent
-                            ),
-                            blendMode = BlendMode.DstIn
-                        )
-                    }
-            ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context).data(hdThumb).crossfade(false).build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    alignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            scaleX = 1.04f
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                                renderEffect = android.graphics.RenderEffect
-                                    .createBlurEffect(100f, 25f, android.graphics.Shader.TileMode.MIRROR)
-                                    .asComposeRenderEffect()
-                            }
-                        }
-                        .then(
-                            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
-                                Modifier.blur(60.dp, 16.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
-                            } else Modifier
-                        )
                 )
             }
 

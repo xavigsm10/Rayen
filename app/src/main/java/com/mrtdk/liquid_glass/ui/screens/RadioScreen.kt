@@ -173,7 +173,7 @@ fun RadioScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)
+            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)
             .padding(innerPadding),
         contentAlignment = Alignment.Center
     ) {

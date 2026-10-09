@@ -48,6 +48,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.kyant.backdrop.Backdrop
 import com.mrtdk.liquid_glass.R
 import com.mrtdk.liquid_glass.data.ItemType
 import com.mrtdk.liquid_glass.data.LibraryItem
@@ -77,7 +78,8 @@ fun AppleMusicLibraryContextMenu(
     onDismiss: () -> Unit,
     onOpenDetail: () -> Unit,
     onSongSelected: (PlayerState) -> Unit,
-    pivotBounds: Rect? = null
+    pivotBounds: Rect? = null,
+    backdrop: Backdrop = LocalBackdrop.current
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -123,30 +125,20 @@ fun AppleMusicLibraryContextMenu(
         handleDismiss()
     }
 
-    Popup(
-        alignment = Alignment.Center,
-        properties = PopupProperties(
-            focusable = true,
-            dismissOnBackPress = true,
-            dismissOnClickOutside = true
-        ),
-        onDismissRequest = { handleDismiss() }
+    val scrimAlpha = (morphProgress * 0.42f).coerceIn(0f, 0.42f)
+
+    val isDark = com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState().value
+    val dimColor = rememberAndroidLiquidGlassDimColor(isDark)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(dimColor.copy(alpha = dimColor.alpha * (scrimAlpha / 0.42f).coerceIn(0f, 1f)))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { handleDismiss() }
     ) {
-        val scrimAlpha = (morphProgress * 0.42f).coerceIn(0f, 0.42f)
-
-        val isDark = com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState().value
-        val dimColor = rememberAndroidLiquidGlassDimColor(isDark)
-        val backdrop = LocalBackdrop.current
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(dimColor.copy(alpha = dimColor.alpha * (scrimAlpha / 0.42f).coerceIn(0f, 1f)))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { handleDismiss() }
-        ) {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val density = LocalDensity.current
                 val menuWidth = 295.dp
@@ -191,7 +183,7 @@ fun AppleMusicLibraryContextMenu(
                         modifier = Modifier
                             .fillMaxWidth()
                             .androidLiquidGlassEffect(
-                                shape = RoundedCornerShape(18.dp),
+                                shape = RoundedCornerShape(32.dp),
                                 isDark = isDark,
                                 backdrop = backdrop
                             )
@@ -200,7 +192,7 @@ fun AppleMusicLibraryContextMenu(
                                 indication = ripple(color = (if (isDark) Color.White else Color.Black).copy(alpha = 0.15f)),
                                 onClick = { handleDismiss { onOpenDetail() } }
                             )
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Artwork Thumbnail
@@ -276,7 +268,7 @@ fun AppleMusicLibraryContextMenu(
                         modifier = Modifier
                             .fillMaxWidth()
                             .androidLiquidGlassEffect(
-                                shape = RoundedCornerShape(22.dp),
+                                shape = RoundedCornerShape(32.dp),
                                 isDark = isDark,
                                 backdrop = backdrop
                             )
@@ -293,7 +285,7 @@ fun AppleMusicLibraryContextMenu(
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(16.dp))
                                     .clickable {
                                         handleDismiss {
                                             if (isSong) {
@@ -341,7 +333,7 @@ fun AppleMusicLibraryContextMenu(
                             Column(
                                 modifier = Modifier
                                     .weight(1.1f)
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(16.dp))
                                     .clickable {
                                         val libItem = LibraryItem(
                                             id = target.id,
@@ -382,7 +374,7 @@ fun AppleMusicLibraryContextMenu(
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
+                                    .clip(RoundedCornerShape(16.dp))
                                     .clickable {
                                         handleDismiss {
                                             val url = if (isAlbum) {
@@ -585,7 +577,6 @@ fun AppleMusicLibraryContextMenu(
             }
         }
     }
-}
 
 @Composable
 private fun LibraryMenuItemRow(

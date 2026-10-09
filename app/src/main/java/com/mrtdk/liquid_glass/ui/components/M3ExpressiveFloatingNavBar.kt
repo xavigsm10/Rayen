@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -112,6 +113,7 @@ fun M3ExpressiveFloatingNavBar(
 
     val toolbarModifier = if (isSolid) {
         Modifier
+            .shadow(elevation = 6.dp, shape = pillShape, spotColor = Color.Black.copy(alpha = 0.35f))
             .clip(pillShape)
             .background(solidBgColor)
             .border(width = 1.dp, color = pillBorderColor, shape = pillShape)

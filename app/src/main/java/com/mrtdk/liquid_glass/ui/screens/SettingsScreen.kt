@@ -151,7 +151,7 @@ fun MainSettingsMenu(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)
+            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)
             .statusBarsPadding()
     ) {
         // Header
@@ -411,7 +411,7 @@ fun LyricsSettingsScreen(onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)
+            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)
             .statusBarsPadding()
     ) {
         Row(
@@ -777,7 +777,7 @@ fun PlayerSettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)
+            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)
             .statusBarsPadding()
     ) {
         Row(
@@ -1160,7 +1160,7 @@ fun ListenTogetherSettingsScreen(onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)
+            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)
             .statusBarsPadding()
     ) {
         Row(
@@ -1626,7 +1626,7 @@ fun ContentSettingsScreen(onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)
+            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)
             .statusBarsPadding()
     ) {
         Row(
@@ -1860,7 +1860,7 @@ fun PrivacySettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)
+            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)
             .statusBarsPadding()
     ) {
         Row(
@@ -2032,7 +2032,7 @@ fun AboutSettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)
+            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)
             .statusBarsPadding()
     ) {
         Row(
@@ -2387,7 +2387,7 @@ fun SpotifySettingsScreen(onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)
+            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)
             .statusBarsPadding()
     ) {
         Row(

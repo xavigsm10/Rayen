@@ -133,27 +133,175 @@ object ThemeManager {
     val isEffectiveAmoled: Boolean
         get() = isDarkCompose && (pureBlackCompose || _themeMode.value == MODE_AMOLED)
 
+    private fun colorToHsl(color: Color): FloatArray {
+        val r = color.red
+        val g = color.green
+        val b = color.blue
+        val max = maxOf(r, g, b)
+        val min = minOf(r, g, b)
+        val delta = max - min
+        val l = (max + min) / 2f
+        val s = if (delta == 0f) 0f else delta / (1f - kotlin.math.abs(2f * l - 1f))
+        val h = when {
+            delta == 0f -> 0f
+            max == r -> (((g - b) / delta) % 6f) * 60f
+            max == g -> (((b - r) / delta) + 2f) * 60f
+            else -> (((r - g) / delta) + 4f) * 60f
+        }.let { if (it < 0f) it + 360f else it }
+        return floatArrayOf(h, s, l)
+    }
+
+    private fun hslToColor(h: Float, s: Float, l: Float, alpha: Float = 1f): Color {
+        val c = (1f - kotlin.math.abs(2f * l - 1f)) * s
+        val x = c * (1f - kotlin.math.abs(((h / 60f) % 2f) - 1f))
+        val m = l - c / 2f
+        val (r1, g1, b1) = when {
+            h < 60f -> Triple(c, x, 0f)
+            h < 120f -> Triple(x, c, 0f)
+            h < 180f -> Triple(0f, c, x)
+            h < 240f -> Triple(0f, x, c)
+            h < 300f -> Triple(x, 0f, c)
+            else -> Triple(c, 0f, x)
+        }
+        return Color(
+            red = (r1 + m).coerceIn(0f, 1f),
+            green = (g1 + m).coerceIn(0f, 1f),
+            blue = (b1 + m).coerceIn(0f, 1f),
+            alpha = alpha
+        )
+    }
+
+    /**
+     * Neutral base background color (pure black in dark, neutral gray in light).
+     * Used by detail screens (Artist, Album, Playlist, Categoria) that should stay neutral.
+     */
     val backgroundColor: Color
         get() = if (isDarkCompose) Color(0xFF000000) else Color(0xFFF2F2F7)
 
+    /**
+     * Material 3 Expressive tinted background.
+     * Only active for Inicio, Novedades, Radio, Búsqueda, Biblioteca and Settings when Dynamic Palette is disabled.
+     */
+    val expressiveBackgroundColor: Color
+        get() {
+            if (dynamicThemeCompose) return backgroundColor
+            val hsl = colorToHsl(selectedThemeColorCompose)
+            val h = hsl[0]
+            val s = hsl[1]
+            if (s < 0.04f) return backgroundColor
+
+            return if (isDarkCompose) {
+                if (isEffectiveAmoled) Color(0xFF000000)
+                else {
+                    // M3 Expressive Dark Background tone (tonal level 6 ~ 6.5% lightness)
+                    val bgSat = (s * 0.32f).coerceIn(0.10f, 0.28f)
+                    hslToColor(h, bgSat, 0.065f)
+                }
+            } else {
+                // M3 Expressive Light Background tone (tonal level 98 ~ 97% lightness)
+                val bgSat = (s * 0.18f).coerceIn(0.06f, 0.16f)
+                hslToColor(h, bgSat, 0.97f)
+            }
+        }
+
     val surfaceColor: Color
-        get() = if (isDarkCompose) {
-            if (isEffectiveAmoled) Color(0xFF000000) else Color(0xFF1C1C1E)
-        } else Color(0xFFFFFFFF)
+        get() {
+            if (dynamicThemeCompose) {
+                return if (isDarkCompose) {
+                    if (isEffectiveAmoled) Color(0xFF000000) else Color(0xFF1C1C1E)
+                } else Color(0xFFFFFFFF)
+            }
+            val hsl = colorToHsl(selectedThemeColorCompose)
+            val h = hsl[0]
+            val s = hsl[1]
+            if (s < 0.04f) {
+                return if (isDarkCompose) {
+                    if (isEffectiveAmoled) Color(0xFF000000) else Color(0xFF1C1C1E)
+                } else Color(0xFFFFFFFF)
+            }
+
+            return if (isDarkCompose) {
+                if (isEffectiveAmoled) Color(0xFF000000)
+                else {
+                    // M3 Expressive Surface Container (tonal level 12 ~ 11.5% lightness)
+                    val surfSat = (s * 0.26f).coerceIn(0.09f, 0.24f)
+                    hslToColor(h, surfSat, 0.115f)
+                }
+            } else {
+                // M3 Expressive Light Surface Container
+                val surfSat = (s * 0.08f).coerceIn(0.02f, 0.08f)
+                hslToColor(h, surfSat, 0.995f)
+            }
+        }
 
     val textColor: Color
-        get() = if (isDarkCompose) Color(0xFFFFFFFF) else Color(0xFF1C1C1E)
+        get() {
+            if (dynamicThemeCompose) {
+                return if (isDarkCompose) Color(0xFFFFFFFF) else Color(0xFF1C1C1E)
+            }
+            val hsl = colorToHsl(selectedThemeColorCompose)
+            val h = hsl[0]
+            val s = hsl[1]
+            if (s < 0.04f) {
+                return if (isDarkCompose) Color(0xFFFFFFFF) else Color(0xFF1C1C1E)
+            }
+            return if (isDarkCompose) {
+                // M3 Expressive on-surface / on-background (tonal level 95)
+                val textSat = (s * 0.14f).coerceIn(0.05f, 0.16f)
+                hslToColor(h, textSat, 0.95f)
+            } else {
+                // M3 Expressive on-surface / on-background (tonal level 12)
+                val textSat = (s * 0.32f).coerceIn(0.12f, 0.32f)
+                hslToColor(h, textSat, 0.12f)
+            }
+        }
 
     val subtextColor: Color
-        get() = if (isDarkCompose) Color(0xFFAAAAAA) else Color(0xFF636366)
+        get() {
+            if (dynamicThemeCompose) {
+                return if (isDarkCompose) Color(0xFFAAAAAA) else Color(0xFF636366)
+            }
+            val hsl = colorToHsl(selectedThemeColorCompose)
+            val h = hsl[0]
+            val s = hsl[1]
+            if (s < 0.04f) {
+                return if (isDarkCompose) Color(0xFFAAAAAA) else Color(0xFF636366)
+            }
+            return if (isDarkCompose) {
+                // M3 Expressive on-surface-variant (tonal level 72)
+                val subSat = (s * 0.18f).coerceIn(0.07f, 0.20f)
+                hslToColor(h, subSat, 0.72f)
+            } else {
+                // M3 Expressive on-surface-variant (tonal level 42)
+                val subSat = (s * 0.26f).coerceIn(0.10f, 0.28f)
+                hslToColor(h, subSat, 0.42f)
+            }
+        }
 
     val dividerColor: Color
-        get() = if (isDarkCompose) Color.DarkGray.copy(alpha = 0.5f) else Color(0xFFE5E5EA)
+        get() {
+            if (dynamicThemeCompose) {
+                return if (isDarkCompose) Color.DarkGray.copy(alpha = 0.5f) else Color(0xFFE5E5EA)
+            }
+            val hsl = colorToHsl(selectedThemeColorCompose)
+            val h = hsl[0]
+            val s = hsl[1]
+            if (s < 0.04f) {
+                return if (isDarkCompose) Color.DarkGray.copy(alpha = 0.5f) else Color(0xFFE5E5EA)
+            }
+            return if (isDarkCompose) {
+                val divSat = (s * 0.20f).coerceIn(0.08f, 0.22f)
+                hslToColor(h, divSat, 0.24f, alpha = 0.55f)
+            } else {
+                val divSat = (s * 0.16f).coerceIn(0.05f, 0.18f)
+                hslToColor(h, divSat, 0.88f)
+            }
+        }
 
     val glassContainerColor: Color
         get() = if (isDarkCompose) {
-            if (isEffectiveAmoled) Color(0xFF000000).copy(alpha = 0.85f) else Color(0xFF1C1C1E).copy(alpha = 0.8f)
-        } else Color(0xFFFFFFFF).copy(alpha = 0.9f)
+            if (isEffectiveAmoled) Color(0xFF000000).copy(alpha = 0.85f) else surfaceColor.copy(alpha = 0.82f)
+        } else surfaceColor.copy(alpha = 0.90f)
 
     val accentColor: Color
         get() = if (dynamicThemeCompose) DefaultThemeColor else selectedThemeColorCompose

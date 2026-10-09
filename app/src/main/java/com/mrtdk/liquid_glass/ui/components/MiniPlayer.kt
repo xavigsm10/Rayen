@@ -15,6 +15,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
@@ -100,13 +101,19 @@ fun MiniPlayer(
     val isCollapsing = collapseProgress > 0.001f && collapseProgress < 0.999f
     val isLightweight = com.mrtdk.glass.LocalLightweightGlass.current
     val glassStyle = com.mrtdk.glass.LocalGlassStyle.current
-    val isSolid = glassStyle == "solid" || com.mrtdk.liquid_glass.data.LibraryManager.isUltraPerformanceMode()
+    val isSolid = glassStyle == "solid" || isLightweight || com.mrtdk.liquid_glass.data.LibraryManager.isUltraPerformanceMode()
 
     val backdropModifier = if (isSolid) {
-        Modifier.background(
-            if (tintColor.isSpecified && tintColor.alpha > 0f) tintColor else Color(0xFF1E1E1E),
-            Capsule()
-        )
+        Modifier
+            .background(
+                if (tintColor.isSpecified && tintColor.alpha > 0f) tintColor else Color(0xFF1E1E1E),
+                Capsule()
+            )
+            .border(
+                width = 1.dp,
+                color = Color.White.copy(alpha = 0.10f),
+                shape = Capsule()
+            )
     } else {
         Modifier.drawBackdrop(
             backdrop = backdrop,

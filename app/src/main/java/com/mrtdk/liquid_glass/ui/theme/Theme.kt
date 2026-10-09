@@ -66,12 +66,18 @@ fun LiquidglassuicomponentTheme(
                     primary = themeColor,
                     secondary = themeColor.copy(alpha = 0.85f),
                     tertiary = themeColor.copy(alpha = 0.65f),
-                    background = if (pureBlack) Color.Black else Color(0xFF000000),
-                    surface = if (pureBlack) Color.Black else Color(0xFF1C1C1E),
+                    background = if (pureBlack) Color.Black else ThemeManager.expressiveBackgroundColor,
+                    surface = if (pureBlack) Color.Black else ThemeManager.surfaceColor,
+                    onPrimary = Color.White,
+                    onSecondary = Color.White,
+                    onTertiary = Color.White,
+                    onBackground = ThemeManager.textColor,
+                    onSurface = ThemeManager.textColor,
+                    onSurfaceVariant = ThemeManager.subtextColor,
                     surfaceContainerLowest = Color.Black,
-                    surfaceContainerLow = if (pureBlack) Color(0xFF080808) else Color(0xFF161618),
-                    surfaceContainer = if (pureBlack) Color(0xFF101010) else Color(0xFF222224),
-                    surfaceContainerHigh = if (pureBlack) Color(0xFF181818) else Color(0xFF2C2C2E)
+                    surfaceContainerLow = if (pureBlack) Color(0xFF080808) else ThemeManager.surfaceColor,
+                    surfaceContainer = if (pureBlack) Color(0xFF101010) else ThemeManager.surfaceColor,
+                    surfaceContainerHigh = if (pureBlack) Color(0xFF181818) else ThemeManager.surfaceColor
                 )
             }
             else -> {
@@ -79,11 +85,17 @@ fun LiquidglassuicomponentTheme(
                     primary = themeColor,
                     secondary = themeColor.copy(alpha = 0.85f),
                     tertiary = themeColor.copy(alpha = 0.65f),
-                    background = Color(0xFFF2F2F7),
-                    surface = Color(0xFFFFFFFF),
-                    surfaceContainerLow = Color(0xFFF7F7F9),
-                    surfaceContainer = Color(0xFFECECEE),
-                    surfaceContainerHigh = Color(0xFFE5E5EA)
+                    background = ThemeManager.expressiveBackgroundColor,
+                    surface = ThemeManager.surfaceColor,
+                    onPrimary = Color.White,
+                    onSecondary = Color.White,
+                    onTertiary = Color.White,
+                    onBackground = ThemeManager.textColor,
+                    onSurface = ThemeManager.textColor,
+                    onSurfaceVariant = ThemeManager.subtextColor,
+                    surfaceContainerLow = ThemeManager.surfaceColor,
+                    surfaceContainer = ThemeManager.surfaceColor,
+                    surfaceContainerHigh = ThemeManager.dividerColor
                 )
             }
         }

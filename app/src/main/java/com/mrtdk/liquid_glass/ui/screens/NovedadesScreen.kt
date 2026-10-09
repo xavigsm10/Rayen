@@ -315,7 +315,7 @@ fun NovedadesScreen(
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor),
+        modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor),
         contentPadding = PaddingValues(top = innerPadding.calculateTopPadding() + 16.dp, bottom = innerPadding.calculateBottomPadding() + 180.dp)
     ) {
         // ── FEATURED ALBUMS CAROUSEL (big cards with text overlay at top) ──

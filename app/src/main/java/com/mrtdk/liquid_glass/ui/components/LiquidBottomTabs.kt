@@ -79,7 +79,7 @@ fun LiquidBottomTabs(
     accentColor: Color? = null,
     tabPosition: (() -> Float?)? = null,
     backdropScale: Float = 0.33f,
-    content: @Composable RowScope.() -> Unit
+    content: @Composable RowScope.(activeTabIndex: Int) -> Unit
 ) {
     val isDarkMode by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState()
     val isLightTheme = !isDarkMode
@@ -140,7 +140,7 @@ fun LiquidBottomTabs(
                     .fillMaxSize()
                     .padding(4f.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                content = content
+                content = { content(selectedIndex) }
             )
         }
         return
@@ -245,6 +245,13 @@ fun LiquidBottomTabs(
             )
         }
 
+        val isDraggingOrPressed = dampedDragAnimation.pressProgress > 0.01f
+        val activeTabIndex = if (isDraggingOrPressed) {
+            dampedDragAnimation.value.fastRoundToInt().fastCoerceIn(0, tabsCount - 1)
+        } else {
+            selectedTabIndex().coerceIn(0, tabsCount - 1)
+        }
+
         if (isUltraPerf) {
             val solidPuckColor = if (isDarkMode) Color(0xFF38383C) else Color(0xFFD1D1D6)
 
@@ -309,7 +316,7 @@ fun LiquidBottomTabs(
                     .fillMaxWidth()
                     .padding(4f.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                content = content
+                content = { content(activeTabIndex) }
             )
         } else {
             val useConvxEffect = glassStyle == "ios27"
@@ -372,7 +379,7 @@ fun LiquidBottomTabs(
                     .fillMaxWidth()
                     .padding(4f.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                content = content
+                content = { content(activeTabIndex) }
             )
 
             // Layer 2: Hidden tinted tabs layer captured into tabsBackdrop for glass refraction
@@ -397,19 +404,19 @@ fun LiquidBottomTabs(
                                 if (!isLightweight) {
                                     vibrancy()
                                     val blurDp = if (useConvxEffect) 2f else 6f
-                                    blur(blurDp.dp.toPx() * backdropScale)
+                                    blur(blurDp.dp.toPx())
                                     if (progress > 0.01f && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                         val lensH = if (useConvxEffect) 15f else 16f
                                         val lensA = if (useConvxEffect) 18f else 24f
                                         lens(
-                                            refractionHeight = lensH.dp.toPx() * backdropScale * progress,
-                                            refractionAmount = lensA.dp.toPx() * backdropScale * progress,
+                                            refractionHeight = lensH.dp.toPx() * progress,
+                                            refractionAmount = lensA.dp.toPx() * progress,
                                             depthEffect = false,
                                             chromaticAberration = false
                                         )
                                     }
                                 } else {
-                                    blur(2f.dp.toPx() * backdropScale)
+                                    blur(2f.dp.toPx())
                                 }
                             },
                             highlight = {
@@ -418,7 +425,7 @@ fun LiquidBottomTabs(
                             },
                             shadow = { Shadow.Default },
                             onDrawSurface = { drawRect(barSurfaceColor) },
-                            backdropScale = backdropScale
+                            backdropScale = 1f
                         )
                         .then(interactiveHighlight.modifier)
                         .height(56f.dp)
@@ -426,7 +433,7 @@ fun LiquidBottomTabs(
                         .padding(horizontal = 4f.dp)
                         .graphicsLayer(colorFilter = ColorFilter.tint(actualAccentColor)),
                     verticalAlignment = Alignment.CenterVertically,
-                    content = content
+                    content = { content(activeTabIndex) }
                 )
             }
 
@@ -449,9 +456,9 @@ fun LiquidBottomTabs(
                             if (progress > 0.01f) {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                     lens(
-                                        10f.dp.toPx() * backdropScale * progress,
-                                        14f.dp.toPx() * backdropScale * progress,
-                                        chromaticAberration = true
+                                        10f.dp.toPx() * progress,
+                                        14f.dp.toPx() * progress,
+                                        chromaticAberration = false
                                     )
                                 }
                             }
@@ -487,7 +494,7 @@ fun LiquidBottomTabs(
                             )
                             drawRect(Color.Black.copy(alpha = 0.03f * progress))
                         },
-                        backdropScale = backdropScale
+                        backdropScale = 1f
                     )
                     .height(56f.dp)
                     .fillMaxWidth(1f / tabsCount)

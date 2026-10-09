@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import coil.compose.AsyncImage
+import com.kyant.backdrop.Backdrop
 import com.mrtdk.liquid_glass.R
 import com.mrtdk.liquid_glass.data.ItemType
 import com.mrtdk.liquid_glass.data.LibraryItem
@@ -51,7 +52,8 @@ import android.net.Uri
 fun PlaylistContextMenuOverlay(
     playlist: Playlist?,
     onDismiss: () -> Unit,
-    onSongSelected: ((PlayerState) -> Unit)? = null
+    onSongSelected: ((PlayerState) -> Unit)? = null,
+    backdrop: Backdrop = LocalBackdrop.current
 ) {
     if (playlist == null) return
 
@@ -71,15 +73,14 @@ fun PlaylistContextMenuOverlay(
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     val playlists by LibraryManager.playlists.collectAsState()
 
-    Popup(
-        alignment = Alignment.Center,
-        properties = PopupProperties(focusable = true, dismissOnBackPress = true, dismissOnClickOutside = true),
-        onDismissRequest = onDismiss
+    androidx.activity.compose.BackHandler(enabled = true) {
+        onDismiss()
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
             val isDark = com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState().value
             val dimColor = rememberAndroidLiquidGlassDimColor(isDark)
 
@@ -104,7 +105,7 @@ fun PlaylistContextMenuOverlay(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
-                        .clip(RoundedCornerShape(24.dp))
+                        .clip(RoundedCornerShape(32.dp))
                         .background(Color(0xFF1C1C1E))
                 ) {
                     val coverUrl = playlist.coverUrl ?: (if (playlist.items.isNotEmpty()) playlist.items.first().thumbnail else null)
@@ -162,13 +163,12 @@ fun PlaylistContextMenuOverlay(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 2. Menu Options container
-                val backdrop = LocalBackdrop.current
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .androidLiquidGlassEffect(
                             backdrop = backdrop,
-                            shape = { RoundedCornerShape(16.dp) },
+                            shape = { RoundedCornerShape(32.dp) },
                             isDark = isDark,
                             refractionHeight = 24.dp,
                             refractionAmount = 48.dp
@@ -356,7 +356,6 @@ fun PlaylistContextMenuOverlay(
                 }
             }
         }
-    }
 
     // Edit Name & Image Dialog
     if (showEditDialog) {

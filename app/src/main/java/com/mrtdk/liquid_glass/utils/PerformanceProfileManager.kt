@@ -30,15 +30,15 @@ data class PerformanceConfig(
 object PerformanceProfileManager {
     private val LOW_CONFIG = PerformanceConfig(
         tier = PerformanceTier.LOW_END,
-        fluidScale = 0.40f,
-        fluidBlurDp = 26f,
-        lyricsBlurEnabled = true,
+        fluidScale = 0.0f,
+        fluidBlurDp = 0f,
+        lyricsBlurEnabled = false,
         maxThumbnailSizeDp = 180,
         maxCoverArtSizeDp = 480,
-        reflectionBlurRadius = 45f,
-        reflectionMeshSize = 8,
+        reflectionBlurRadius = 0f,
+        reflectionMeshSize = 4,
         maxHistorySize = 50,
-        motionCoverIntervalMs = 200L
+        motionCoverIntervalMs = 250L
     )
 
     private val MID_CONFIG = PerformanceConfig(

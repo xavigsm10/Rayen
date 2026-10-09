@@ -225,6 +225,10 @@ import com.kyant.backdrop.effects.lens
 
 import com.kyant.backdrop.effects.vibrancy
 
+import com.kyant.backdrop.effects.colorControls
+
+import com.kyant.backdrop.highlight.Highlight
+
 import com.mrtdk.glass.GlassContainer
 
 import com.mrtdk.glass.GlassBox
@@ -2037,9 +2041,11 @@ fun PlayerScreen(
         var reflectionSkew by remember { mutableStateOf(0.12f) }
         var masterAnimatedPlayer by remember { mutableStateOf<androidx.media3.exoplayer.ExoPlayer?>(null) }
         val isUltraPerformance by LibraryManager.ultraPerformanceMode.collectAsState()
+        val isLightweight = com.mrtdk.glass.LocalLightweightGlass.current
+        val isSolid = com.mrtdk.glass.LocalGlassStyle.current == "solid" || com.mrtdk.liquid_glass.BuildConfig.IS_LITE || isLightweight
         val hideVolumeBar by LibraryManager.hideVolumeBar.collectAsState()
         val playerArtworkStyle by LibraryManager.playerArtworkStyle.collectAsState()
-        val isFullArtworkLow = playerArtworkStyle == "fullartwork_low" || (playerArtworkStyle == "animated_fullartwork_low" && isVideoPlaying)
+        val isFullArtworkLow = isLightweight || isSolid || playerArtworkStyle == "fullartwork_low" || (playerArtworkStyle == "animated_fullartwork_low" && isVideoPlaying)
 
         LaunchedEffect(playerState?.artist, playerState?.title, playerState?.album) {
             val artist = playerState?.artist
@@ -2503,7 +2509,7 @@ fun PlayerScreen(
 
             val playerArtworkStyle by LibraryManager.playerArtworkStyle.collectAsState()
             val hasAnimatedCover = isVideoPlaying
-            val isFullArtworkLow = playerArtworkStyle == "fullartwork_low" || (playerArtworkStyle == "animated_fullartwork_low" && hasAnimatedCover)
+            val isFullArtworkLow = isLightweight || isSolid || playerArtworkStyle == "fullartwork_low" || (playerArtworkStyle == "animated_fullartwork_low" && hasAnimatedCover)
 
             val isNormalArtwork = when (playerArtworkStyle) {
                 "normal" -> true
@@ -2969,11 +2975,20 @@ fun PlayerScreen(
                              alpha = (overlayAlpha * overlayTransitionProgress).coerceIn(0f, 1f)
                          }
                  ) {
-                     // Fondo Mesh Gradient de Pear-Wall con shaders OpenGL ES 3.0 para letras y cola
-                     PearMeshSurface(
-                         state = pearMeshState,
-                         modifier = Modifier.fillMaxSize()
-                     )
+                     if (isLightweight || isSolid) {
+                         com.mrtdk.liquid_glass.ui.components.RayMusicStaticMeshGradientBackground(
+                             primaryColor = dominantColor,
+                             secondaryColor = normalTopColor,
+                             accentColor = dominantColor,
+                             modifier = Modifier.fillMaxSize()
+                         )
+                     } else {
+                         // Fondo Mesh Gradient de Pear-Wall con shaders OpenGL ES 3.0 para letras y cola
+                         PearMeshSurface(
+                             state = pearMeshState,
+                             modifier = Modifier.fillMaxSize()
+                         )
+                     }
                  }
 
                       // Height of the content area: terminates ~5px (6dp) right above the seekbar
@@ -5455,6 +5470,7 @@ fun PlayerScreen(
 
         if (AudioRoutingState.showAudioQualitySheet) {
             AudioQualityDialog(
+                backdrop = localBackdrop,
                 playerState = playerState,
                 onDismiss = { AudioRoutingState.showAudioQualitySheet = false }
             )
@@ -5466,20 +5482,100 @@ fun PlayerScreen(
 }
 
 @Composable
-fun AudioQualityDialog(
+fun GlassBoxScope.AudioQualityDialog(
+    backdrop: com.kyant.backdrop.backdrops.LayerBackdrop,
     playerState: PlayerState?,
     onDismiss: () -> Unit
 ) {
     val isDolbyAtmos by com.mrtdk.liquid_glass.data.LibraryManager.dolbyAtmosEnabled.collectAsState()
+    val isLightweight = com.mrtdk.glass.LocalLightweightGlass.current
+    val isSolid = com.mrtdk.glass.LocalGlassStyle.current == "solid" || com.mrtdk.liquid_glass.BuildConfig.IS_LITE
+    val containerColor = Color(0xFF121212).copy(alpha = 0.40f)
+    val dialogShape = RoundedCornerShape(36.dp)
 
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        visible = true
+    }
+
+    val scale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.82f,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow),
+        label = "qualityDialogScale"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(durationMillis = 180),
+        label = "qualityDialogAlpha"
+    )
+
+    fun handleDismiss() {
+        visible = false
+        onDismiss()
+    }
+
+    BackHandler(enabled = visible) {
+        handleDismiss()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.52f * alpha))
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { handleDismiss() }
+    )
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
         Box(
             modifier = Modifier
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    this.alpha = alpha
+                }
                 .width(330.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color(0xFF222224))
-                .border(0.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(24.dp))
-                .padding(22.dp)
+                .wrapContentHeight()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { /* Evitar que el clic en el diálogo cierre el modal */ }
+                .then(
+                    if (isSolid) {
+                        Modifier
+                            .shadow(20.dp, dialogShape)
+                            .clip(dialogShape)
+                            .background(Color(0xFF222328))
+                            .border(0.5.dp, Color.White.copy(alpha = 0.15f), dialogShape)
+                    } else {
+                        Modifier
+                            .drawBackdrop(
+                                backdrop = backdrop,
+                                shape = { dialogShape },
+                                effects = {
+                                    if (!isLightweight) {
+                                        colorControls(
+                                            brightness = 0f,
+                                            saturation = 1.5f
+                                        )
+                                        blur(8f.dp.toPx())
+                                        lens(24f.dp.toPx(), 48f.dp.toPx(), depthEffect = true)
+                                    } else {
+                                        blur(4f.dp.toPx())
+                                    }
+                                },
+                                highlight = { Highlight.Plain },
+                                onDrawSurface = { drawRect(containerColor) }
+                            )
+                            .clip(dialogShape)
+                    }
+                )
+                .padding(24.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -5490,7 +5586,7 @@ fun AudioQualityDialog(
                 ) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(Color.White.copy(alpha = 0.14f))
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
@@ -5516,7 +5612,7 @@ fun AudioQualityDialog(
                     if (isDolbyAtmos) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(Color.White.copy(alpha = 0.14f))
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
@@ -5565,7 +5661,7 @@ fun AudioQualityDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(22.dp))
                         .background(Color.White.copy(alpha = 0.08f))
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -5626,10 +5722,10 @@ fun AudioQualityDialog(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Button(
-                    onClick = onDismiss,
+                    onClick = { handleDismiss() },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFA243C)),
                     shape = RoundedCornerShape(50),
-                    modifier = Modifier.fillMaxWidth().height(44.dp)
+                    modifier = Modifier.fillMaxWidth().height(48.dp)
                 ) {
                     Text(
                         text = stringResource(R.string.menu_creditos_entendido),
@@ -5674,17 +5770,17 @@ fun LosslessBadge(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(4.dp))
+            .clip(RoundedCornerShape(12.dp))
             .then(
                 if (onClick != null) {
                     Modifier.clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
+                        indication = ripple(color = contentColor.copy(alpha = 0.2f)),
                         onClick = onClick
                     )
                 } else Modifier
             )
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .padding(horizontal = 6.dp, vertical = 3.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -5718,17 +5814,17 @@ fun DolbyAtmosBadge(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(4.dp))
+            .clip(RoundedCornerShape(12.dp))
             .then(
                 if (onClick != null) {
                     Modifier.clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
+                        indication = ripple(color = contentColor.copy(alpha = 0.2f)),
                         onClick = onClick
                     )
                 } else Modifier
             )
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .padding(horizontal = 6.dp, vertical = 3.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(

@@ -670,7 +670,9 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    val effectiveGlassStyle = if (isUltraPerformance || BuildConfig.IS_LITE) "solid" else glassStyle
+                    val isM3 = bottomTabsStyle == "m3_expressive"
+                    val isLowEndOrM3 = isLowEnd || isM3 || isUltraPerformance || BuildConfig.IS_LITE || Build.VERSION.SDK_INT < Build.VERSION_CODES.S
+                    val effectiveGlassStyle = if (isLowEndOrM3) "solid" else glassStyle
                     val onArtistSelectedAction: (ArtistState) -> Unit = remember { { artistDetail = it } }
                     val onAlbumSelectedAction: (AlbumState) -> Unit = remember { { albumDetail = it } }
                     val onVideoSelectedAction: (String) -> Unit = remember(musicPlayer) { { videoId ->
@@ -682,16 +684,16 @@ class MainActivity : ComponentActivity() {
 
                     CompositionLocalProvider(
                         com.mrtdk.glass.LocalGlassStyle provides effectiveGlassStyle,
-                        com.mrtdk.glass.LocalLightweightGlass provides (isLightweightGlass || BuildConfig.IS_LITE)
+                        com.mrtdk.glass.LocalLightweightGlass provides (isLightweightGlass || isLowEndOrM3 || BuildConfig.IS_LITE)
                     ) {
                         Scaffold(
                             modifier = Modifier.fillMaxSize(),
-                            containerColor = Color.Black
+                            containerColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor
                         ) { innerPadding ->
-                            Box(modifier = Modifier.fillMaxSize().background(Color.Black).nestedScroll(floatingNavBarScrollConnection)) {
+                            Box(modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor).nestedScroll(floatingNavBarScrollConnection)) {
                                 val mainBackdrop = rememberLayerBackdrop()
                                 GlassContainer(
-                                    modifier = Modifier.fillMaxSize().background(Color.Black),
+                                    modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor),
                                     useShader = false,
                                     content = {
                                     Box(modifier = Modifier.fillMaxSize().let { if (!isUltraPerformance && effectiveGlassStyle != "solid") it.layerBackdrop(mainBackdrop) else it }) {
@@ -699,7 +701,7 @@ class MainActivity : ComponentActivity() {
                                         // Search (4) is rendered as an overlay on top
                                         androidx.compose.foundation.pager.HorizontalPager(
                                             state = pagerState,
-                                            modifier = Modifier.fillMaxSize().background(Color.Black),
+                                            modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor),
                                             userScrollEnabled = false,
                                             beyondViewportPageCount = if (BuildConfig.IS_LITE || isLowEnd) 0 else 1,
                                         ) { page ->

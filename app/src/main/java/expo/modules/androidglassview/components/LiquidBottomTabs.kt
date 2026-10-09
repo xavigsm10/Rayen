@@ -345,7 +345,7 @@ internal fun LiquidBottomTabs(
                         lens(
                             10f.dp.toPx() * progress * sizeScale,
                             14f.dp.toPx() * progress * sizeScale,
-                            chromaticAberration = true
+                            chromaticAberration = false
                         )
                     },
                     highlight = {

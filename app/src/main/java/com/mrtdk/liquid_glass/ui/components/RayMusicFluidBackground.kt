@@ -56,6 +56,17 @@ fun RayMusicFluidBackground(
     modifier: Modifier = Modifier,
     isPlaying: Boolean = true
 ) {
+    val isLowEnd = remember { PerformanceProfileManager.isLowEndDevice() || com.mrtdk.liquid_glass.BuildConfig.IS_LITE }
+    if (isLowEnd) {
+        RayMusicStaticMeshGradientBackground(
+            primaryColor = primaryColor,
+            secondaryColor = secondaryColor,
+            accentColor = accentColor,
+            modifier = modifier
+        )
+        return
+    }
+
     // 1. Algoritmo de Luminancia y Contraste (idéntico al de album-color-theme de Glassy)
     val safePrimary = remember(primaryColor) {
         processColor(primaryColor, defaultFallback = Color(0xFF2C3E50))

@@ -565,7 +565,7 @@ fun GlassBoxScope.AppleMusicSongMenu(
             val currentTop = androidx.compose.ui.unit.lerp(startTop, targetTop, morphProgress)
             val currentWidth = androidx.compose.ui.unit.lerp(startWidth, menuWidth, morphProgress)
             val currentHeight = androidx.compose.ui.unit.lerp(startHeight, estimatedHeight, morphProgress)
-            val currentCorner = androidx.compose.ui.unit.lerp(startCorner, 24.dp, morphProgress)
+            val currentCorner = androidx.compose.ui.unit.lerp(startCorner, 36.dp, morphProgress)
 
             val threeDotsAlpha = ((0.22f - morphProgress) / 0.22f).coerceIn(0f, 1f)
             val threeDotsScale = 1f - (morphProgress / 0.22f).coerceIn(0f, 1f) * 0.15f
@@ -699,7 +699,7 @@ fun GlassBoxScope.AppleMusicSongMenu(
                     scale = 0.02f,
                     tint = Color.Unspecified,
                     darkness = 0f,
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(36.dp),
                     elevation = 16.dp,
                     depthEffect = false
                 ) {
@@ -805,7 +805,7 @@ fun GlassBoxScope.AppleMusicSongMenu(
             Box(
                 modifier = Modifier
                     .width(320.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(32.dp))
                     .background(Color(0xFF2C2C2E))
                     .padding(24.dp)
             ) {
@@ -832,9 +832,10 @@ fun GlassBoxScope.AppleMusicSongMenu(
                             handleDismiss()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFA243C)),
-                        modifier = Modifier.fillMaxWidth()
+                        shape = RoundedCornerShape(50),
+                        modifier = Modifier.fillMaxWidth().height(48.dp)
                     ) {
-                        Text(stringResource(R.string.menu_creditos_entendido), color = Color.White)
+                        Text(stringResource(R.string.menu_creditos_entendido), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -971,7 +972,7 @@ fun GlassBoxScope.AppleMusicAlbumMenu(
             val currentTop = androidx.compose.ui.unit.lerp(startTop, targetTop, morphProgress)
             val currentWidth = androidx.compose.ui.unit.lerp(startWidth, menuWidth, morphProgress)
             val currentHeight = androidx.compose.ui.unit.lerp(startHeight, estimatedHeight, morphProgress)
-            val currentCorner = androidx.compose.ui.unit.lerp(startCorner, 24.dp, morphProgress)
+            val currentCorner = androidx.compose.ui.unit.lerp(startCorner, 36.dp, morphProgress)
 
             val threeDotsAlpha = ((0.22f - morphProgress) / 0.22f).coerceIn(0f, 1f)
             val threeDotsScale = 1f - (morphProgress / 0.22f).coerceIn(0f, 1f) * 0.15f
@@ -1091,7 +1092,7 @@ fun GlassBoxScope.AppleMusicAlbumMenu(
                                     Color.White.copy(alpha = 0.08f)
                                 )
                             ),
-                            shape = RoundedCornerShape(24.dp)
+                            shape = RoundedCornerShape(36.dp)
                         ),
                     blur = 0.95f,
                     centerDistortion = 0.1f,
@@ -1099,7 +1100,7 @@ fun GlassBoxScope.AppleMusicAlbumMenu(
                     warpEdges = 0.4f,
                     tint = Color.Unspecified,
                     darkness = 0f,
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(36.dp),
                     elevation = 16.dp,
                     depthEffect = false
                 ) {
@@ -2597,7 +2598,7 @@ fun GlassBoxScope.AppleMusicArtistMenu(
             val currentTop = androidx.compose.ui.unit.lerp(startTop, targetTop, morphProgress)
             val currentWidth = androidx.compose.ui.unit.lerp(startWidth, menuWidth, morphProgress)
             val currentHeight = androidx.compose.ui.unit.lerp(startHeight, estimatedHeight, morphProgress)
-            val currentCorner = androidx.compose.ui.unit.lerp(startCorner, 24.dp, morphProgress)
+            val currentCorner = androidx.compose.ui.unit.lerp(startCorner, 36.dp, morphProgress)
 
             val threeDotsAlpha = ((0.22f - morphProgress) / 0.22f).coerceIn(0f, 1f)
             val threeDotsScale = 1f - (morphProgress / 0.22f).coerceIn(0f, 1f) * 0.15f
@@ -2701,13 +2702,13 @@ fun GlassBoxScope.AppleMusicArtistMenu(
                 this@AppleMusicArtistMenu.GlassBox(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(24.dp)),
+                        .clip(RoundedCornerShape(36.dp)),
                     blur = 0.85f,
                     scale = 0.02f,
                     centerDistortion = 0.1f,
                     warpEdges = 0.4f,
                     elevation = 16.dp,
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(36.dp),
                     tint = Color.Unspecified,
                     darkness = 0f,
                     backdrop = backdrop,
@@ -3350,7 +3351,7 @@ fun GlassBoxScope.PlayerOptionsMenu(
         val currentTop = androidx.compose.ui.unit.lerp(startTop, targetTop, morphProgress)
         val currentWidth = androidx.compose.ui.unit.lerp(startWidth, menuWidth, morphProgress)
         val currentHeight = androidx.compose.ui.unit.lerp(startHeight, estimatedHeight, morphProgress)
-        val currentCorner = androidx.compose.ui.unit.lerp(startCorner, 24.dp, morphProgress)
+        val currentCorner = androidx.compose.ui.unit.lerp(startCorner, 36.dp, morphProgress)
 
         // Stationary 3-dots icon dissolving during the first 22% of morph (Music OS iconFade spec)
         val threeDotsAlpha = if (pivotBounds != null) ((0.22f - morphProgress) / 0.22f).coerceIn(0f, 1f) else 0f
@@ -3417,7 +3418,7 @@ fun GlassBoxScope.PlayerOptionsMenu(
                                 translationY = with(density) { menuContentOffsetY.toPx() }
                             }
                             .let { if (blurPx > 0.1f && !com.mrtdk.glass.LocalLightweightGlass.current) it.blur(blurPx.dp) else it }
-                            .padding(vertical = 12.dp)
+                            .padding(vertical = 14.dp, horizontal = 4.dp)
                     ) {
                 // Horizontal row of action buttons
                 Row(
@@ -3919,7 +3920,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
         val currentTop = androidx.compose.ui.unit.lerp(startTop, targetTop, morphProgress)
         val currentWidth = androidx.compose.ui.unit.lerp(startWidth, menuWidth, morphProgress)
         val currentHeight = androidx.compose.ui.unit.lerp(startHeight, estimatedHeight, morphProgress)
-        val currentCorner = androidx.compose.ui.unit.lerp(startCorner, 24.dp, morphProgress)
+        val currentCorner = androidx.compose.ui.unit.lerp(startCorner, 36.dp, morphProgress)
 
         val threeDotsAlpha = if (pivotBounds != null) ((0.22f - morphProgress) / 0.22f).coerceIn(0f, 1f) else 0f
         val threeDotsScale = 1f - (morphProgress / 0.22f).coerceIn(0f, 1f) * 0.15f
@@ -3999,7 +4000,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
                             }
                             .verticalScroll(rememberScrollState())
                             .let { if (blurPx > 0.1f && !com.mrtdk.glass.LocalLightweightGlass.current) it.blur(blurPx.dp) else it }
-                            .padding(vertical = 12.dp)
+                            .padding(vertical = 14.dp, horizontal = 4.dp)
                     ) {
                 if (showProviderSelection) {
                     Row(
@@ -4179,9 +4180,9 @@ fun GlassBoxScope.LyricsOptionsMenu(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(22.dp))
                                 .background(lyricsCardBg)
-                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(16.dp))
+                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(22.dp))
                         ) {
                             val isSingEnabled by AppleMusicSingManager.isSingEnabled.collectAsState()
                             val vocalVolume by AppleMusicSingManager.vocalVolume.collectAsState()
@@ -4314,9 +4315,9 @@ fun GlassBoxScope.LyricsOptionsMenu(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(22.dp))
                                 .background(lyricsCardBg)
-                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(16.dp))
+                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(22.dp))
                         ) {
                             val activeProvName = availableProviders.getOrNull(currentProviderIndex)?.providerName ?: selectedProvider.ifEmpty { "Better Lyrics" }
                             val activeSyncType = availableProviders.getOrNull(currentProviderIndex)?.syncType ?: "syllable"
@@ -4380,9 +4381,9 @@ fun GlassBoxScope.LyricsOptionsMenu(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(22.dp))
                                 .background(lyricsCardBg)
-                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(16.dp))
+                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(22.dp))
                         ) {
                             var isGlowEnabled by remember {
                                 mutableStateOf((com.mrtdk.liquid_glass.data.LibraryManager.getString("lyrics_glow_enabled") ?: "true") == "true")
@@ -4438,9 +4439,9 @@ fun GlassBoxScope.LyricsOptionsMenu(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(22.dp))
                                 .background(lyricsCardBg)
-                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(16.dp))
+                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(22.dp))
                         ) {
                             VerticalMenuActionItem(
                                 icon = Icons.Default.Translate,
@@ -4556,9 +4557,9 @@ fun GlassBoxScope.LyricsOptionsMenu(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(22.dp))
                                 .background(lyricsCardBg)
-                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(16.dp))
+                                .border(1.dp, lyricsCardBorder, RoundedCornerShape(22.dp))
                                 .padding(vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
@@ -4727,7 +4728,7 @@ fun GlassBoxScope.ArtistOptionsMenu(
         val currentTop = androidx.compose.ui.unit.lerp(startTop, targetTop, morphProgress)
         val currentWidth = androidx.compose.ui.unit.lerp(startWidth, menuWidth, morphProgress)
         val currentHeight = androidx.compose.ui.unit.lerp(startHeight, estimatedHeight, morphProgress)
-        val currentCorner = androidx.compose.ui.unit.lerp(startCorner, 20.dp, morphProgress)
+        val currentCorner = androidx.compose.ui.unit.lerp(startCorner, 36.dp, morphProgress)
 
         val threeDotsAlpha = if (pivotBounds != null) ((0.22f - morphProgress) / 0.22f).coerceIn(0f, 1f) else 0f
         val threeDotsScale = 1f - (morphProgress / 0.22f).coerceIn(0f, 1f) * 0.15f

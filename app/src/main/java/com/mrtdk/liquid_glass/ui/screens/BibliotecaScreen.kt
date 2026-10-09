@@ -59,6 +59,9 @@ import com.mrtdk.liquid_glass.ui.components.AppleMusicLibraryContextMenu
 import com.mrtdk.liquid_glass.ui.components.LibraryContextMenuTarget
 import com.mrtdk.liquid_glass.ui.components.DetailBackPillButton
 import com.mrtdk.liquid_glass.ui.components.SharedTransitionState
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.mrtdk.liquid_glass.ui.components.LocalBackdrop
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.ui.platform.LocalUriHandler
 import com.mrtdk.liquid_glass.data.ItemType
@@ -238,13 +241,21 @@ fun BibliotecaScreen(
         return
     }
     
-    if (showCategoryDetail) {
-        Column(
+    val libraryBackdrop = rememberLayerBackdrop()
+
+    Box(modifier = Modifier.fillMaxSize().background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)) {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor)
-                .padding(top = innerPadding.calculateTopPadding())
+                .let { if (!com.mrtdk.liquid_glass.BuildConfig.IS_LITE && com.mrtdk.glass.LocalGlassStyle.current != "solid") it.layerBackdrop(libraryBackdrop) else it }
         ) {
+            if (showCategoryDetail) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)
+                        .padding(top = innerPadding.calculateTopPadding())
+                ) {
             if (selectedCategoryKey != "Playlists") {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -540,16 +551,13 @@ fun BibliotecaScreen(
                 }
             }
         }
-        return
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
+    } else {
         LazyVerticalGrid(
             state = mainGridState,
             columns = GridCells.Fixed(2),
             modifier = Modifier
                 .fillMaxSize()
-                .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.backgroundColor),
+                .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor),
             contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
@@ -955,55 +963,62 @@ fun BibliotecaScreen(
         }
     }
     }
-    PlaylistContextMenuOverlay(
-        playlist = contextMenuPlaylist,
-        onDismiss = { contextMenuPlaylist = null },
-        onSongSelected = onSongSelected
-    )
+    }
 
-    activeLibraryMenuTarget?.let { target ->
-        AppleMusicLibraryContextMenu(
-            target = target,
-            onDismiss = { activeLibraryMenuTarget = null },
-            onOpenDetail = {
-                when (target.type) {
-                    ItemType.SONG -> {
-                        onSongSelected(
-                            com.mrtdk.liquid_glass.ui.screens.PlayerState(
-                                title = target.title,
-                                artist = target.subtitle,
-                                artUrl = target.thumbnail,
-                                videoId = target.id,
-                                album = target.album
-                            )
-                        )
-                    }
-                    ItemType.ARTIST -> {
-                        val spThumb = com.mrtdk.liquid_glass.spotify.SpotifyArtistProvider.getCachedArtistImageUrl(target.title)
-                        onArtistSelected(
-                            com.mrtdk.liquid_glass.ui.screens.ArtistState(
-                                id = target.id,
-                                name = target.title,
-                                thumbnail = spThumb ?: target.thumbnail
-                            )
-                        )
-                    }
-                    ItemType.ALBUM -> {
-                        onAlbumSelected(
-                            com.mrtdk.liquid_glass.ui.screens.AlbumState(
-                                id = target.albumId ?: target.id,
-                                playlistId = target.albumId ?: target.id,
-                                title = target.title,
-                                artist = target.subtitle,
-                                thumbnail = target.thumbnail
-                            )
-                        )
-                    }
-                    else -> {}
-                }
-            },
+    CompositionLocalProvider(LocalBackdrop provides libraryBackdrop) {
+        PlaylistContextMenuOverlay(
+            playlist = contextMenuPlaylist,
+            onDismiss = { contextMenuPlaylist = null },
             onSongSelected = onSongSelected,
-            pivotBounds = activeLibraryMenuPivotBounds
+            backdrop = libraryBackdrop
         )
+
+        activeLibraryMenuTarget?.let { target ->
+            AppleMusicLibraryContextMenu(
+                target = target,
+                onDismiss = { activeLibraryMenuTarget = null },
+                onOpenDetail = {
+                    when (target.type) {
+                        ItemType.SONG -> {
+                            onSongSelected(
+                                com.mrtdk.liquid_glass.ui.screens.PlayerState(
+                                    title = target.title,
+                                    artist = target.subtitle,
+                                    artUrl = target.thumbnail,
+                                    videoId = target.id,
+                                    album = target.album
+                                )
+                            )
+                        }
+                        ItemType.ARTIST -> {
+                            val spThumb = com.mrtdk.liquid_glass.spotify.SpotifyArtistProvider.getCachedArtistImageUrl(target.title)
+                            onArtistSelected(
+                                com.mrtdk.liquid_glass.ui.screens.ArtistState(
+                                    id = target.id,
+                                    name = target.title,
+                                    thumbnail = spThumb ?: target.thumbnail
+                                )
+                            )
+                        }
+                        ItemType.ALBUM -> {
+                            onAlbumSelected(
+                                com.mrtdk.liquid_glass.ui.screens.AlbumState(
+                                    id = target.albumId ?: target.id,
+                                    playlistId = target.albumId ?: target.id,
+                                    title = target.title,
+                                    artist = target.subtitle,
+                                    thumbnail = target.thumbnail
+                                )
+                            )
+                        }
+                        else -> {}
+                    }
+                },
+                onSongSelected = onSongSelected,
+                pivotBounds = activeLibraryMenuPivotBounds,
+                backdrop = libraryBackdrop
+            )
+        }
+    }
     }
 }

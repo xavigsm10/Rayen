@@ -89,7 +89,7 @@ fun ThemeSettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ThemeManager.backgroundColor)
+            .background(ThemeManager.expressiveBackgroundColor)
             .statusBarsPadding()
     ) {
         // Top Header

@@ -337,7 +337,7 @@ fun BusquedaScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(ThemeManager.backgroundColor)
+                    .background(ThemeManager.expressiveBackgroundColor)
                     .padding(
                         top = innerPadding.calculateTopPadding(),
                         bottom = innerPadding.calculateBottomPadding()

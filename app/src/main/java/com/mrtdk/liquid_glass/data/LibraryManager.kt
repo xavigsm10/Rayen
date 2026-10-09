@@ -872,7 +872,10 @@ object LibraryManager {
         if (fromDb != null) return fromDb
         val fromPrefs = try { prefs.getString("bottom_tabs_style", null) } catch (_: Exception) { null }
         if (fromPrefs != null) return fromPrefs
-        return "ios26"
+        val isLowEnd = try {
+            com.mrtdk.liquid_glass.utils.PerformanceProfileManager.detectTier(context) == com.mrtdk.liquid_glass.utils.PerformanceTier.LOW_END
+        } catch (_: Exception) { false }
+        return if (isLowEnd) "m3_expressive" else "ios26"
     }
 
     fun saveBottomTabsStyle(style: String) {

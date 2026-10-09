@@ -5,6 +5,7 @@ package com.mrtdk.liquid_glass.ui
 import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.BoundsTransform
 import androidx.compose.animation.EnterExitState
@@ -160,9 +161,9 @@ fun LiquidBottomNavBar(
     val isDarkMode by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState()
     val backdrop = LocalBackdrop.current
 
-    val activeAccentColor = Color(0xFFFA243C)
-    val tabTextColor = if (isDarkMode) Color.White else Color(0xFF505054)
-    val navUnselectedColor = if (isDarkMode) Color.White.copy(alpha = 0.65f) else Color(0xFF505054)
+    val activeAccentColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor
+    val tabTextColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor
+    val navUnselectedColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.subtextColor
 
     val actualTintColor = if (tintColor != Color.Unspecified) tintColor
     else if (!isDarkMode) Color(0xFFFAFAFA).copy(alpha = 0.55f) else Color(0xFF161618).copy(alpha = 0.55f)
@@ -182,9 +183,11 @@ fun LiquidBottomNavBar(
     val glassStyle = com.mrtdk.glass.LocalGlassStyle.current
     val isLightweight = com.mrtdk.glass.LocalLightweightGlass.current
     val isUltraPerf by com.mrtdk.liquid_glass.data.LibraryManager.ultraPerformanceMode.collectAsState()
-    val isSolid = glassStyle == "solid" || isUltraPerf
-    val solidBgColor = if (isDarkMode) Color(0xFF1E1F25) else Color(0xFFF0F1F6)
-    val m3PillBorderColor = if (isDarkMode) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.06f)
+    val isIos27 = bottomTabsStyle == "ios27"
+    val isM3Expressive = bottomTabsStyle == "m3_expressive"
+    val isSolid = glassStyle == "solid" || isUltraPerf || isM3Expressive || isLightweight
+    val solidBgColor = if (isM3Expressive) com.mrtdk.liquid_glass.ui.theme.ThemeManager.surfaceColor else (if (isDarkMode) Color(0xFF1E1F25) else Color(0xFFF0F1F6))
+    val m3PillBorderColor = if (isM3Expressive) com.mrtdk.liquid_glass.ui.theme.ThemeManager.dividerColor else (if (isDarkMode) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.06f))
 
     var lastActiveMainTab by remember { mutableIntStateOf(0) }
     LaunchedEffect(selectedIndex) {
@@ -193,8 +196,6 @@ fun LiquidBottomNavBar(
         }
     }
 
-    val isIos27 = bottomTabsStyle == "ios27"
-    val isM3Expressive = bottomTabsStyle == "m3_expressive"
     val isUnifiedNavBar = isIos27 || isM3Expressive
     val isSearchActive = selectedIndex == 4 || isSearchInputActive
     val visualState = when {
@@ -588,11 +589,15 @@ fun LiquidBottomNavBar(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .skipToLookaheadSize()
-                                    ) {
+                                    ) { activeTabIndex ->
                                         expandedTabs.forEach { tabItem ->
-                                            val isSelected = tabItem.index == selectedIndex
+                                            val isSelected = tabItem.index == activeTabIndex
                                             val isSharedIcon = tabItem.index == (if (selectedIndex in 0..4) selectedIndex else lastActiveMainTab)
-                                            val baseColor = if (isSelected) activeAccentColor else navUnselectedColor
+                                            val baseColor by animateColorAsState(
+                                                targetValue = if (isSelected) activeAccentColor else navUnselectedColor,
+                                                animationSpec = tween(150),
+                                                label = "tabBaseColor"
+                                            )
 
                                             LiquidBottomTab(
                                                 onClick = { onTabSelected(tabItem.index) },
