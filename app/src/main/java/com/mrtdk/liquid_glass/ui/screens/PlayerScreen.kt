@@ -4046,6 +4046,13 @@ fun PlayerScreen(
 
                     key(blurArtKey) {
                         val maskBitmapCacheBlur = remember { arrayOfNulls<androidx.compose.ui.graphics.ImageBitmap>(1) }
+                        val blurMirror20Effect = remember {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                android.graphics.RenderEffect
+                                    .createBlurEffect(20f, 20f, android.graphics.Shader.TileMode.MIRROR)
+                                    .asComposeRenderEffect()
+                            } else null
+                        }
 
                         Box(
                             modifier = Modifier
@@ -4147,18 +4154,14 @@ fun PlayerScreen(
                                             modifier = Modifier
                                                 .fillMaxSize()
                                                 .graphicsLayer {
-                                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                                                    renderEffect = android.graphics.RenderEffect
-                                                        .createBlurEffect(20f, 20f, android.graphics.Shader.TileMode.MIRROR)
-                                                        .asComposeRenderEffect()
+                                                    renderEffect = blurMirror20Effect
                                                 }
-                                            }
-                                            .then(
-                                                if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
-                                                    Modifier.blur(14.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
-                                                } else Modifier
-                                            )
-                                    ) {
+                                                .then(
+                                                    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
+                                                        Modifier.blur(14.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
+                                                    } else Modifier
+                                                )
+                                        ) {
                                         val _t = token
                                         val cW = currentMotionBmp.width.toFloat()
                                         val cH = currentMotionBmp.height.toFloat()
@@ -4254,9 +4257,7 @@ fun PlayerScreen(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .graphicsLayer {
-                                                renderEffect = android.graphics.RenderEffect
-                                                    .createBlurEffect(20f, 20f, android.graphics.Shader.TileMode.MIRROR)
-                                                    .asComposeRenderEffect()
+                                                renderEffect = blurMirror20Effect
                                             }
                                     )
                                 } else {
@@ -6950,8 +6951,8 @@ fun LandscapePlayerLayout(
 
 
             // Blurred overlay to smooth the transition on the right edge
-
             val currentBitmap = coverBitmap
+            val blurClamp90Effect = remember { BlurEffect(90f, 90f, TileMode.Clamp) }
 
             if (currentBitmap != null && contentAlpha > 0f) {
 
@@ -6978,7 +6979,7 @@ fun LandscapePlayerLayout(
                         .then(
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                 Modifier.graphicsLayer {
-                                    renderEffect = BlurEffect(90f, 90f, TileMode.Clamp)
+                                    renderEffect = blurClamp90Effect
                                 }
                             } else {
                                 Modifier
@@ -7017,7 +7018,7 @@ fun LandscapePlayerLayout(
                         .then(
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                 Modifier.graphicsLayer {
-                                    renderEffect = BlurEffect(90f, 90f, TileMode.Clamp)
+                                    renderEffect = blurClamp90Effect
                                 }
                             } else {
                                 Modifier

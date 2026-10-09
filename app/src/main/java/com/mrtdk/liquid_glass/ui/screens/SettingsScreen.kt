@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.painter.Painter
 import com.mrtdk.liquid_glass.R
 import com.mrtdk.liquid_glass.data.LibraryManager
+import com.mrtdk.liquid_glass.ui.theme.ThemeManager
 import com.mrtdk.liquid_glass.ui.components.Material3SettingsGroup
 import com.mrtdk.liquid_glass.ui.components.Material3SettingsItem
 import com.mrtdk.liquid_glass.utils.LocaleUtils
@@ -144,14 +145,15 @@ fun MainSettingsMenu(
     var showArtworkStyleDialog by remember { mutableStateOf(false) }
     val currentArtworkStyle by LibraryManager.playerArtworkStyle.collectAsState()
 
-    val isDarkMode by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState()
-    val themeMode by com.mrtdk.liquid_glass.ui.theme.ThemeManager.themeMode.collectAsState()
-    val isDynamicTheme by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDynamicTheme.collectAsState()
+    val isDarkMode by ThemeManager.isDarkMode.collectAsState()
+    val themeMode by ThemeManager.themeMode.collectAsState()
+    val isDynamicTheme by ThemeManager.isDynamicTheme.collectAsState()
+    val selectedThemeColor by ThemeManager.selectedThemeColor.collectAsState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor)
+            .background(ThemeManager.expressiveBackgroundColor)
             .statusBarsPadding()
     ) {
         // Header
@@ -165,7 +167,7 @@ fun MainSettingsMenu(
                 Icon(
                     painter = painterResource(id = R.drawable.flecha_atras), modifier = Modifier.size(20.dp).offset(x = (-1).dp),
                     contentDescription = stringResource(R.string.back_action),
-                    tint = Color(0xFFFA243C)
+                    tint = ThemeManager.accentColor
                 )
             }
             Text(
@@ -424,7 +426,7 @@ fun LyricsSettingsScreen(onBack: () -> Unit) {
                 Icon(
                     painter = painterResource(id = R.drawable.flecha_atras), modifier = Modifier.size(20.dp).offset(x = (-1).dp),
                     contentDescription = null,
-                    tint = Color(0xFFFA243C)
+                    tint = ThemeManager.accentColor
                 )
             }
             Text(
@@ -493,7 +495,7 @@ fun LyricsSettingsScreen(onBack: () -> Unit) {
                                     lyricsGlowEffect = value
                                     LibraryManager.saveString("lyrics_glow_effect", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -534,7 +536,7 @@ fun LyricsSettingsScreen(onBack: () -> Unit) {
                                         lyricsAppleBlur = value
                                         LibraryManager.saveString("lyrics_apple_blur", value.toString())
                                     },
-                                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                                 )
                             },
                             onClick = {
@@ -555,7 +557,7 @@ fun LyricsSettingsScreen(onBack: () -> Unit) {
                                     lyricsStandardBlur = value
                                     LibraryManager.saveString("lyrics_standard_blur", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -583,7 +585,7 @@ fun LyricsSettingsScreen(onBack: () -> Unit) {
                                     lyricsClickChange = value
                                     LibraryManager.saveString("lyrics_click_change", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -603,7 +605,7 @@ fun LyricsSettingsScreen(onBack: () -> Unit) {
                                     lyricsAutoScroll = value
                                     LibraryManager.saveString("lyrics_auto_scroll", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -623,7 +625,7 @@ fun LyricsSettingsScreen(onBack: () -> Unit) {
                                     swipeLyrics = value
                                     LibraryManager.saveString("lyrics_swipe_to_change_song", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -643,7 +645,7 @@ fun LyricsSettingsScreen(onBack: () -> Unit) {
                                     enableLyricsThumbnailPlayPause = value
                                     LibraryManager.saveString("lyrics_thumbnail_play_pause", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -663,7 +665,7 @@ fun LyricsSettingsScreen(onBack: () -> Unit) {
                                     hideStatusBarOnFullscreen = value
                                     LibraryManager.saveString("hide_status_bar_on_fullscreen", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -790,7 +792,7 @@ fun PlayerSettingsScreen(
                 Icon(
                     painter = painterResource(id = R.drawable.flecha_atras), modifier = Modifier.size(20.dp).offset(x = (-1).dp),
                     contentDescription = null,
-                    tint = Color(0xFFFA243C)
+                    tint = ThemeManager.accentColor
                 )
             }
             Text(
@@ -843,7 +845,7 @@ fun PlayerSettingsScreen(
                                     LibraryManager.saveString("sound_check_enabled", value.toString())
                                     com.mrtdk.liquid_glass.playback.MusicService.updateAudioEffects?.invoke()
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -870,7 +872,7 @@ fun PlayerSettingsScreen(
                                     LibraryManager.setDolbyAtmosEnabled(value)
                                     com.mrtdk.liquid_glass.playback.MusicService.updateAudioEffects?.invoke()
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -897,7 +899,7 @@ fun PlayerSettingsScreen(
                                     LibraryManager.saveString("automix_enabled", value.toString())
                                     com.mrtdk.liquid_glass.playback.PlaybackQueue.isAutomixEnabled = value
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -928,7 +930,7 @@ fun PlayerSettingsScreen(
                         )
                         Text(
                             text = "${crossfadeDuration} s",
-                            color = Color(0xFFFA243C),
+                            color = ThemeManager.accentColor,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -943,7 +945,7 @@ fun PlayerSettingsScreen(
                         steps = 10,
                         colors = SliderDefaults.colors(
                             thumbColor = Color.White,
-                            activeTrackColor = Color(0xFFFA243C),
+                            activeTrackColor = ThemeManager.accentColor,
                             inactiveTrackColor = Color.Gray.copy(alpha = 0.3f)
                         )
                     )
@@ -986,7 +988,7 @@ fun PlayerSettingsScreen(
                                     hideVolumeBar = value
                                     LibraryManager.setHideVolumeBarEnabled(value)
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -1014,7 +1016,7 @@ fun PlayerSettingsScreen(
                                     autoplaySimilar = value
                                     LibraryManager.saveString("autoplay_similar", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -1034,7 +1036,7 @@ fun PlayerSettingsScreen(
                                     autoDownloadOnLike = value
                                     LibraryManager.saveString("auto_download_on_like", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -1054,7 +1056,7 @@ fun PlayerSettingsScreen(
                                     persistentQueue = value
                                     LibraryManager.saveString("persistent_queue", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -1173,7 +1175,7 @@ fun ListenTogetherSettingsScreen(onBack: () -> Unit) {
                 Icon(
                     painter = painterResource(id = R.drawable.flecha_atras), modifier = Modifier.size(20.dp).offset(x = (-1).dp),
                     contentDescription = null,
-                    tint = Color(0xFFFA243C)
+                    tint = ThemeManager.accentColor
                 )
             }
             Text(
@@ -1233,7 +1235,7 @@ fun ListenTogetherSettingsScreen(onBack: () -> Unit) {
                         horizontalArrangement = Arrangement.Center
                     ) {
                         CircularProgressIndicator(
-                            color = Color(0xFFFA243C),
+                            color = ThemeManager.accentColor,
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp
                         )
@@ -1275,7 +1277,7 @@ fun ListenTogetherSettingsScreen(onBack: () -> Unit) {
                         Spacer(Modifier.height(12.dp))
                         Text(
                             text = roomCode,
-                            color = Color(0xFFFA243C),
+                            color = ThemeManager.accentColor,
                             fontSize = 42.sp,
                             fontWeight = FontWeight.ExtraBold,
                             letterSpacing = 8.sp
@@ -1298,14 +1300,14 @@ fun ListenTogetherSettingsScreen(onBack: () -> Unit) {
                             Box(
                                 modifier = Modifier
                                     .background(
-                                        color = if (roleStr == "host") Color(0xFFFA243C).copy(alpha = 0.15f) else Color.White.copy(alpha = 0.08f),
+                                        color = if (roleStr == "host") ThemeManager.accentColor.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.08f),
                                         shape = RoundedCornerShape(50.dp)
                                     )
                                     .padding(horizontal = 12.dp, vertical = 4.dp)
                             ) {
                                 Text(
                                     text = if (roleStr == "host") "👑 Anfitrión" else "🎵 Invitado",
-                                    color = if (roleStr == "host") Color(0xFFFA243C) else Color.White,
+                                    color = if (roleStr == "host") ThemeManager.accentColor else Color.White,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -1373,7 +1375,7 @@ fun ListenTogetherSettingsScreen(onBack: () -> Unit) {
                     ) {
                         Text(
                             text = "MIEMBROS DE LA SALA ($usersCount)",
-                            color = Color(0xFFFA243C),
+                            color = ThemeManager.accentColor,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
@@ -1400,7 +1402,7 @@ fun ListenTogetherSettingsScreen(onBack: () -> Unit) {
                                     Icon(
                                         imageVector = if (isHostUser) Icons.Default.Star else Icons.Default.Person,
                                         contentDescription = null,
-                                        tint = if (isHostUser) Color(0xFFFA243C) else Color.Gray,
+                                        tint = if (isHostUser) ThemeManager.accentColor else Color.Gray,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -1414,7 +1416,7 @@ fun ListenTogetherSettingsScreen(onBack: () -> Unit) {
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = "(Anfitrión)",
-                                            color = Color(0xFFFA243C),
+                                            color = ThemeManager.accentColor,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -1437,12 +1439,12 @@ fun ListenTogetherSettingsScreen(onBack: () -> Unit) {
                 Button(
                     onClick = { ltManager.leaveRoom() },
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFA243C).copy(alpha = 0.15f)),
+                    colors = ButtonDefaults.buttonColors(containerColor = ThemeManager.accentColor.copy(alpha = 0.15f)),
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Logout, contentDescription = null, tint = Color(0xFFFA243C), modifier = Modifier.size(16.dp))
+                    Icon(imageVector = Icons.Default.Logout, contentDescription = null, tint = ThemeManager.accentColor, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.together_btn_leave), color = Color(0xFFFA243C), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.together_btn_leave), color = ThemeManager.accentColor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
 
             } else {
@@ -1504,7 +1506,7 @@ fun ListenTogetherSettingsScreen(onBack: () -> Unit) {
                                     smartResync = value
                                     LibraryManager.saveString("listen_together_smart_resync", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -1524,7 +1526,7 @@ fun ListenTogetherSettingsScreen(onBack: () -> Unit) {
                                     syncVolume = value
                                     LibraryManager.saveString("listen_together_sync_volume", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -1544,7 +1546,7 @@ fun ListenTogetherSettingsScreen(onBack: () -> Unit) {
                                     autoApproval = value
                                     LibraryManager.saveString("listen_together_auto_approval", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -1639,7 +1641,7 @@ fun ContentSettingsScreen(onBack: () -> Unit) {
                 Icon(
                     painter = painterResource(id = R.drawable.flecha_atras), modifier = Modifier.size(20.dp).offset(x = (-1).dp),
                     contentDescription = null,
-                    tint = Color(0xFFFA243C)
+                    tint = ThemeManager.accentColor
                 )
             }
             Text(
@@ -1716,7 +1718,7 @@ fun ContentSettingsScreen(onBack: () -> Unit) {
                                     hideExplicit = value
                                     LibraryManager.saveString("hide_explicit", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -1736,7 +1738,7 @@ fun ContentSettingsScreen(onBack: () -> Unit) {
                                     hideVideoSongs = value
                                     LibraryManager.saveString("hide_video_songs", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -1756,7 +1758,7 @@ fun ContentSettingsScreen(onBack: () -> Unit) {
                                     hideYoutubeShorts = value
                                     LibraryManager.saveString("hide_youtube_shorts", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -1873,7 +1875,7 @@ fun PrivacySettingsScreen(
                 Icon(
                     painter = painterResource(id = R.drawable.flecha_atras), modifier = Modifier.size(20.dp).offset(x = (-1).dp),
                     contentDescription = null,
-                    tint = Color(0xFFFA243C)
+                    tint = ThemeManager.accentColor
                 )
             }
             Text(
@@ -1905,7 +1907,7 @@ fun PrivacySettingsScreen(
                                     pauseListenHistory = value
                                     LibraryManager.saveString("pause_listen_history", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -1939,7 +1941,7 @@ fun PrivacySettingsScreen(
                                     pauseSearchHistory = value
                                     LibraryManager.saveString("pause_search_history", value.toString())
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -1974,7 +1976,7 @@ fun PrivacySettingsScreen(
                                     LibraryManager.saveString("disable_screenshot", value.toString())
                                     onDisableScreenshotChanged(value)
                                 },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFFFA243C))
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = ThemeManager.accentColor)
                             )
                         },
                         onClick = {
@@ -2045,7 +2047,7 @@ fun AboutSettingsScreen(
                 Icon(
                     painter = painterResource(id = R.drawable.flecha_atras), modifier = Modifier.size(20.dp).offset(x = (-1).dp),
                     contentDescription = null,
-                    tint = Color(0xFFFA243C)
+                    tint = ThemeManager.accentColor
                 )
             }
             Text(
@@ -2203,7 +2205,7 @@ fun SingleChoiceDialog(
                                 onSelect(option.first)
                                 onDismiss()
                             },
-                            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFFFA243C), unselectedColor = Color.Gray)
+                            colors = RadioButtonDefaults.colors(selectedColor = ThemeManager.accentColor, unselectedColor = Color.Gray)
                         )
                         Text(
                             text = option.second,
@@ -2218,7 +2220,7 @@ fun SingleChoiceDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancelar), color = Color(0xFFFA243C))
+                Text(stringResource(R.string.cancelar), color = ThemeManager.accentColor)
             }
         },
         containerColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.surfaceColor,
@@ -2262,7 +2264,7 @@ fun SliderDialog(
                     steps = steps,
                     colors = SliderDefaults.colors(
                         thumbColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor,
-                        activeTrackColor = Color(0xFFFA243C),
+                        activeTrackColor = ThemeManager.accentColor,
                         inactiveTrackColor = Color.DarkGray
                     )
                 )
@@ -2273,7 +2275,7 @@ fun SliderDialog(
                 onSave(tempValue)
                 onDismiss()
             }) {
-                Text(stringResource(R.string.guardar), color = Color(0xFFFA243C))
+                Text(stringResource(R.string.guardar), color = ThemeManager.accentColor)
             }
         },
         dismissButton = {
@@ -2306,7 +2308,7 @@ fun InputDialog(
                 placeholder = { Text(placeholder, color = Color.DarkGray) },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFFFA243C),
+                    focusedBorderColor = ThemeManager.accentColor,
                     unfocusedBorderColor = Color.Gray,
                     focusedTextColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor,
                     unfocusedTextColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor
@@ -2319,7 +2321,7 @@ fun InputDialog(
                 onSave(textState.trim())
                 onDismiss()
             }) {
-                Text(stringResource(R.string.guardar), color = Color(0xFFFA243C))
+                Text(stringResource(R.string.guardar), color = ThemeManager.accentColor)
             }
         },
         dismissButton = {
@@ -2345,7 +2347,7 @@ fun ConfirmDialog(
         text = { Text(message, color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.subtextColor, fontSize = 16.sp) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Confirmar", color = Color(0xFFFA243C))
+                Text("Confirmar", color = ThemeManager.accentColor)
             }
         },
         dismissButton = {
@@ -2400,7 +2402,7 @@ fun SpotifySettingsScreen(onBack: () -> Unit) {
                 Icon(
                     painter = painterResource(id = R.drawable.flecha_atras), modifier = Modifier.size(20.dp).offset(x = (-1).dp),
                     contentDescription = null,
-                    tint = Color(0xFFFA243C)
+                    tint = ThemeManager.accentColor
                 )
             }
             Text(

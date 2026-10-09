@@ -232,7 +232,7 @@ fun LiquidBottomNavBar(
     val convxTint = if (isDarkMode) Color(0xFF4A4A4E).copy(alpha = 0.5f) else Color(0xFFFAFAFA).copy(alpha = 0.55f)
     val barTint = if (useConvxEffect) convxTint else actualTintColor
 
-    val capsuleGlassModifier: @Composable () -> Modifier = {
+    val sharedGlassModifier = remember(isSolid, solidBgColor, m3PillBorderColor, backdrop, isLightweight, useConvxEffect, barTint) {
         if (isSolid) {
             Modifier
                 .clip(MiniPlayerShape)
@@ -281,54 +281,8 @@ fun LiquidBottomNavBar(
         }
     }
 
-    val miniPlayerGlassModifier: @Composable () -> Modifier = {
-        if (isSolid) {
-            Modifier
-                .clip(MiniPlayerShape)
-                .background(solidBgColor)
-                .border(width = 1.dp, color = m3PillBorderColor, shape = MiniPlayerShape)
-        } else {
-            Modifier.drawBackdrop(
-                backdrop = backdrop,
-                shape = { MiniPlayerShape },
-                effects = {
-                    if (!isLightweight) {
-                        vibrancy()
-                        val blurDp = if (useConvxEffect) 2.5f else 6f
-                        blur(blurDp.dp.toPx() * NAV_BACKDROP_SCALE)
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            val lensH = if (useConvxEffect) 19.2f else 16f
-                            val lensA = if (useConvxEffect) 28.8f else 24f
-                            lens(
-                                refractionHeight = lensH.dp.toPx() * NAV_BACKDROP_SCALE,
-                                refractionAmount = lensA.dp.toPx() * NAV_BACKDROP_SCALE,
-                                depthEffect = false,
-                                chromaticAberration = false
-                            )
-                        }
-                    } else {
-                        blur(2.5.dp.toPx() * NAV_BACKDROP_SCALE)
-                    }
-                },
-                highlight = {
-                    if (useConvxEffect) {
-                        Highlight(
-                            width = 0.8f.dp,
-                            style = HighlightStyle.Default.copy(
-                                color = Color.White.copy(alpha = 0.35f),
-                                angle = 45f
-                            )
-                        )
-                    } else {
-                        Highlight.Default.copy(alpha = 0.25f)
-                    }
-                },
-                shadow = { Shadow.Default },
-                onDrawSurface = { drawRect(barTint) },
-                backdropScale = NAV_BACKDROP_SCALE
-            )
-        }
-    }
+    val capsuleGlassModifier: () -> Modifier = { sharedGlassModifier }
+    val miniPlayerGlassModifier: () -> Modifier = { sharedGlassModifier }
 
     SharedTransitionLayout(modifier = modifier.fillMaxWidth()) {
         AnimatedContent(

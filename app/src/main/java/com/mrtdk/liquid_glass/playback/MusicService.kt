@@ -494,11 +494,19 @@ class MusicService : MediaSessionService() {
         return msg.contains("page needs to be reloaded") || msg.contains("reload")
     }
 
+    private fun isCacheOrStreamCorruptionError(error: androidx.media3.common.PlaybackException): Boolean {
+        return error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED ||
+                error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED ||
+                error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE ||
+                error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_IO_UNSPECIFIED
+    }
+
     private fun handlePlaybackRecovery(targetPlayer: ExoPlayer, error: androidx.media3.common.PlaybackException, mediaId: String) {
         val httpCode = getHttpResponseCode(error)
         val is403 = isExpiredUrlError(error)
         val is416 = isRangeNotSatisfiableError(error)
         val isReload = isPageReloadError(error)
+        val isCorruption = isCacheOrStreamCorruptionError(error)
 
         val currentRetries = songRetryCounts.getOrDefault(mediaId, 0)
         if (currentRetries >= 3) {
@@ -523,7 +531,7 @@ class MusicService : MediaSessionService() {
             try {
                 playerCache.removeResource(mediaId)
             } catch (_: Exception) {}
-            if (is403) {
+            if (is403 || isCorruption) {
                 com.mrtdk.liquid_glass.utils.BotDetectionMitigator.notifyPlaybackFailure(YouTube.cookie != null, error.message)
                 com.mrtdk.liquid_glass.utils.BotDetectionMitigator.rotateGuestSession()
             }
@@ -878,13 +886,8 @@ class MusicService : MediaSessionService() {
 
         val dataSourceFactory = createDataSourceFactory(okHttpClient)
 
-        val extractorsFactory = androidx.media3.extractor.ExtractorsFactory {
-            arrayOf(
-                androidx.media3.extractor.mkv.MatroskaExtractor(),        // .webm / Opus (YouTube)
-                androidx.media3.extractor.mp4.FragmentedMp4Extractor(),   // fragmented .mp4 / AAC (YouTube)
-                androidx.media3.extractor.mp4.Mp4Extractor(),             // regular .mp4 / AAC (JioSaavn)
-            )
-        }
+        val extractorsFactory = androidx.media3.extractor.DefaultExtractorsFactory()
+            .setConstantBitrateSeekingEnabled(true)
 
         playerA = createPlayerInstance(eqProcessorA, spatialProcessorA, singProcessorA, handleAudioFocus = true, dataSourceFactory = dataSourceFactory, extractorsFactory = extractorsFactory)
         playerB = createPlayerInstance(eqProcessorB, spatialProcessorB, singProcessorB, handleAudioFocus = false, dataSourceFactory = dataSourceFactory, extractorsFactory = extractorsFactory)

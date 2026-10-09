@@ -936,7 +936,7 @@ fun BusquedaScreen(
                                 contentPadding = PaddingValues(horizontal = 16.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                items(tabNames.size) { i ->
+                                items(tabNames.size, key = { i -> tabNames[i] }, contentType = { "search_filter_tab" }) { i ->
                                     val isSelected = i == state.selectedTab
                                     Box(
                                         modifier = Modifier

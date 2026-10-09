@@ -461,7 +461,7 @@ fun PlaylistContextMenuOverlay(
                     Text(stringResource(R.string.playlist_menu_no_other_playlists), color = Color.Gray)
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 200.dp)) {
-                        items(targetPlaylists) { targetPl ->
+                        items(targetPlaylists, key = { it.id }, contentType = { "target_playlist" }) { targetPl ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()

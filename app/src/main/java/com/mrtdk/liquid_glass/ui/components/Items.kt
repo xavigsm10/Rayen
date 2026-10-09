@@ -44,14 +44,14 @@ fun ListItem(
                 text = title, 
                 fontSize = 16.sp, 
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor,
                 maxLines = 1, 
                 overflow = TextOverflow.Ellipsis
             )
             if (!subtitle.isNullOrEmpty()) {
                 Text(
                     text = subtitle, 
-                    color = Color.Gray, 
+                    color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.subtextColor, 
                     fontSize = 14.sp, 
                     maxLines = 1, 
                     overflow = TextOverflow.Ellipsis
@@ -92,7 +92,7 @@ fun GridItem(
 
         Text(
             text = title,
-            color = Color.White,
+            color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -102,7 +102,7 @@ fun GridItem(
         
         Text(
             text = subtitle,
-            color = Color.Gray,
+            color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.subtextColor,
             fontSize = 12.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

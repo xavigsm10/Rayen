@@ -57,11 +57,11 @@ object EchoMusicCanvasProvider {
                 )
                 manifest
             } else {
-                manifestCache = CacheEntry(null, System.currentTimeMillis() + 1000L * 60 * 30)
+                manifestCache = CacheEntry(null, System.currentTimeMillis() + TTL_MS)
                 null
             }
         } catch (e: Exception) {
-            manifestCache = CacheEntry(null, System.currentTimeMillis() + 1000L * 60 * 30)
+            manifestCache = CacheEntry(null, System.currentTimeMillis() + TTL_MS)
             null
         }
     }

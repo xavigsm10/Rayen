@@ -464,7 +464,7 @@ fun HsvColorPicker(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(presetColors) { preset ->
+            items(presetColors, key = { it.toArgb() }, contentType = { "preset_color" }) { preset ->
                 val isSelectedPreset = preset.toArgb() == getLocalColor().toArgb()
                 Box(
                     modifier = Modifier

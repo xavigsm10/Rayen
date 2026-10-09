@@ -710,6 +710,7 @@ fun AlbumScreen(
                         // ── FIXED / PARALLAX HERO ARTWORK BACKDROP (Fullartwork mode only) ──
                         if (!isNormalArtwork) {
                             val heroHeightRatio = albumHeightRatio
+                            val blurCacheHolder = remember { arrayOfNulls<Any>(2) }
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -718,14 +719,24 @@ fun AlbumScreen(
                                         translationY = heroParallaxY
                                         alpha = if (progress < 0.99f) 0f else heroAlpha
                                         if (android.os.Build.VERSION.SDK_INT >= 31) {
-                                            val rPx = (scrollOffsetPx / 6f).coerceIn(0f, 36f) * density.density
-                                            renderEffect = if (rPx > 0.5f) {
-                                                android.graphics.RenderEffect.createBlurEffect(
-                                                    rPx,
-                                                    rPx,
-                                                    android.graphics.Shader.TileMode.CLAMP
-                                                ).asComposeRenderEffect()
-                                            } else null
+                                            val rawRPx = (scrollOffsetPx / 6f).coerceIn(0f, 36f) * density.density
+                                            val rPx = (kotlin.math.round(rawRPx * 0.5f) * 2f).coerceAtLeast(0f)
+                                            if (rPx > 0.5f) {
+                                                val lastR = blurCacheHolder[0] as? Float ?: -1f
+                                                if (lastR != rPx) {
+                                                    blurCacheHolder[0] = rPx
+                                                    blurCacheHolder[1] = android.graphics.RenderEffect.createBlurEffect(
+                                                        rPx,
+                                                        rPx,
+                                                        android.graphics.Shader.TileMode.CLAMP
+                                                    ).asComposeRenderEffect()
+                                                }
+                                                renderEffect = blurCacheHolder[1] as? androidx.compose.ui.graphics.RenderEffect
+                                            } else {
+                                                blurCacheHolder[0] = 0f
+                                                blurCacheHolder[1] = null
+                                                renderEffect = null
+                                            }
                                         }
                                     }
                             ) {

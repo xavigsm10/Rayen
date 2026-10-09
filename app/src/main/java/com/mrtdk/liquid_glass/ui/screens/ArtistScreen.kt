@@ -248,6 +248,27 @@ fun ArtistScreen(
     var showArtistMenu by remember { mutableStateOf(false) }
     var artistScreenRootCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var artistMenuPivotBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
+
+    val blurEffect40_50 = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            android.graphics.RenderEffect.createBlurEffect(40f, 50f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
+        } else null
+    }
+    val blurEffect80_40 = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            android.graphics.RenderEffect.createBlurEffect(80f, 40f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
+        } else null
+    }
+    val blurEffect22_22 = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            android.graphics.RenderEffect.createBlurEffect(22f, 22f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
+        } else null
+    }
+    val blurEffect120_25 = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            android.graphics.RenderEffect.createBlurEffect(120f, 25f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
+        } else null
+    }
     var activeSongForMenu by remember { mutableStateOf<ContextMenuSong?>(null) }
     var activeSongPivotBounds by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     var allSectionData by remember { mutableStateOf<ArtistSection?>(null) }
@@ -934,11 +955,7 @@ fun ArtistScreen(
                                         .graphicsLayer {
                                             scaleY = -stretchFactor
                                             transformOrigin = TransformOrigin(0.5f, originY)
-                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                                renderEffect = android.graphics.RenderEffect
-                                                    .createBlurEffect(40f, 50f, android.graphics.Shader.TileMode.MIRROR)
-                                                    .asComposeRenderEffect()
-                                            }
+                                            renderEffect = blurEffect40_50
                                         }
                                         .then(
                                             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
@@ -988,11 +1005,7 @@ fun ArtistScreen(
                                             scaleY = -stretchFactor
                                             scaleX = 1.04f
                                             transformOrigin = TransformOrigin(0.5f, originY)
-                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                                renderEffect = android.graphics.RenderEffect
-                                                    .createBlurEffect(80f, 40f, android.graphics.Shader.TileMode.MIRROR)
-                                                    .asComposeRenderEffect()
-                                            }
+                                            renderEffect = blurEffect80_40
                                         }
                                         .then(
                                             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
@@ -1982,7 +1995,7 @@ fun ArtistScreen(
                         contentPadding = PaddingValues(horizontal = 20.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(section.items) { item ->
+                        items(section.items, key = { it.id }, contentType = { "artist_section_item" }) { item ->
                             ItemCard(context, item, artistState.name, onAlbumSelected, onSongSelected, onArtistSelected, onVideoSelected = onVideoSelected, isVideo = isVideoSection, scrollState = listState)
                         }
                     }
@@ -2106,11 +2119,7 @@ fun ArtistScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .graphicsLayer {
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                            renderEffect = android.graphics.RenderEffect
-                                                .createBlurEffect(22f, 22f, android.graphics.Shader.TileMode.MIRROR)
-                                                .asComposeRenderEffect()
-                                        }
+                                        renderEffect = blurEffect22_22
                                     }
                                     .then(
                                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
@@ -2154,11 +2163,7 @@ fun ArtistScreen(
                                     .fillMaxSize()
                                     .graphicsLayer {
                                         scaleX = 1.04f
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                            renderEffect = android.graphics.RenderEffect
-                                                .createBlurEffect(120f, 25f, android.graphics.Shader.TileMode.MIRROR)
-                                                .asComposeRenderEffect()
-                                        }
+                                        renderEffect = blurEffect120_25
                                     }
                                     .then(
                                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
@@ -2218,11 +2223,7 @@ fun ArtistScreen(
                                     .graphicsLayer {
                                         scaleY = -stretchFactor
                                         transformOrigin = TransformOrigin(0.5f, originY)
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                            renderEffect = android.graphics.RenderEffect
-                                                .createBlurEffect(40f, 50f, android.graphics.Shader.TileMode.MIRROR)
-                                                .asComposeRenderEffect()
-                                        }
+                                        renderEffect = blurEffect40_50
                                     }
                                     .then(
                                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
@@ -2272,11 +2273,7 @@ fun ArtistScreen(
                                         scaleY = -stretchFactor
                                         scaleX = 1.04f
                                         transformOrigin = TransformOrigin(0.5f, originY)
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                            renderEffect = android.graphics.RenderEffect
-                                                .createBlurEffect(80f, 40f, android.graphics.Shader.TileMode.MIRROR)
-                                                .asComposeRenderEffect()
-                                        }
+                                        renderEffect = blurEffect80_40
                                     }
                                     .then(
                                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
@@ -2503,7 +2500,7 @@ fun ArtistScreen(
                     }
                     // 2-column grid of all albums
                     val rows = allAlbums.chunked(2)
-                    items(rows.size) { rowIdx ->
+                    items(rows.size, key = { rowIdx -> rows[rowIdx].firstOrNull()?.id ?: "$rowIdx" }, contentType = { "album_grid_row" }) { rowIdx ->
                         val row = rows[rowIdx]
                         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             row.forEach { album ->
@@ -2544,7 +2541,7 @@ fun ArtistScreen(
                     if (allSectionIsVideo) {
                         // Video items — 2 column grid with 16:9 aspect ratio
                         val rows = overlayItems.chunked(2)
-                        items(rows.size) { rowIdx ->
+                        items(rows.size, key = { rowIdx -> rows[rowIdx].firstOrNull()?.id ?: "$rowIdx" }, contentType = { "video_grid_row" }) { rowIdx ->
                             val row = rows[rowIdx]
                             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 row.forEach { item ->
@@ -2561,7 +2558,7 @@ fun ArtistScreen(
                         val filteredAlbums = overlayItems.filterIsInstance<AlbumItem>()
                         val itemsToShow = if (filteredAlbums.isNotEmpty()) filteredAlbums else overlayItems
                         val rows = itemsToShow.chunked(2)
-                        items(rows.size) { rowIdx ->
+                        items(rows.size, key = { rowIdx -> rows[rowIdx].firstOrNull()?.id ?: "$rowIdx" }, contentType = { "media_grid_row" }) { rowIdx ->
                             val row = rows[rowIdx]
                             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 row.forEach { item ->
@@ -2594,7 +2591,7 @@ fun ArtistScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
                     // Vertical list of all songs
-                    items(allSongs.size) { index ->
+                    items(allSongs.size, key = { index -> allSongs[index].id }, contentType = { "all_songs_item" }) { index ->
                         val song = allSongs[index]
                         Column(modifier = Modifier.fillMaxWidth()) {
                             if (index > 0) {

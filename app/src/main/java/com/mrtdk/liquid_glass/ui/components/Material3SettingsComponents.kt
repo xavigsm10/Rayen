@@ -36,7 +36,7 @@ fun Material3SettingsGroup(
             Text(
                 text = it,
                 style = MaterialTheme.typography.labelLarge,
-                color = Color(0xFFFA243C),
+                color = ThemeManager.accentColor,
                 modifier = Modifier.padding(bottom = if (compact) 4.dp else 8.dp, top = if (compact) 12.dp else 16.dp, start = 8.dp)
             )
         }
@@ -100,7 +100,7 @@ private fun Material3SettingsItemRow(
                     .clip(item.iconShape ?: RoundedCornerShape(10.dp))
                     .background(
                         if (item.tintIcon) {
-                            Color(0xFFFA243C).copy(alpha = 0.12f)
+                            ThemeManager.accentColor.copy(alpha = 0.12f)
                         } else {
                             Color.Transparent
                         }
@@ -114,7 +114,7 @@ private fun Material3SettingsItemRow(
                         tint = if (!item.enabled)
                             ThemeManager.subtextColor.copy(alpha = 0.5f)
                         else
-                            Color(0xFFFA243C),
+                            ThemeManager.accentColor,
                         modifier = Modifier.size(if (compact) 20.dp else 24.dp)
                     )
                 } else {

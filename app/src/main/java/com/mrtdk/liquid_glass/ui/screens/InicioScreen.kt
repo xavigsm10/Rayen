@@ -2702,6 +2702,17 @@ private fun FeaturedSuggestionCard(
     ) {
         // 1. REFLEJO INVERTIDO Y DIFUMINADO (Mismo efecto visual utilizado en ArtistScreen)
         if (!hdThumb.isNullOrBlank()) {
+            val blurEffect36_44 = remember {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    android.graphics.RenderEffect.createBlurEffect(36f, 44f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
+                } else null
+            }
+            val blurEffect70_32 = remember {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    android.graphics.RenderEffect.createBlurEffect(70f, 32f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
+                } else null
+            }
+
             val sharpFadeStart = (205.dp / imageHeight).coerceIn(0f, 1f)
             val sharpFadeMid = (248.dp / imageHeight).coerceIn(sharpFadeStart, 1f)
 
@@ -2785,11 +2796,7 @@ private fun FeaturedSuggestionCard(
                         .fillMaxSize()
                         .graphicsLayer {
                             scaleY = -1.0f
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                                renderEffect = android.graphics.RenderEffect
-                                    .createBlurEffect(36f, 44f, android.graphics.Shader.TileMode.MIRROR)
-                                    .asComposeRenderEffect()
-                            }
+                            renderEffect = blurEffect36_44
                         }
                         .then(
                             if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
@@ -2836,11 +2843,7 @@ private fun FeaturedSuggestionCard(
                         .graphicsLayer {
                             scaleY = -1.0f
                             scaleX = 1.04f
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                                renderEffect = android.graphics.RenderEffect
-                                    .createBlurEffect(70f, 32f, android.graphics.Shader.TileMode.MIRROR)
-                                    .asComposeRenderEffect()
-                            }
+                            renderEffect = blurEffect70_32
                         }
                         .then(
                             if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {

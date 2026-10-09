@@ -173,6 +173,9 @@ fun BibliotecaScreen(
     val downloadedSongs by LibraryManager.downloadedSongs.collectAsState()
     val pinnedItemIds by LibraryManager.pinnedItemIds.collectAsState()
     val isSpotifyLoggedIn by com.mrtdk.liquid_glass.spotify.SpotifySession.isLoggedIn.collectAsState()
+    val isDynamicTheme by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDynamicTheme.collectAsState()
+    val selectedThemeColor by com.mrtdk.liquid_glass.ui.theme.ThemeManager.selectedThemeColor.collectAsState()
+    val isDarkMode by com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState()
 
     var selectedCategory by remember { mutableStateOf<ItemType?>(null) }
     var showCategoryDetail by remember { mutableStateOf(false) }
@@ -372,7 +375,7 @@ fun BibliotecaScreen(
                                         .aspectRatio(1f)
                                         .sharedTransitionElement(entity.id)
                                         .clip(if (isArtist) androidx.compose.foundation.shape.CircleShape else RoundedCornerShape(12.dp))
-                                        .background(Color(0xFF1C1C1E))
+                                        .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.surfaceColor)
                                 ) {
                                     val thumb = entity.thumbnail
                                     if (!thumb.isNullOrBlank()) {
@@ -389,7 +392,7 @@ fun BibliotecaScreen(
                                         Icon(
                                             imageVector = if (isArtist) Icons.Default.Mic else Icons.Default.MusicNote,
                                             contentDescription = null,
-                                            tint = Color.Gray,
+                                            tint = com.mrtdk.liquid_glass.ui.theme.ThemeManager.subtextColor,
                                             modifier = Modifier.size(36.dp).align(Alignment.Center)
                                         )
                                     }
@@ -507,7 +510,7 @@ fun BibliotecaScreen(
                                         .aspectRatio(1f)
                                         .sharedTransitionElement(item.id)
                                         .clip(if (item.type == ItemType.ARTIST) androidx.compose.foundation.shape.CircleShape else RoundedCornerShape(12.dp))
-                                        .background(Color(0xFF1C1C1E))
+                                        .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.surfaceColor)
                                 ) {
                                     if (item.type == ItemType.ARTIST) {
                                         com.mrtdk.liquid_glass.spotify.SpotifyArtistAvatar(
@@ -583,7 +586,7 @@ fun BibliotecaScreen(
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = stringResource(R.string.ajustes),
-                        tint = Color(0xFFFA243C)
+                        tint = com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor
                     )
                 }
             }
@@ -705,7 +708,7 @@ fun BibliotecaScreen(
                                 modifier = Modifier
                                     .size(104.dp)
                                     .clip(if (isArtist) androidx.compose.foundation.shape.CircleShape else RoundedCornerShape(10.dp))
-                                    .background(Color(0xFF1C1C1E)),
+                                    .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.surfaceColor),
                                 contentAlignment = Alignment.Center
                             ) {
                                 val coverUrl = entity.thumbnail
@@ -720,7 +723,7 @@ fun BibliotecaScreen(
                                     Icon(
                                         imageVector = if (isArtist) Icons.Default.Mic else Icons.Default.MusicNote,
                                         contentDescription = null,
-                                        tint = Color.Gray,
+                                        tint = com.mrtdk.liquid_glass.ui.theme.ThemeManager.subtextColor,
                                         modifier = Modifier.size(36.dp)
                                     )
                                 }
@@ -778,7 +781,7 @@ fun BibliotecaScreen(
                             Icon(
                                 imageVector = item.third,
                                 contentDescription = null,
-                                tint = Color(0xFFFA243C),
+                                tint = com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor,
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
@@ -882,7 +885,7 @@ fun BibliotecaScreen(
                             .aspectRatio(1f)
                             .sharedTransitionElement(item.id)
                             .clip(if (item.type == ItemType.ARTIST) androidx.compose.foundation.shape.CircleShape else RoundedCornerShape(12.dp))
-                            .background(Color(0xFF1C1C1E))
+                            .background(com.mrtdk.liquid_glass.ui.theme.ThemeManager.surfaceColor)
                     ) {
                         if (item.type == ItemType.ARTIST) {
                             com.mrtdk.liquid_glass.spotify.SpotifyArtistAvatar(
@@ -907,7 +910,7 @@ fun BibliotecaScreen(
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = item.title,
-                        color = Color.White,
+                        color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
@@ -915,7 +918,7 @@ fun BibliotecaScreen(
                     )
                     Text(
                         text = item.subtitle,
-                        color = Color.Gray,
+                        color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.subtextColor,
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

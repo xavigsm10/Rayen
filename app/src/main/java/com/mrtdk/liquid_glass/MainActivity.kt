@@ -422,12 +422,21 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Dominant color extraction for glass tints
+                    // Dominant color extraction for glass tints with LRU cache
+                    val dominantColorCache = remember { androidx.collection.LruCache<String, Color>(64) }
                     var globalDominantColor by remember { mutableStateOf(Color.White.copy(alpha = 0.15f)) }
                     var contentTintColor by remember { mutableStateOf(Color.White) }
                     LaunchedEffect(playerState?.artUrl) {
                         val url = playerState?.artUrl
                         if (url != null) {
+                            val cacheKey = url.toString()
+                            val cachedColor = dominantColorCache[cacheKey]
+                            if (cachedColor != null) {
+                                globalDominantColor = cachedColor
+                                LibraryManager.currentDominantColor.value = cachedColor
+                                contentTintColor = Color.White
+                                return@LaunchedEffect
+                            }
                             withContext(Dispatchers.Default) {
                                 val hdUrl = if (url is String) {
                                     when {
@@ -453,6 +462,7 @@ class MainActivity : ComponentActivity() {
                                     try {
                                         val sampledColor = Color(bitmap.getPixel(bitmap.width / 2, bitmap.height - 1))
                                         withContext(Dispatchers.Main) {
+                                            dominantColorCache.put(cacheKey, sampledColor)
                                             globalDominantColor = sampledColor
                                             LibraryManager.currentDominantColor.value = sampledColor
                                             contentTintColor = Color.White

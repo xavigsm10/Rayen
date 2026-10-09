@@ -161,10 +161,10 @@ fun PlaylistsListScreen(
     val pillBackdrop = rememberLayerBackdrop()
 
     val isDarkThemePlaylists by ThemeManager.isDarkMode.collectAsState()
-    val playlistsTextColor = if (isDarkThemePlaylists) Color.White else Color(0xFF1C1C1E)
-    val playlistsPillIconTint = if (isDarkThemePlaylists) Color(0xFFFA243C) else Color(0xFF1C1C1E)
-    val playlistsChevronColor = if (isDarkThemePlaylists) Color.Gray else Color(0xFF8E8E93)
-    val playlistsDividerColor = if (isDarkThemePlaylists) Color.DarkGray.copy(alpha = 0.5f) else Color(0xFFE5E5EA)
+    val playlistsTextColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor
+    val playlistsPillIconTint = com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor
+    val playlistsChevronColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.subtextColor
+    val playlistsDividerColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.dividerColor
 
     val sortedPlaylists = remember(playlists, sortBy.value) {
         playlists.sortedWith { a, b ->
@@ -2854,7 +2854,7 @@ fun AddMusicRow(onClick: () -> Unit, contentColor: Color) {
                 .background(Color.White.copy(alpha = 0.08f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFFFA243C), modifier = Modifier.size(24.dp))
+            Icon(Icons.Default.Add, contentDescription = null, tint = com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor, modifier = Modifier.size(24.dp))
         }
         Spacer(modifier = Modifier.width(16.dp))
         Text(
@@ -3328,13 +3328,13 @@ fun AddMusicContent(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(tabNames.size) { i ->
+                items(tabNames.size, key = { i -> tabNames[i] }, contentType = { "playlist_filter_tab" }) { i ->
                     val isSelected = i == selectedTab
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
                             .background(
-                                if (isSelected) Color(0xFFFA243C)
+                                if (isSelected) com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor
                                 else Color.White.copy(alpha = 0.08f)
                             )
                             .clickable { selectedTab = i }
@@ -3400,7 +3400,7 @@ fun AddMusicContent(
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = "Added",
-                                        tint = Color(0xFFFA243C),
+                                        tint = com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 } else {
@@ -3408,7 +3408,7 @@ fun AddMusicContent(
                                         modifier = Modifier
                                             .size(32.dp)
                                             .clip(CircleShape)
-                                            .border(1.5.dp, Color(0xFFFA243C), CircleShape)
+                                            .border(1.5.dp, com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor, CircleShape)
                                             .clickable {
                                                 val songItem = LibraryItem(
                                                     id = song.id,
@@ -3423,7 +3423,7 @@ fun AddMusicContent(
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFFFA243C), modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Default.Add, contentDescription = null, tint = com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor, modifier = Modifier.size(20.dp))
                                     }
                                 }
                             }
@@ -3441,7 +3441,7 @@ fun AddMusicContent(
                     item {
                         Text(
                             text = stringResource(R.string.nav_biblioteca),
-                            color = Color.White,
+                            color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
@@ -3449,12 +3449,12 @@ fun AddMusicContent(
                     }
                     
                     val directories = listOf(
-                        Triple(R.string.artistas, Icons.Default.MusicNote, Color(0xFFFA243C)),
-                        Triple(R.string.albumes, Icons.Default.Album, Color(0xFFFA243C)),
-                        Triple(R.string.canciones, Icons.Default.Star, Color(0xFFFA243C)),
-                        Triple(R.string.playlists, Icons.Default.List, Color(0xFFFA243C)),
-                        Triple(R.string.downloads_title, Icons.Default.ArrowCircleDown, Color(0xFFFA243C)),
-                        Triple(R.string.recently_added_music, Icons.Default.Schedule, Color(0xFFFA243C))
+                        Triple(R.string.artistas, Icons.Default.MusicNote, com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor),
+                        Triple(R.string.albumes, Icons.Default.Album, com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor),
+                        Triple(R.string.canciones, Icons.Default.Star, com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor),
+                        Triple(R.string.playlists, Icons.Default.List, com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor),
+                        Triple(R.string.downloads_title, Icons.Default.ArrowCircleDown, com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor),
+                        Triple(R.string.recently_added_music, Icons.Default.Schedule, com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor)
                     )
 
                     items(
@@ -3472,7 +3472,7 @@ fun AddMusicContent(
                         ) {
                             Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text(stringResource(titleRes), color = Color.White, fontSize = 16.sp)
+                            Text(stringResource(titleRes), color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor, fontSize = 16.sp)
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.Gray)
                         }
@@ -3523,14 +3523,14 @@ fun AddMusicContent(
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clip(CircleShape)
-                                    .border(1.5.dp, Color(0xFFFA243C), CircleShape)
+                                    .border(1.5.dp, com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor, CircleShape)
                                     .clickable {
                                         LibraryManager.addSongToPlaylist(playlistId, song)
                                         triggerAddedBanner()
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFFFA243C), modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.Add, contentDescription = null, tint = com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor, modifier = Modifier.size(20.dp))
                             }
                         }
                         androidx.compose.material3.Divider(
@@ -3602,7 +3602,7 @@ fun AddMusicContent(
                                             Icon(
                                                 imageVector = Icons.Default.Check,
                                                 contentDescription = "Added",
-                                                tint = Color(0xFFFA243C),
+                                                tint = com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor,
                                                 modifier = Modifier.size(24.dp)
                                             )
                                         } else {
@@ -3610,7 +3610,7 @@ fun AddMusicContent(
                                                 modifier = Modifier
                                                     .size(32.dp)
                                                     .clip(CircleShape)
-                                                    .border(1.5.dp, Color(0xFFFA243C), CircleShape)
+                                                    .border(1.5.dp, com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor, CircleShape)
                                                     .clickable {
                                                         val songItem = LibraryItem(
                                                              id = item.id,
@@ -3625,7 +3625,7 @@ fun AddMusicContent(
                                                      },
                                                  contentAlignment = Alignment.Center
                                              ) {
-                                                 Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFFFA243C), modifier = Modifier.size(20.dp))
+                                                 Icon(Icons.Default.Add, contentDescription = null, tint = com.mrtdk.liquid_glass.ui.theme.ThemeManager.accentColor, modifier = Modifier.size(20.dp))
                                              }
                                          }
                                      }
