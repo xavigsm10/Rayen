@@ -298,6 +298,132 @@ fun ThemeSettingsScreen(
                     }
                 }
             }
+
+            // Divider
+            item {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    color = ThemeManager.dividerColor
+                )
+            }
+
+            // iPod Appearance Section
+            item {
+                val isIpodMode by com.mrtdk.liquid_glass.data.LibraryManager.isIpodMode.collectAsState()
+                val ipodColorStyle by com.mrtdk.liquid_glass.data.LibraryManager.ipodColorStyle.collectAsState()
+
+                Text(
+                    text = stringResource(R.string.settings_ipod),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = ThemeManager.accentColor,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = ThemeManager.surfaceColor
+                    ),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    border = BorderStroke(1.dp, ThemeManager.dividerColor)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .clickable {
+                                    com.mrtdk.liquid_glass.data.LibraryManager.saveIpodMode(!isIpodMode)
+                                }
+                                .padding(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Modo iPod",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ThemeManager.textColor
+                                )
+                                Text(
+                                    text = stringResource(R.string.settings_ipod_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = ThemeManager.subtextColor
+                                )
+                            }
+                            Switch(
+                                checked = isIpodMode,
+                                onCheckedChange = {
+                                    com.mrtdk.liquid_glass.data.LibraryManager.saveIpodMode(it)
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = ThemeManager.accentColor
+                                )
+                            )
+                        }
+
+                        if (isIpodMode) {
+                            Text(
+                                text = "Acabado del chasis",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = ThemeManager.textColor,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                val styles = listOf(
+                                    "silver" to "Plata",
+                                    "white" to "Blanco",
+                                    "black" to "Negro",
+                                    "u2" to "U2"
+                                )
+                                styles.forEach { (styleKey, styleLabel) ->
+                                    val isSelected = ipodColorStyle.equals(styleKey, ignoreCase = true)
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isSelected) ThemeManager.accentColor.copy(alpha = 0.2f)
+                                                else ThemeManager.surfaceColor
+                                            )
+                                            .border(
+                                                width = if (isSelected) 1.5.dp else 1.dp,
+                                                color = if (isSelected) ThemeManager.accentColor else ThemeManager.dividerColor,
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .clickable {
+                                                com.mrtdk.liquid_glass.data.LibraryManager.saveIpodColorStyle(styleKey)
+                                            }
+                                            .padding(vertical = 10.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = styleLabel,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) ThemeManager.accentColor else ThemeManager.textColor
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

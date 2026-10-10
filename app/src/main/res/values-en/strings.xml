@@ -303,6 +303,8 @@
     <!-- Settings system configuration -->
     <string name="settings_lyrics">Lyrics</string>
     <string name="settings_lyrics_desc">Adjust lyrics display and behavior</string>
+    <string name="settings_ipod">iPod</string>
+    <string name="settings_ipod_desc">Transform the interface into a classic iPod with Click Wheel</string>
     <string name="settings_player_sound">Player and Sound</string>
     <string name="settings_player_sound_desc">Audio quality and player preferences</string>
     <string name="settings_listen_together">Listen Together</string>
@@ -775,5 +777,23 @@
     <string name="audio_quality_spatial_label">Spatial Audio</string>
     <string name="audio_quality_spatial_value">Dolby Atmos (Immersive 3D)</string>
     <string name="audio_quality_dolby_desc">Spatial Audio with Dolby Atmos creates an immersive, three-dimensional sound field that surrounds you with true studio clarity and instrument separation.</string>
+
+    <!-- BitChord Lyrics Translation & Romanization -->
+    <string name="lyrics_already_in_language">These lyrics are already in %1$s</string>
+    <string name="lyrics_already_romanized">These lyrics are already in Latin script</string>
+    <string name="lyrics_romanization_unavailable">Romanization is unavailable for these lyrics</string>
+    <string name="lyrics_translation_unavailable">Translation is unavailable right now</string>
+    <string name="translating_lyrics_to">Translating to %1$s…</string>
+    <string name="romanizing_lyrics">Romanizing lyrics…</string>
+    <string name="lyrics_translated_to">Translated to %1$s</string>
+    <string name="lyrics_romanized">Romanized pronunciation</string>
+    <string name="show_original_lyrics">Show original lyrics</string>
+    <string name="translate_lyrics">Translate lyrics</string>
+    <string name="romanize_lyrics">Romanize lyrics</string>
+    <string name="no_lyrics_for_track">No lyrics for this track</string>
+    <string name="instrumental">Instrumental</string>
+    <string name="lyrics_by">Lyrics by %1$s</string>
+    <string name="no_lyrics_found">No lyrics found</string>
+    <string name="lyrics_saved_with_download">Lyrics saved with this download</string>
 </resources>
 

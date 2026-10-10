@@ -303,6 +303,8 @@
     <!-- Configuración del sistema de Ajustes -->
     <string name="settings_lyrics">Letras</string>
     <string name="settings_lyrics_desc">Ajustar exibição e comportamento das letras</string>
+    <string name="settings_ipod">iPod</string>
+    <string name="settings_ipod_desc">Transformar a interface em um iPod clássico com Click Wheel</string>
     <string name="settings_player_sound">Player e som</string>
     <string name="settings_player_sound_desc">Qualidade de áudio e preferências do player</string>
     <string name="settings_listen_together">Ouvir juntos</string>

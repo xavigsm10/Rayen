@@ -303,6 +303,8 @@
     <!-- Configuración del sistema de Ajustes -->
     <string name="settings_lyrics">Şarkı Sözleri</string>
     <string name="settings_lyrics_desc">Şarkı sözü görünümünü ve davranışını ayarla</string>
+    <string name="settings_ipod">iPod</string>
+    <string name="settings_ipod_desc">Arayüzü dokunsal Click Wheel ile klasik bir iPod\'a dönüştürün</string>
     <string name="settings_player_sound">Oynatıcı ve ses</string>
     <string name="settings_player_sound_desc">Ses kalitesi ve oynatıcı tercihleri</string>
     <string name="settings_listen_together">Birlikte dinle</string>

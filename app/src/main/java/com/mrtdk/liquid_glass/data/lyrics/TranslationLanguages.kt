@@ -21,8 +21,7 @@ data class TranslationLanguage(val code: String, val fallbackName: String)
 
 /**
  * Every language Google Translate offers, in the order its own picker lists
- * them: alphabetical by English name, which is not the order they end up in
- * once localised, but is the order anyone who has used Translate expects.
+ * them: alphabetical by English name.
  */
 val TRANSLATION_LANGUAGES = listOf(
     TranslationLanguage("af", "Afrikaans"),
@@ -164,25 +163,14 @@ private val byCode = TRANSLATION_LANGUAGES.associateBy { it.code.lowercase(Local
 
 /**
  * What to call [code] on screen, written in [inLocale].
- *
- * Asks the platform first so the name arrives in the reader's own language —
- * "Japanese" to an English reader, "japonés" to a Spanish one — and falls back
- * to the English name from the table for the codes ICU does not carry. A code
- * that is not in the table at all comes back as itself rather than blank, which
- * is wrong but legible; an empty label in a picker is neither.
  */
 fun translationLanguageName(code: String, inLocale: Locale): String {
     val entry = byCode[code.lowercase(Locale.ROOT)]
-    // A subtag is the whole point of the codes that carry one, and the platform
-    // renders it as territory: zh-CN comes back "Chinese (China)", which names
-    // the country rather than the script and leaves zh-TW looking like the same
-    // language somewhere else. For those the curated name is the accurate one.
     val platform = if ('-' in code) {
         ""
     } else {
         Locale.forLanguageTag(code).getDisplayName(inLocale)
     }
-    // getDisplayName echoes the tag back when it knows nothing about it.
     val known = platform.isNotBlank() && !platform.equals(code, ignoreCase = true)
     val name = if (known) platform else entry?.fallbackName ?: code
     return name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(inLocale) else it.toString() }

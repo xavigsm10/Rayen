@@ -285,6 +285,7 @@ class MainActivity : ComponentActivity() {
                     glassStyle = currentGlassStyleFlow
                 }
                 val bottomTabsStyle by LibraryManager.bottomTabsStyle.collectAsState()
+                val isIpodMode by LibraryManager.isIpodMode.collectAsState()
                 val isUltraPerformance by LibraryManager.ultraPerformanceMode.collectAsState()
                 val isLowEnd = remember { com.mrtdk.liquid_glass.utils.PerformanceProfileManager.isLowEndDevice() }
                 val isLightweightGlass = isUltraPerformance || isLowEnd
@@ -692,10 +693,23 @@ class MainActivity : ComponentActivity() {
                     val onReplaySelectedAction: () -> Unit = remember { { showReplay = true } }
                     val onListenTogetherSelectedAction: () -> Unit = remember { { showListenTogether = true } }
 
-                    CompositionLocalProvider(
-                        com.mrtdk.glass.LocalGlassStyle provides effectiveGlassStyle,
-                        com.mrtdk.glass.LocalLightweightGlass provides (isLightweightGlass || isLowEndOrM3 || BuildConfig.IS_LITE)
-                    ) {
+                    if (isIpodMode) {
+                        com.mrtdk.liquid_glass.ui.ipod.IPodContainer(
+                            musicPlayer = musicPlayer,
+                            playerState = playerState,
+                            onSongSelected = playSong,
+                            onSongSelectedFromQueue = playSongFromQueue,
+                            onSkipNext = skipNextFun,
+                            onSkipPrevious = skipPreviousFun,
+                            onExitIpodMode = {
+                                LibraryManager.saveIpodMode(false)
+                            }
+                        )
+                    } else {
+                        CompositionLocalProvider(
+                            com.mrtdk.glass.LocalGlassStyle provides effectiveGlassStyle,
+                            com.mrtdk.glass.LocalLightweightGlass provides (isLightweightGlass || isLowEndOrM3 || BuildConfig.IS_LITE)
+                        ) {
                         Scaffold(
                             modifier = Modifier.fillMaxSize(),
                             containerColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.expressiveBackgroundColor
@@ -1168,6 +1182,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                }
                 }
                     
                     

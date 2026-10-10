@@ -303,6 +303,8 @@
     <!-- Configuración del sistema de Ajustes -->
     <string name="settings_lyrics">Letras</string>
     <string name="settings_lyrics_desc">Ajustar visualización y comportamiento de letras</string>
+    <string name="settings_ipod">iPod</string>
+    <string name="settings_ipod_desc">Transformar la interfaz en un iPod clásico con Click Wheel</string>
     <string name="settings_player_sound">Reproductor y sonido</string>
     <string name="settings_player_sound_desc">Calidad de audio y preferencias del reproductor</string>
     <string name="settings_listen_together">Escuchar juntos</string>
@@ -775,5 +777,23 @@
     <string name="audio_quality_spatial_label">Audio espacial</string>
     <string name="audio_quality_spatial_value">Dolby Atmos (Inmersivo 3D)</string>
     <string name="audio_quality_dolby_desc">El audio espacial con Dolby Atmos ofrece una experiencia acústica tridimensional y envolvente que expande la música a tu alrededor con una claridad y separación instrumental de estudio.</string>
+
+    <!-- BitChord Lyrics Translation & Romanization -->
+    <string name="lyrics_already_in_language">Esta letra ya está en %1$s</string>
+    <string name="lyrics_already_romanized">Esta letra ya usa caracteres latinos</string>
+    <string name="lyrics_romanization_unavailable">La romanización no está disponible para esta letra</string>
+    <string name="lyrics_translation_unavailable">La traducción no está disponible ahora</string>
+    <string name="translating_lyrics_to">Traduciendo al %1$s…</string>
+    <string name="romanizing_lyrics">Romanizando letra…</string>
+    <string name="lyrics_translated_to">Traducida al %1$s</string>
+    <string name="lyrics_romanized">Pronunciación romanizada</string>
+    <string name="show_original_lyrics">Mostrar letra original</string>
+    <string name="translate_lyrics">Traducir letra</string>
+    <string name="romanize_lyrics">Romanizar letra</string>
+    <string name="no_lyrics_for_track">No hay letra para esta canción</string>
+    <string name="instrumental">Instrumental</string>
+    <string name="lyrics_by">Letra de %1$s</string>
+    <string name="no_lyrics_found">No se encontró la letra</string>
+    <string name="lyrics_saved_with_download">Letra guardada con esta descarga</string>
 </resources>
 

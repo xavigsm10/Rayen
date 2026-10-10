@@ -92,6 +92,15 @@ object LibraryManager {
     private val _hideVolumeBar = MutableStateFlow(false)
     val hideVolumeBar: StateFlow<Boolean> = _hideVolumeBar
 
+    private val _isIpodMode = MutableStateFlow(false)
+    val isIpodMode: StateFlow<Boolean> = _isIpodMode
+
+    private val _ipodColorStyle = MutableStateFlow("silver")
+    val ipodColorStyle: StateFlow<String> = _ipodColorStyle
+
+    private val _ipodWheelSound = MutableStateFlow(true)
+    val ipodWheelSound: StateFlow<Boolean> = _ipodWheelSound
+
 
     private fun parseItemType(value: String): ItemType? {
         return try {
@@ -135,6 +144,9 @@ object LibraryManager {
         _dolbyAtmosEnabled.value = getString("dolby_atmos_enabled", "false") == "true"
         com.mrtdk.liquid_glass.playback.spatial.SpatialAudioManager.init(_dolbyAtmosEnabled.value)
         _hideVolumeBar.value = getString("hide_volume_bar", "false") == "true"
+        _isIpodMode.value = isIpodMode()
+        _ipodColorStyle.value = getIpodColorStyle()
+        _ipodWheelSound.value = isIpodWheelSound()
 
 
         val initialPinned = mutableSetOf<String>()
@@ -864,6 +876,60 @@ object LibraryManager {
             prefs.edit().putString("glass_style", style).apply()
         } catch (_: Exception) {}
         dbHelper.saveSetting("glass_style", style)
+    }
+
+    fun isIpodMode(): Boolean {
+        if (isInitialized) return _isIpodMode.value
+        val fromDb = dbHelper.getSetting("ipod_mode", null)
+        if (fromDb != null) return fromDb == "true"
+        val fromPrefs = try { prefs.getString("ipod_mode", null) } catch (_: Exception) { null }
+        if (fromPrefs != null) return fromPrefs == "true"
+        return false
+    }
+
+    fun saveIpodMode(enabled: Boolean) {
+        if (!isInitialized) return
+        _isIpodMode.value = enabled
+        val strVal = enabled.toString()
+        try {
+            prefs.edit().putString("ipod_mode", strVal).apply()
+        } catch (_: Exception) {}
+        dbHelper.saveSetting("ipod_mode", strVal)
+    }
+
+    fun getIpodColorStyle(): String {
+        if (isInitialized) return _ipodColorStyle.value
+        val fromDb = dbHelper.getSetting("ipod_color_style", null)
+        if (fromDb != null) return fromDb
+        val fromPrefs = try { prefs.getString("ipod_color_style", null) } catch (_: Exception) { null }
+        return fromPrefs ?: "silver"
+    }
+
+    fun saveIpodColorStyle(style: String) {
+        if (!isInitialized) return
+        _ipodColorStyle.value = style
+        try {
+            prefs.edit().putString("ipod_color_style", style).apply()
+        } catch (_: Exception) {}
+        dbHelper.saveSetting("ipod_color_style", style)
+    }
+
+    fun isIpodWheelSound(): Boolean {
+        if (isInitialized) return _ipodWheelSound.value
+        val fromDb = dbHelper.getSetting("ipod_wheel_sound", null)
+        if (fromDb != null) return fromDb == "true"
+        val fromPrefs = try { prefs.getString("ipod_wheel_sound", null) } catch (_: Exception) { null }
+        return (fromPrefs ?: "true") == "true"
+    }
+
+    fun saveIpodWheelSound(enabled: Boolean) {
+        if (!isInitialized) return
+        _ipodWheelSound.value = enabled
+        val strVal = enabled.toString()
+        try {
+            prefs.edit().putString("ipod_wheel_sound", strVal).apply()
+        } catch (_: Exception) {}
+        dbHelper.saveSetting("ipod_wheel_sound", strVal)
     }
 
     fun getBottomTabsStyle(): String {

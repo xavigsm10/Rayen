@@ -210,6 +210,21 @@ fun MainSettingsMenu(
                         onClick = { onNavigateTo(SettingsSubScreen.THEME) }
                     ),
                     Material3SettingsItem(
+                        icon = rememberPainter(Icons.Default.PhoneAndroid),
+                        title = { Text(stringResource(R.string.settings_ipod)) },
+                        description = { Text(stringResource(R.string.settings_ipod_desc)) },
+                        trailingContent = {
+                            val isIpodMode by LibraryManager.isIpodMode.collectAsState()
+                            Switch(
+                                checked = isIpodMode,
+                                onCheckedChange = { LibraryManager.saveIpodMode(it) }
+                            )
+                        },
+                        onClick = {
+                            LibraryManager.saveIpodMode(!LibraryManager.isIpodMode())
+                        }
+                    ),
+                    Material3SettingsItem(
                         icon = rememberPainter(Icons.Default.Palette),
                         title = { Text(if (com.mrtdk.liquid_glass.BuildConfig.IS_LITE) "Diseño de interfaz" else stringResource(R.string.liquid_glass)) },
                         description = {
