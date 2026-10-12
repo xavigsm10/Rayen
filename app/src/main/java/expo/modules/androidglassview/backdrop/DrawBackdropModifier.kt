@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -45,6 +46,7 @@ import expo.modules.androidglassview.backdrop.backdrops.LayerBackdrop
 import expo.modules.androidglassview.backdrop.highlight.Highlight
 import expo.modules.androidglassview.backdrop.highlight.HighlightElement
 import expo.modules.androidglassview.backdrop.internal.ShapeProvider
+import expo.modules.androidglassview.backdrop.internal.clipOutline
 import expo.modules.androidglassview.backdrop.internal.recordLayer
 import expo.modules.androidglassview.backdrop.shadow.InnerShadow
 import expo.modules.androidglassview.backdrop.shadow.InnerShadowElement
@@ -315,6 +317,7 @@ private class DrawBackdropNode(
         }
 
     private var graphicsLayer: GraphicsLayer? = null
+    private val clipPath = Path()
 
     private val layoutLayerBlock: GraphicsLayerScope.() -> Unit = {
         clip = clipToShape
@@ -402,18 +405,33 @@ private class DrawBackdropNode(
             updateEffects()
         }
 
-        onDrawBehind?.invoke(this)
-        drawBackdropLayer()
-        onDrawSurface?.invoke(this)
-        drawContent()
-        onDrawFront?.invoke(this)
+        val canvas = drawContext.canvas
+        val shouldClip = clipToShape
+        val outline = if (shouldClip) shapeProvider.shape.createOutline(size, layoutDirection, this) else null
 
-        exportedBackdrop?.graphicsLayer?.let { layer ->
-            recordLayer(this@DrawBackdropNode, layer) {
-                onDrawBehind?.invoke(this)
-                drawBackdropLayer()
-                onDrawSurface?.invoke(this)
-                onDrawFront?.invoke(this)
+        if (shouldClip && outline != null) {
+            canvas.save()
+            canvas.clipOutline(outline, clipPath)
+        }
+
+        try {
+            onDrawBehind?.invoke(this)
+            drawBackdropLayer()
+            onDrawSurface?.invoke(this)
+            drawContent()
+            onDrawFront?.invoke(this)
+
+            exportedBackdrop?.graphicsLayer?.let { layer ->
+                recordLayer(this@DrawBackdropNode, layer) {
+                    onDrawBehind?.invoke(this)
+                    drawBackdropLayer()
+                    onDrawSurface?.invoke(this)
+                    onDrawFront?.invoke(this)
+                }
+            }
+        } finally {
+            if (shouldClip && outline != null) {
+                canvas.restore()
             }
         }
     }

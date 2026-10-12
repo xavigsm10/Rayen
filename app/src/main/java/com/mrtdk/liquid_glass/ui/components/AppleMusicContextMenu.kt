@@ -577,8 +577,7 @@ fun GlassBoxScope.AppleMusicSongMenu(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .offset(x = currentLeft, y = currentTop)
-                    .size(width = currentWidth, height = currentHeight)
-                    .clip(RoundedCornerShape(currentCorner)),
+                    .size(width = currentWidth, height = currentHeight),
                 blur = 0.85f,
                 scale = 0.02f,
                 centerDistortion = 0.1f,
@@ -984,8 +983,7 @@ fun GlassBoxScope.AppleMusicAlbumMenu(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .offset(x = currentLeft, y = currentTop)
-                    .size(width = currentWidth, height = currentHeight)
-                    .clip(RoundedCornerShape(currentCorner)),
+                    .size(width = currentWidth, height = currentHeight),
                 blur = 0.85f,
                 scale = 0.02f,
                 centerDistortion = 0.1f,
@@ -2610,8 +2608,7 @@ fun GlassBoxScope.AppleMusicArtistMenu(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .offset(x = currentLeft, y = currentTop)
-                    .size(width = currentWidth, height = currentHeight)
-                    .clip(RoundedCornerShape(currentCorner)),
+                    .size(width = currentWidth, height = currentHeight),
                 blur = 0.85f,
                 scale = 0.02f,
                 centerDistortion = 0.1f,
@@ -3364,8 +3361,7 @@ fun GlassBoxScope.PlayerOptionsMenu(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .offset { androidx.compose.ui.unit.IntOffset(currentLeft.roundToPx(), currentTop.roundToPx()) }
-                .size(width = currentWidth, height = currentHeight)
-                .clip(RoundedCornerShape(currentCorner)),
+                .size(width = currentWidth, height = currentHeight),
             blur = 0.85f,
             scale = 0.02f,
             centerDistortion = 0.1f,
@@ -3932,8 +3928,7 @@ fun GlassBoxScope.LyricsOptionsMenu(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .offset { androidx.compose.ui.unit.IntOffset(currentLeft.roundToPx(), currentTop.roundToPx()) }
-                .size(width = currentWidth, height = currentHeight)
-                .clip(RoundedCornerShape(currentCorner)),
+                .size(width = currentWidth, height = currentHeight),
             blur = 0.8f,
             scale = 0.02f,
             centerDistortion = 0.1f,
@@ -4740,8 +4735,7 @@ fun GlassBoxScope.ArtistOptionsMenu(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .offset { androidx.compose.ui.unit.IntOffset(currentLeft.roundToPx(), currentTop.roundToPx()) }
-                .size(width = currentWidth, height = currentHeight)
-                .clip(RoundedCornerShape(currentCorner)),
+                .size(width = currentWidth, height = currentHeight),
             blur = 0.8f,
             scale = 0.02f,
             centerDistortion = 0.1f,

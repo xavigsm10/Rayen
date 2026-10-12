@@ -210,7 +210,6 @@ fun ExpoGlassPill(
                     },
                     highlight = { Highlight.Plain },
                     shadow = { Shadow(radius = 16.dp, color = Color.Black.copy(alpha = 0.25f)) },
-                    backdropScale = backdropScale,
                     layerBlock = if (isInteractive) {
                         {
                             val width = size.width
@@ -234,6 +233,7 @@ fun ExpoGlassPill(
                     } else null,
                     onDrawSurface = { drawRect(containerColor) }
                 )
+                .clip(shape)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = ripple(bounded = true, color = Color.White),
@@ -327,9 +327,9 @@ fun ExpoGlassMenuCard(
                     },
                     highlight = { Highlight.Plain },
                     shadow = { Shadow(radius = 16.dp, color = Color.Black.copy(alpha = 0.25f)) },
-                    backdropScale = backdropScale,
                     onDrawSurface = { drawRect(containerColor) }
-                ),
+                )
+                .clip(shape),
             content = content
         )
     }
@@ -416,9 +416,9 @@ fun GlassBoxScope.GlassBox(
                         val shadowRadius = if (elevation > 0.dp) elevation else 16.dp
                         Shadow(radius = shadowRadius, color = Color.Black.copy(alpha = 0.25f))
                     },
-                    backdropScale = backdropScale,
                     onDrawSurface = { drawRect(containerColor) }
-                ),
+                )
+                .clip(shape),
             contentAlignment = contentAlignment,
             propagateMinConstraints = propagateMinConstraints,
             content = content

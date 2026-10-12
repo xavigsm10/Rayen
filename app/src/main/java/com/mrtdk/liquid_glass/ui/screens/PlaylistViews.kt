@@ -69,7 +69,6 @@ import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.shapes.Capsule
-import com.mrtdk.liquid_glass.ui.components.shapes.ContinuousCapsule
 import com.mrtdk.liquid_glass.R
 import com.mrtdk.liquid_glass.data.LibraryManager
 import com.mrtdk.liquid_glass.data.Playlist
@@ -1060,7 +1059,7 @@ fun PlaylistDetailScreen(
                                     }
                                     .width(124.dp)
                                     .height(44.dp)
-                                    .clip(ContinuousCapsule)
+                                    .clip(RoundedCornerShape(percent = 50))
                                     .background(playlistButtonTint),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1305,7 +1304,7 @@ fun PlaylistDetailScreen(
                                         }
                                         .width(124.dp)
                                         .height(44.dp),
-                                    shape = ContinuousCapsule,
+                                    shape = RoundedCornerShape(percent = 50),
                                     tint = Color.Unspecified,
                                     blur = 0.8f,
                                     centerDistortion = 0.1f,
@@ -2119,7 +2118,7 @@ fun PlaylistDetailScreen(
                                     }
                                     .width(124.dp)
                                     .height(44.dp)
-                                    .clip(ContinuousCapsule)
+                                    .clip(RoundedCornerShape(percent = 50))
                                     .background(if (isLightBackground) Color.Black.copy(alpha = 0.08f) else dominantColor.copy(alpha = 0.35f)),
                                 contentAlignment = Alignment.Center
                             ) {

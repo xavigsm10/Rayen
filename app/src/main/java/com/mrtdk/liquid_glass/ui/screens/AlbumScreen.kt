@@ -63,8 +63,6 @@ import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.shapes.Capsule
-import com.mrtdk.liquid_glass.ui.components.shapes.ContinuousCapsule
-import com.mrtdk.liquid_glass.ui.components.shapes.ContinuousRoundedRectangle
 import com.mrtdk.liquid_glass.data.ItemType
 import com.mrtdk.liquid_glass.data.LibraryItem
 import com.mrtdk.liquid_glass.data.LibraryManager
@@ -2322,7 +2320,7 @@ fun AlbumScreen(
                                     }
                                     .width(124.dp)
                                     .height(44.dp)
-                                    .clip(ContinuousCapsule)
+                                    .clip(RoundedCornerShape(percent = 50))
                                     .background(glassButtonTint),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -2502,15 +2500,13 @@ fun AlbumTopRightMorphingPill(
         label = "albumPillToMenuMorph"
     )
 
-    // Smooth continuous 2D size & corner interpolation
+    // Smooth continuous 2D size & corner interpolation (circular arcs:
+    // el shader de refracción/highlight solo entiende rounded-rect circular)
     val targetMenuHeight = if (isPlaylistsScreen) 370.dp else 390.dp
     val morphWidth = androidx.compose.ui.unit.lerp(124.dp, 268.dp, morphProgress)
     val morphHeight = androidx.compose.ui.unit.lerp(44.dp, targetMenuHeight, morphProgress)
-    val morphShape = com.mrtdk.liquid_glass.ui.components.shapes.lerp(
-        start = ContinuousCapsule,
-        stop = ContinuousRoundedRectangle(24.dp),
-        fraction = morphProgress
-    )
+    val morphCorner = androidx.compose.ui.unit.lerp(22.dp, 24.dp, morphProgress)
+    val morphShape = RoundedCornerShape(morphCorner)
     val morphTint = glassButtonTint
 
     // Smooth crossfade opacities
@@ -2519,8 +2515,7 @@ fun AlbumTopRightMorphingPill(
 
     glassScope.GlassBox(
         modifier = Modifier
-            .size(width = morphWidth, height = morphHeight)
-            .clip(morphShape),
+            .size(width = morphWidth, height = morphHeight),
         shape = morphShape,
         tint = morphTint,
         blur = 0.85f,
@@ -2530,7 +2525,7 @@ fun AlbumTopRightMorphingPill(
         elevation = 16.dp,
         contentAlignment = Alignment.TopEnd
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().clip(morphShape)) {
             // 1. Collapsed: Original Share + 3 Dots Capsule
             if (pillIconsAlpha > 0.001f) {
                 Row(
