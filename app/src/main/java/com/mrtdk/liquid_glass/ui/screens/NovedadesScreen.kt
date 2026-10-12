@@ -41,6 +41,7 @@ import com.echo.innertube.models.SongItem
 import com.echo.innertube.models.AlbumItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
 import androidx.compose.material.icons.filled.MoreVert
@@ -292,7 +293,9 @@ fun NovedadesScreen(
     val pagerState = rememberPagerState(pageCount = { state.featuredAlbums.size.coerceAtLeast(1) })
     LaunchedEffect(pagerState, state.featuredAlbums.size) {
         if (state.featuredAlbums.size <= 1 || com.mrtdk.liquid_glass.BuildConfig.IS_LITE) return@LaunchedEffect
-        while (true) { delay(4500); pagerState.animateScrollToPage((pagerState.currentPage + 1) % state.featuredAlbums.size) }
+        // while(isActive): se cancela al salir de pantalla (antes seguía en background).
+        // Mismo carrusel, 0 batería fuera de pantalla.
+        while (isActive) { delay(4500); pagerState.animateScrollToPage((pagerState.currentPage + 1) % state.featuredAlbums.size) }
     }
 
     val listState = rememberLazyListState()

@@ -24,6 +24,7 @@
     <string name="language_dialog_title">Selecione um idioma</string>
     <string name="cancelar">Cancelar</string>
     <string name="actualizacion_disponible">Atualização Disponível</string>
+    <string name="update_whats_new_title">Novidades desta versão:</string>
     <string name="playlists">Playlists</string>
     <string name="artistas">Artistas</string>
     <string name="albumes">Álbuns</string>

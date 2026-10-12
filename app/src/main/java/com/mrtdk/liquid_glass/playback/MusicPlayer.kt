@@ -182,9 +182,17 @@ class MusicPlayer(private val context: Context) {
         if (!isAppInForeground) return
         pollingJob?.cancel()
         pollingJob = scope.launch {
+            // 400ms en vez de 150ms: la seekbar se sigue viendo fluida (el thumb
+            // se mueve con animación), pero 2.6x menos wakeups y recomposiciones.
+            // Solo emite si cambió >200ms para no recomponer por jitter del player.
+            var lastEmitted = -1L
             while (isAppInForeground && _isPlaying.value) {
-                _currentPosition.value = controller?.currentPosition ?: 0L
-                delay(150L)
+                val pos = controller?.currentPosition ?: 0L
+                if (kotlin.math.abs(pos - lastEmitted) >= 200L) {
+                    _currentPosition.value = pos
+                    lastEmitted = pos
+                }
+                delay(400L)
             }
         }
     }

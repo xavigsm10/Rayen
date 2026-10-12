@@ -67,6 +67,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableLongState
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -109,6 +110,8 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -336,11 +339,35 @@ fun rememberLyricsTranslation(
             context.resources.configuration.locale ?: Locale.getDefault()
         }
     }
-    val translationLanguage = remember(currentLocale) {
-        currentLocale.language.ifBlank { "es" }
+    // Réplica de BitChord: el destino NO es siempre el locale del dispositivo.
+    // 1) Ajuste explícito del usuario ("translation_language"), 2) idioma de la
+    // app, 3) dispositivo; el chino mapea a región wire (zh-TW/zh-CN).
+    // Cambiarlo en Ajustes recompone y reinicia el estado de traducción.
+    val storedTranslationLanguage by com.mrtdk.liquid_glass.data.LibraryManager.translationLanguage.collectAsState()
+    val appLanguageTag = remember(context) {
+        try {
+            com.mrtdk.liquid_glass.data.LibraryManager.getAppLanguage(context)
+        } catch (_: Exception) {
+            "SYSTEM_DEFAULT"
+        }
     }
-    val translationLanguageName = remember(currentLocale, translationLanguage) {
-        translationLanguageName(translationLanguage, currentLocale)
+    val translationLanguage = remember(storedTranslationLanguage, appLanguageTag, currentLocale) {
+        com.mrtdk.liquid_glass.data.lyrics.LocaleTags.resolveTranslationTarget(
+            stored = storedTranslationLanguage,
+            appLanguage = appLanguageTag,
+            device = currentLocale
+        )
+    }
+    // Nombres localizados según el idioma de la app (BitChord), no el sistema crudo.
+    val displayLocale = remember(appLanguageTag, currentLocale) {
+        if (appLanguageTag.isBlank() || appLanguageTag == "SYSTEM_DEFAULT" || appLanguageTag.equals("system", ignoreCase = true)) {
+            currentLocale
+        } else {
+            Locale.forLanguageTag(appLanguageTag).takeUnless { it.language.isBlank() } ?: currentLocale
+        }
+    }
+    val translationLanguageName = remember(displayLocale, translationLanguage) {
+        translationLanguageName(translationLanguage, displayLocale)
     }
 
     val alreadyInLanguageMessage = stringResource(R.string.lyrics_already_in_language, translationLanguageName)
@@ -391,8 +418,10 @@ fun rememberLyricsTranslation(
     }
 
     val translationScope = rememberCoroutineScope()
+    val haptics = LocalHapticFeedback.current
 
     val toggleTranslation: () -> Unit = toggleTranslation@{
+        android.util.Log.d("LyricsTranslate", "toggleTranslation tap: state=$translationState lines=${lyrics.orEmpty().size} target=$translationLanguage")
         when (val state = translationState) {
             is LyricsTranslationUiState.Ready -> {
                 lyricsDisplayMode = if (showingTranslation) {
@@ -401,14 +430,17 @@ fun rememberLyricsTranslation(
                     LyricsDisplayMode.Translated
                 }
                 translationTransition++
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             }
             LyricsTranslationUiState.Loading -> Unit
             LyricsTranslationUiState.SameLanguage -> {
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 Toast.makeText(context, alreadyInLanguageMessage, Toast.LENGTH_SHORT).show()
             }
             LyricsTranslationUiState.Idle -> {
                 val source = lyrics.orEmpty()
                 if (source.isEmpty()) return@toggleTranslation
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 translationState = LyricsTranslationUiState.Loading
                 romanizationJob?.cancel()
                 if (romanizationState is LyricsTranslationUiState.Loading) {
@@ -425,15 +457,19 @@ fun rememberLyricsTranslation(
                         )
                     ) {
                         is LyricsTranslation.Result.Translated -> {
+                            android.util.Log.d("LyricsTranslate", "Translated ok: src=${result.sourceLanguage} cached=${result.fromCache} lines=${result.lines.size}")
                             translationState = LyricsTranslationUiState.Ready(result.lines)
                             lyricsDisplayMode = LyricsDisplayMode.Translated
                             translationTransition++
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         }
                         is LyricsTranslation.Result.SameLanguage -> {
+                            android.util.Log.d("LyricsTranslate", "SameLanguage: ${result.language}")
                             translationState = LyricsTranslationUiState.SameLanguage
                             Toast.makeText(context, alreadyInLanguageMessage, Toast.LENGTH_SHORT).show()
                         }
                         LyricsTranslation.Result.Unavailable -> {
+                            android.util.Log.w("LyricsTranslate", "Unavailable (red/bloqueo Google?) target=$translationLanguage")
                             translationState = LyricsTranslationUiState.Idle
                             Toast.makeText(context, translationUnavailableMessage, Toast.LENGTH_SHORT).show()
                         }
@@ -444,6 +480,7 @@ fun rememberLyricsTranslation(
     }
 
     val toggleRomanization: () -> Unit = toggleRomanization@{
+        android.util.Log.d("LyricsTranslate", "toggleRomanization tap: state=$romanizationState lines=${lyrics.orEmpty().size}")
         when (val state = romanizationState) {
             is LyricsTranslationUiState.Ready -> {
                 lyricsDisplayMode = if (showingRomanization) {
@@ -452,14 +489,17 @@ fun rememberLyricsTranslation(
                     LyricsDisplayMode.Romanized
                 }
                 translationTransition++
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             }
             LyricsTranslationUiState.Loading -> Unit
             LyricsTranslationUiState.SameLanguage -> {
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 Toast.makeText(context, alreadyRomanizedMessage, Toast.LENGTH_SHORT).show()
             }
             LyricsTranslationUiState.Idle -> {
                 val source = lyrics.orEmpty()
                 if (source.isEmpty()) return@toggleRomanization
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 romanizationState = LyricsTranslationUiState.Loading
                 translationJob?.cancel()
                 if (translationState is LyricsTranslationUiState.Loading) {
@@ -476,15 +516,18 @@ fun rememberLyricsTranslation(
                         )
                     ) {
                         is LyricsTranslation.RomanizationResult.Romanized -> {
+                            android.util.Log.d("LyricsTranslate", "Romanized ok: src=${result.sourceLanguage} cached=${result.fromCache}")
                             romanizationState = LyricsTranslationUiState.Ready(result.lines)
                             lyricsDisplayMode = LyricsDisplayMode.Romanized
                             translationTransition++
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         }
                         LyricsTranslation.RomanizationResult.AlreadyRomanized -> {
                             romanizationState = LyricsTranslationUiState.SameLanguage
                             Toast.makeText(context, alreadyRomanizedMessage, Toast.LENGTH_SHORT).show()
                         }
                         LyricsTranslation.RomanizationResult.Unavailable -> {
+                            android.util.Log.w("LyricsTranslate", "Romanization unavailable")
                             romanizationState = LyricsTranslationUiState.Idle
                             Toast.makeText(context, romanizationUnavailableMessage, Toast.LENGTH_SHORT).show()
                         }
@@ -958,6 +1001,9 @@ fun RayMusicLyrics(
                 ),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
+                // Como BitChord (estilo Apple Music): el panel conserva siempre la
+                // letra original y la traducción va en pequeño debajo (subLines).
+                // El karaoke y los tiempos solo tienen sentido en el original.
                 itemsIndexed(
                     items = lines,
                     key = { index, line -> "${line.timeMs}_${index}" }
@@ -1398,18 +1444,44 @@ fun RayMusicLyrics(
             )
 
             // Translation & Romanization Floating Toggle Buttons (Bottom Start)
+            // Siempre visibles mientras haya letra (no dependen del auto-hide de
+            // controles de 2s): así el tap nunca cae en la capa de reveal ni el
+            // spinner desaparece a mitad de la descarga.
             AnimatedVisibility(
-                visible = !isSelectionMode && controlsOpen,
+                visible = !isSelectionMode && lines.isNotEmpty(),
                 enter = fadeIn() + slideInVertically { it / 2 },
                 exit = fadeOut() + slideOutVertically { it / 2 },
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(start = 24.dp, bottom = 24.dp)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.Start
                 ) {
+                    // Estado inline (antes solo existía como Toast fácil de perder):
+                    // "Traduciendo…", "Traducida al español", "Ya está en español", etc.
+                    val translationStatus = translationUi.status
+                    AnimatedVisibility(visible = translationStatus.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.Black.copy(alpha = 0.55f))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = translationStatus,
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 2
+                            )
+                        }
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                     RomanizationToggleButton(
                         state = translationUi.romanizationState,
                         showingRomanization = translationUi.showingRomanization,
@@ -1422,6 +1494,7 @@ fun RayMusicLyrics(
                         enabled = lines.isNotEmpty(),
                         onClick = translationUi.toggleTranslation,
                     )
+                    }
                 }
             }
 
@@ -2037,12 +2110,22 @@ internal fun Modifier.revealLyricsControlsOnTap(
     onReveal: () -> Unit,
 ): Modifier {
     val currentOnReveal = rememberUpdatedState(onReveal)
-    return pointerInput(enabled) {
+    // Zona de los botones flotantes de traducción (BottomStart): hay que ignorarla
+    // aquí. Este detector consume en pass Initial (antes que los clickable), así que
+    // sin esta exclusión cada tap al botón solo reabría los controles y el onClick
+    // del botón jamás se ejecutaba ("no pasa nada").
+    val density = LocalDensity.current
+    val ignoreWidthPx = with(density) { 220.dp.toPx() }
+    val ignoreHeightPx = with(density) { 170.dp.toPx() }
+    return pointerInput(enabled, ignoreWidthPx, ignoreHeightPx) {
         if (!enabled) return@pointerInput
         val tapSlop = viewConfiguration.touchSlop * TAP_SLOP_FACTOR
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
             if (down.position.y < size.height / 2f) return@awaitEachGesture
+            if (down.position.x < ignoreWidthPx && down.position.y > size.height - ignoreHeightPx) {
+                return@awaitEachGesture
+            }
             var dragged = false
             do {
                 val event = awaitPointerEvent(PointerEventPass.Initial)

@@ -207,7 +207,7 @@ private fun CardInnerContent(
         Spacer(modifier = Modifier.height(10.dp))
 
         Text(
-            text = "Novedades de RayMusic",
+            text = "Novedades de Rayen",
             color = if (isDark) Color.White else Color(0xFF1C1C1E),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,

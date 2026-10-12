@@ -55,6 +55,119 @@ object PlaybackQueue {
     @Volatile
     var onAutoMixTransitionChanged: ((Boolean) -> Unit)? = null
 
+    private const val PERSISTENT_QUEUE_KEY = "persistent_queue_json"
+
+    // Estado restaurado extra (al estilo Echo-Music: índice/posición/modos).
+    // La UI y el servicio los leen tras restoreQueueFromDisk().
+    @Volatile var restoredPositionMs: Long = 0L
+    @Volatile var restoredRepeatMode: Int = androidx.media3.common.Player.REPEAT_MODE_OFF
+    @Volatile var restoredShuffleMode: Boolean = false
+
+    private fun PlayerState.toJson(positionMs: Long = -1L, repeatMode: Int = -1, shuffleMode: Boolean? = null): org.json.JSONObject {
+        val obj = org.json.JSONObject()
+        obj.put("title", title)
+        obj.put("artist", artist)
+        obj.put("artUrl", artUrl?.toString() ?: "")
+        obj.put("videoId", videoId ?: "")
+        obj.put("contentUri", contentUri?.toString() ?: "")
+        obj.put("isExclusiveQueue", isExclusiveQueue)
+        obj.put("album", album ?: "")
+        obj.put("albumId", albumId ?: "")
+        obj.put("playlistId", playlistId ?: "")
+        obj.put("playlistName", playlistName ?: "")
+        // Réplica Echo: posición y modos para reanudar donde quedó al reabrir.
+        if (positionMs >= 0L) obj.put("position", positionMs)
+        if (repeatMode >= 0) obj.put("repeatMode", repeatMode)
+        if (shuffleMode != null) obj.put("shuffleMode", shuffleMode)
+        val queueArr = org.json.JSONArray()
+        for (q in queue) {
+            val qo = org.json.JSONObject()
+            qo.put("title", q.title)
+            qo.put("artist", q.artist)
+            qo.put("artUrl", q.artUrl?.toString() ?: "")
+            qo.put("videoId", q.videoId ?: "")
+            qo.put("album", q.album ?: "")
+            qo.put("albumId", q.albumId ?: "")
+            qo.put("playlistId", q.playlistId ?: "")
+            qo.put("playlistName", q.playlistName ?: "")
+            queueArr.put(qo)
+        }
+        obj.put("queue", queueArr)
+        return obj
+    }
+
+    private fun org.json.JSONObject.toQueueItem(): QueueItem {
+        return QueueItem(
+            title = optString("title", ""),
+            artist = optString("artist", ""),
+            artUrl = optString("artUrl", "").takeIf { it.isNotBlank() },
+            videoId = optString("videoId", "").takeIf { it.isNotBlank() },
+            album = optString("album", "").takeIf { it.isNotBlank() },
+            albumId = optString("albumId", "").takeIf { it.isNotBlank() },
+            playlistId = optString("playlistId", "").takeIf { it.isNotBlank() },
+            playlistName = optString("playlistName", "").takeIf { it.isNotBlank() }
+        )
+    }
+
+    /**
+     * Cola persistente a disco (al estilo Echo-Music): guarda canción actual +
+     * cola para restaurarlas si el proceso muere con el celular bloqueado.
+     */
+    fun saveQueueToDisk(positionMs: Long = -1L, repeatMode: Int = -1, shuffleMode: Boolean? = null) {
+        try {
+            val current = currentSong ?: return
+            val json = current.toJson(positionMs, repeatMode, shuffleMode).toString()
+            com.mrtdk.liquid_glass.data.LibraryManager.saveString(PERSISTENT_QUEUE_KEY, json)
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Restaura la cola persistente. Devuelve true si había algo que restaurar.
+     * Solo se aplica si la cola en memoria está vacía (proceso recién creado).
+     */
+    fun restoreQueueFromDisk(): Boolean {
+        try {
+            if (currentSong != null) return true
+            val jsonStr = com.mrtdk.liquid_glass.data.LibraryManager.getString(PERSISTENT_QUEUE_KEY, null)
+                ?: return false
+            if (jsonStr.isBlank()) return false
+            val obj = org.json.JSONObject(jsonStr)
+            val title = obj.optString("title", "")
+            if (title.isBlank()) return false
+            val queueArr = obj.optJSONArray("queue")
+            val restoredQueue = mutableListOf<QueueItem>()
+            if (queueArr != null) {
+                for (i in 0 until queueArr.length()) {
+                    restoredQueue.add(queueArr.getJSONObject(i).toQueueItem())
+                }
+            }
+            val artUrlStr = obj.optString("artUrl", "").takeIf { it.isNotBlank() }
+            val contentUriStr = obj.optString("contentUri", "").takeIf { it.isNotBlank() }
+            currentSong = PlayerState(
+                title = title,
+                artist = obj.optString("artist", ""),
+                artUrl = artUrlStr,
+                videoId = obj.optString("videoId", "").takeIf { it.isNotBlank() },
+                contentUri = contentUriStr?.let { android.net.Uri.parse(it) },
+                queue = restoredQueue,
+                isExclusiveQueue = obj.optBoolean("isExclusiveQueue", false),
+                album = obj.optString("album", "").takeIf { it.isNotBlank() },
+                albumId = obj.optString("albumId", "").takeIf { it.isNotBlank() },
+                playlistId = obj.optString("playlistId", "").takeIf { it.isNotBlank() },
+                playlistName = obj.optString("playlistName", "").takeIf { it.isNotBlank() }
+            )
+            // Réplica Echo: la posición y los modos viajan con la cola.
+            restoredPositionMs = obj.optLong("position", 0L).coerceAtLeast(0L)
+            restoredRepeatMode = obj.optInt("repeatMode", androidx.media3.common.Player.REPEAT_MODE_OFF)
+            restoredShuffleMode = obj.optBoolean("shuffleMode", false)
+            queue = restoredQueue.toList()
+            isExclusiveQueue = obj.optBoolean("isExclusiveQueue", false)
+            return true
+        } catch (_: Exception) {
+            return false
+        }
+    }
+
     @Synchronized
     fun getNextSongAndAdvance(repeatMode: Int = androidx.media3.common.Player.REPEAT_MODE_OFF): PlayerState? {
         val current = currentSong ?: return null

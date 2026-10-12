@@ -300,10 +300,21 @@ class MainActivity : ComponentActivity() {
                     val songHistory = remember { androidx.compose.runtime.mutableStateListOf<PlayerState>() }
  
                     LaunchedEffect(Unit) {
-                        com.mrtdk.liquid_glass.playback.PlaybackQueue.currentSong = lastSavedState
-                        if (lastSavedState != null) {
-                            com.mrtdk.liquid_glass.playback.PlaybackQueue.queue = lastSavedState.queue
-                            com.mrtdk.liquid_glass.playback.PlaybackQueue.isExclusiveQueue = lastSavedState.isExclusiveQueue
+                        // Si el servicio avanzó de canción en 2do plano (la UI estaba
+                        // destruida), PlaybackQueue.currentSong ya es la NUEVA canción:
+                        // no se debe sobrescribir con el estado viejo guardado, porque
+                        // la app se quedaría pegada con la carátula/nombre anterior.
+                        val liveSong = com.mrtdk.liquid_glass.playback.PlaybackQueue.currentSong
+                        if (liveSong == null) {
+                            com.mrtdk.liquid_glass.playback.PlaybackQueue.currentSong = lastSavedState
+                            if (lastSavedState != null) {
+                                com.mrtdk.liquid_glass.playback.PlaybackQueue.queue = lastSavedState.queue
+                                com.mrtdk.liquid_glass.playback.PlaybackQueue.isExclusiveQueue = lastSavedState.isExclusiveQueue
+                            }
+                        } else if (liveSong.videoId != lastSavedState?.videoId ||
+                            liveSong.title != lastSavedState?.title
+                        ) {
+                            playerState = liveSong
                         }
  
                         com.mrtdk.liquid_glass.playback.PlaybackQueue.onCurrentSongChanged = { newSong ->
@@ -321,6 +332,12 @@ class MainActivity : ComponentActivity() {
  
                     LaunchedEffect(playerState) {
                         com.mrtdk.liquid_glass.data.LibraryManager.saveLastPlayerState(playerState)
+                        // Mantener la cola persistente sincronizada con la canción actual.
+                        try {
+                            if (playerState != null) {
+                                com.mrtdk.liquid_glass.playback.PlaybackQueue.saveQueueToDisk()
+                            }
+                        } catch (_: Exception) {}
                         if (playerState != null) {
                             if (isFirstStateLoad && playerState == lastSavedState) {
                                 isFirstStateLoad = false
@@ -533,6 +550,11 @@ class MainActivity : ComponentActivity() {
                         com.mrtdk.liquid_glass.playback.PlaybackQueue.currentSong = state
                         com.mrtdk.liquid_glass.playback.PlaybackQueue.queue = state.queue
                         com.mrtdk.liquid_glass.playback.PlaybackQueue.isExclusiveQueue = state.isExclusiveQueue
+                        // Cola persistente a disco: si el proceso muere con el celular
+                        // bloqueado, el servicio la restaura al volver.
+                        try {
+                            com.mrtdk.liquid_glass.playback.PlaybackQueue.saveQueueToDisk()
+                        } catch (_: Exception) {}
                         
                         com.mrtdk.liquid_glass.playback.PlaybackQueue.songHistory.clear()
                         com.mrtdk.liquid_glass.playback.PlaybackQueue.songHistory.addAll(songHistory)
@@ -1193,6 +1215,16 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         musicPlayer?.isAppInForeground = true
+        // Resincronizar la UI con lo que el servicio avanzó en 2do plano: si la
+        // canción actual cambió mientras la app estaba fuera, refrescar playerState
+        // para no mostrar la carátula/nombre de la canción anterior.
+        try {
+            val liveSong = com.mrtdk.liquid_glass.playback.PlaybackQueue.currentSong
+            if (liveSong != null) {
+                com.mrtdk.liquid_glass.playback.PlaybackQueue.onCurrentSongChanged?.invoke(liveSong)
+                com.mrtdk.liquid_glass.playback.PlaybackQueue.onQueueChanged?.invoke()
+            }
+        } catch (_: Exception) {}
     }
 
     override fun onStop() {

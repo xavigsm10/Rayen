@@ -24,6 +24,7 @@
     <string name="language_dialog_title">Bir dil seçin</string>
     <string name="cancelar">İptal</string>
     <string name="actualizacion_disponible">Güncelleme Mevcut</string>
+    <string name="update_whats_new_title">Bu sürümdeki yenilikler:</string>
     <string name="playlists">Çalma Listeleri</string>
     <string name="artistas">Sanatçılar</string>
     <string name="albumes">Albümler</string>

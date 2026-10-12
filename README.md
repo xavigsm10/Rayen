@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/src/main/res/drawable/splash_logo.webp" width="140" alt="RayMusic Logo">
+  <img src="img/icono%20Rayen.png" width="160" alt="icono Rayen">
 </p>
 
 <h1 align="center">Rayen</h1>
@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/RELEASE-v0.6.5-blue?style=for-the-badge&logo=github" alt="Release">
+  <img src="https://img.shields.io/badge/RELEASE-v0.6.6-blue?style=for-the-badge&logo=github" alt="Release">
   <img src="https://img.shields.io/badge/LICENSE-Apache%202.0-blue?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/VIRUSTOTAL-SAFE-brightgreen?style=for-the-badge&logo=virustotal" alt="VirusTotal">
 </p>
@@ -48,7 +48,7 @@
 
 La aplicación destaca por su revolucionaria interfaz **Liquid Glass** (cristal líquido). Este motor visual dinámico procesa las portadas de los álbumes en tiempo real para generar desenfoques inmersivos, reflejos estirados en 1D y degradados translúcidos fluidos que tiñen toda la interfaz. De este modo, la aplicación se funde cromáticamente con el tema de la canción en reproducción, creando una atmósfera verdaderamente premium, limpia y carente de elementos oscuros innecesarios.
 
-Con RayMusic, tus datos permanecen privados: la aplicación no realiza telemetría, prescinde de rastreadores y ofrece un inicio instantáneo al cargar en caché las sugerencias de la pantalla principal en segundo plano, eliminando molestas pantallas de carga y haciendo que toda la navegación se sienta inmediata y fluida.
+Con Rayen, tus datos permanecen privados: la aplicación no realiza telemetría, prescinde de rastreadores y ofrece un inicio instantáneo al cargar en caché las sugerencias de la pantalla principal en segundo plano, eliminando molestas pantallas de carga y haciendo que toda la navegación se sienta inmediata y fluida.
 
 ---
 

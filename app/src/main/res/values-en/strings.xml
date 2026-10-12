@@ -24,6 +24,7 @@
     <string name="language_dialog_title">Select a language</string>
     <string name="cancelar">Cancel</string>
     <string name="actualizacion_disponible">Update Available</string>
+    <string name="update_whats_new_title">What\'s new in this version:</string>
     <string name="playlists">Playlists</string>
     <string name="artistas">Artists</string>
     <string name="albumes">Albums</string>
@@ -787,6 +788,12 @@
     <string name="romanizing_lyrics">Romanizing lyrics…</string>
     <string name="lyrics_translated_to">Translated to %1$s</string>
     <string name="lyrics_romanized">Romanized pronunciation</string>
+    <string name="translation_language">Translation language</string>
+    <string name="translation_language_description">The language the translate button turns lyrics into.</string>
+    <string name="translation_language_app_default">App language</string>
+    <string name="translation_language_subtitle">Follows the app language</string>
+    <string name="search_languages">Search languages</string>
+    <string name="no_languages_match">No matches</string>
     <string name="show_original_lyrics">Show original lyrics</string>
     <string name="translate_lyrics">Translate lyrics</string>
     <string name="romanize_lyrics">Romanize lyrics</string>

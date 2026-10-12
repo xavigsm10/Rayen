@@ -75,6 +75,16 @@ class MusicService : MediaSessionService() {
     private var radioRefillJob: Job? = null
     private val songRetryCounts = java.util.concurrent.ConcurrentHashMap<String, Int>()
 
+    // --- Supervivencia con celular bloqueado (al estilo Echo-Music) ---
+    // Observador de conectividad + reintentos con backoff: si Doze corta la red,
+    // se espera y se reintenta al volver la red en vez de rendirse y apagarse.
+    @Volatile private var isNetworkConnected: Boolean = true
+    @Volatile private var waitingForNetwork: Boolean = false
+    private var connectivityManager: android.net.ConnectivityManager? = null
+    private var networkCallback: android.net.ConnectivityManager.NetworkCallback? = null
+    private var networkRetryJob: Job? = null
+    private var consecutivePlaybackErr: Int = 0
+
     private var loudnessEnhancer: android.media.audiofx.LoudnessEnhancer? = null
     private var virtualizer: android.media.audiofx.Virtualizer? = null
     private var currentLoudnessSessionId: Int = -1
@@ -127,7 +137,15 @@ class MusicService : MediaSessionService() {
         val metadata = androidx.media3.common.MediaMetadata.Builder().apply {
             setTitle(state.title)
             setArtist(state.artist)
-            state.artUrl?.toString()?.let { setArtworkUri(android.net.Uri.parse(it)) }
+            // Como Echo-Music: la metadata lleva la carátula en ALTA (no la URL
+            // cruda de la fila de la cola, que puede ser default.jpg/=w60).
+            // Así notificación, lockscreen y auto también la ven en HD.
+            val rawArt = state.artUrl?.toString()
+            val hdArt = rawArt?.let {
+                if (it.startsWith("file:///android_asset/")) it
+                else com.mrtdk.liquid_glass.utils.CoilUtils.upgradeThumbQuality(it) ?: it
+            }
+            hdArt?.let { setArtworkUri(android.net.Uri.parse(it)) }
         }.build()
 
         val isLocal = state.contentUri != null && state.contentUri.scheme != "yt"
@@ -312,6 +330,113 @@ class MusicService : MediaSessionService() {
         }
     }
 
+    private fun registerNetworkObserver() {
+        try {
+            connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+            val cm = connectivityManager ?: return
+            try {
+                val network = cm.activeNetwork
+                val caps = network?.let { cm.getNetworkCapabilities(it) }
+                isNetworkConnected = caps?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) ?: true
+            } catch (_: Exception) {
+                isNetworkConnected = true
+            }
+            val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: android.net.Network) {
+                    serviceScope.launch { onNetworkAvailable() }
+                }
+
+                override fun onLost(network: android.net.Network) {
+                    isNetworkConnected = false
+                }
+
+                override fun onCapabilitiesChanged(
+                    network: android.net.Network,
+                    networkCapabilities: android.net.NetworkCapabilities
+                ) {
+                    val hasInternet = networkCapabilities.hasCapability(
+                        android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET
+                    ) && networkCapabilities.hasCapability(
+                        android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED
+                    )
+                    if (hasInternet) {
+                        serviceScope.launch { onNetworkAvailable() }
+                    } else {
+                        isNetworkConnected = false
+                    }
+                }
+            }
+            networkCallback = callback
+            cm.registerDefaultNetworkCallback(callback)
+        } catch (e: Exception) {
+            android.util.Log.w("MusicService", "Could not register network observer: ${e.message}")
+        }
+    }
+
+    private fun unregisterNetworkObserver() {
+        try {
+            val callback = networkCallback
+            if (callback != null) {
+                connectivityManager?.unregisterNetworkCallback(callback)
+            }
+        } catch (_: Exception) {}
+        networkCallback = null
+    }
+
+    private fun persistQueueState(state: com.mrtdk.liquid_glass.ui.screens.PlayerState?) {
+        // Guarda la canción actual para que al volver a la app (incluso si el
+        // proceso de UI murió) se restaure la NUEVA canción y no la anterior.
+        if (state == null) return
+        try {
+            com.mrtdk.liquid_glass.data.LibraryManager.saveLastPlayerState(state)
+        } catch (_: Exception) {}
+        // Cola persistente a disco (al estilo Echo-Music): si el proceso muere con
+        // el celular bloqueado, al volver se restaura la cola completa, no solo
+        // la canción actual. Réplica Echo: con posición y modos de reproducción.
+        try {
+            val pos = if (::activePlayer.isInitialized) {
+                try { activePlayer.currentPosition.coerceAtLeast(0L) } catch (_: Exception) { -1L }
+            } else -1L
+            val rep = if (::activePlayer.isInitialized) {
+                try { activePlayer.repeatMode } catch (_: Exception) { -1 }
+            } else -1
+            val shuf: Boolean? = if (::activePlayer.isInitialized) {
+                try { activePlayer.shuffleModeEnabled } catch (_: Exception) { null }
+            } else null
+            com.mrtdk.liquid_glass.playback.PlaybackQueue.saveQueueToDisk(pos, rep, shuf)
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Réplica Echo-Music: guardado periódico de la cola (30s siempre, 10s
+     * reproduciendo) para que cerrar la app reabra donde quedó, no al inicio.
+     */
+    private var queueAutosaveJob: Job? = null
+
+    private fun startQueueAutosave() {
+        queueAutosaveJob?.cancel()
+        queueAutosaveJob = serviceScope.launch {
+            var elapsed30 = 0L
+            var elapsed10 = 0L
+            while (isActive) {
+                delay(10_000L)
+                elapsed30 += 10_000L
+                elapsed10 += 10_000L
+                try {
+                    val current = com.mrtdk.liquid_glass.playback.PlaybackQueue.currentSong ?: continue
+                    val playing = ::activePlayer.isInitialized && try {
+                        activePlayer.isPlaying
+                    } catch (_: Exception) { false }
+                    if (elapsed30 >= 30_000L || (playing && elapsed10 >= 10_000L)) {
+                        if (elapsed30 >= 30_000L) elapsed30 = 0L
+                        if (playing) elapsed10 = 0L
+                        persistQueueState(current)
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
     private fun completeCrossfade(
         targetState: com.mrtdk.liquid_glass.ui.screens.PlayerState,
         isNaturalEnding: Boolean
@@ -334,7 +459,10 @@ class MusicService : MediaSessionService() {
         val targetKey = targetState.videoId ?: targetState.contentUri?.toString()
         val currentKey = currentQueueSong?.videoId ?: currentQueueSong?.contentUri?.toString()
         if (currentKey != targetKey) {
-            com.mrtdk.liquid_glass.playback.PlaybackQueue.getNextSongAndAdvance(activePlayer.repeatMode)
+            val advanced = com.mrtdk.liquid_glass.playback.PlaybackQueue.getNextSongAndAdvance(activePlayer.repeatMode)
+            persistQueueState(advanced ?: com.mrtdk.liquid_glass.playback.PlaybackQueue.currentSong)
+        } else {
+            persistQueueState(com.mrtdk.liquid_glass.playback.PlaybackQueue.currentSong)
         }
 
         updateMediaSessionPlayer()
@@ -355,16 +483,24 @@ class MusicService : MediaSessionService() {
 
     private fun startTrackEndMonitor() {
         trackEndMonitorJob?.cancel()
-        if (!com.mrtdk.liquid_glass.playback.PlaybackQueue.isAutomixEnabled) return
+        // Como Echo (preload AOT): el monitor corre siempre, no solo con automix.
+        // Sin automix solo precarga el standby (sin crossfade) para que el salto
+        // ENDED->siguiente sea instantáneo también bloqueado.
         trackEndMonitorJob = serviceScope.launch {
             while (isActive) {
-                delay(200L)
+                // 500ms en vez de 200ms: el crossfade tiene ventana de 400-600ms,
+                // sigue sin perder transiciones pero con 2.5x menos wakeups.
+                delay(500L)
                 if (!activePlayer.isPlaying || isCrossfading) continue
+                val isAutomix = com.mrtdk.liquid_glass.playback.PlaybackQueue.isAutomixEnabled
                 val dur = activePlayer.duration
                 val pos = activePlayer.currentPosition
                 val cfSec = com.mrtdk.liquid_glass.data.LibraryManager.getString("crossfade_duration", "5")?.toIntOrNull()?.coerceIn(1, 12) ?: 5
                 val cfDurationMs = cfSec * 1000L
-                val preloadThresholdMs = (cfDurationMs + 8000L).coerceAtLeast(14000L)
+                // Como Echo (prefetch AOT): precargar 30s antes del fin en vez de 8s.
+                // Bloqueado, Doze estira red/timers y 8s no bastan para resolver el
+                // standby; 30s da margen sin cambiar nada audible.
+                val preloadThresholdMs = (cfDurationMs + 30000L).coerceAtLeast(36000L)
 
                 if (dur > (cfDurationMs + 5000L) && pos > 0L) {
                     val remainingMs = dur - pos
@@ -380,8 +516,9 @@ class MusicService : MediaSessionService() {
                         }
                     }
 
-                    // 2. Trigger crossfade at dynamic threshold
-                    if (remainingMs in 100L..(cfDurationMs + 400L) && !isCrossfading) {
+                    // 2. Trigger crossfade at dynamic threshold (solo automix; sin
+                    // automix el standby ya precargado hace el salto instantáneo en ENDED).
+                    if (isAutomix && remainingMs in 100L..(cfDurationMs + 400L) && !isCrossfading) {
                         val nextSong = preloadedState ?: com.mrtdk.liquid_glass.playback.PlaybackQueue.peekNextSong(activePlayer.repeatMode)
                         if (nextSong != null) {
                             startCrossfadeTransition(
@@ -399,7 +536,7 @@ class MusicService : MediaSessionService() {
                             preloadNextSong(nextSong)
                         }
                     }
-                    if (remainingMs in 100L..4_000L && !isCrossfading) {
+                    if (isAutomix && remainingMs in 100L..4_000L && !isCrossfading) {
                         val nextSong = preloadedState ?: com.mrtdk.liquid_glass.playback.PlaybackQueue.peekNextSong(activePlayer.repeatMode)
                         if (nextSong != null) {
                             startCrossfadeTransition(
@@ -424,9 +561,8 @@ class MusicService : MediaSessionService() {
             activePlayer.setMediaItem(mediaItem)
             activePlayer.prepare()
             activePlayer.play()
-            if (automix) {
-                startTrackEndMonitor()
-            }
+            // Monitor siempre (precarga temprana estilo Echo), no solo automix.
+            startTrackEndMonitor()
         }
     }
 
@@ -509,13 +645,29 @@ class MusicService : MediaSessionService() {
         val isCorruption = isCacheOrStreamCorruptionError(error)
 
         val currentRetries = songRetryCounts.getOrDefault(mediaId, 0)
-        if (currentRetries >= 3) {
-            android.util.Log.e("MusicService", "Max retries (3) reached for $mediaId. Halting retry.")
+        if (currentRetries >= MAX_RETRY_COUNT || consecutivePlaybackErr > MAX_CONSECUTIVE_ERR) {
+            android.util.Log.w("MusicService", "Retry limit reached for $mediaId. Skipping to next song instead of stopping.")
+            songRetryCounts.remove(mediaId)
+            consecutivePlaybackErr = 0
+            waitingForNetwork = false
+            networkRetryJob?.cancel()
+            skipOnError()
+            return
+        }
+
+        // Sin red (típico con el celular bloqueado en Doze): no quemar reintentos,
+        // esperar con backoff y reintentar automáticamente al volver la red.
+        if (!isNetworkConnected) {
+            android.util.Log.d("MusicService", "No network for $mediaId, waiting for reconnection (retry #$currentRetries)")
+            waitingForNetwork = true
+            cancelIdleStop()
+            songRetryCounts[mediaId] = currentRetries + 1
+            scheduleNetworkRetry(targetPlayer, mediaId, currentRetries + 1)
             return
         }
 
         songRetryCounts[mediaId] = currentRetries + 1
-        android.util.Log.w("MusicService", "Recovering from error (http=$httpCode, is403=$is403, code=${error.errorCode}) for $mediaId, retry #${currentRetries + 1}/3")
+        android.util.Log.w("MusicService", "Recovering from error (http=$httpCode, is403=$is403, code=${error.errorCode}) for $mediaId, retry #${currentRetries + 1}/$MAX_RETRY_COUNT")
 
         com.mrtdk.liquid_glass.playback.MusicPlayer.clearCache(mediaId)
         com.echo.innertube.YouTubeExtractor.clearCache()
@@ -526,6 +678,8 @@ class MusicService : MediaSessionService() {
         val downloadUtil = com.mrtdk.liquid_glass.playback.DownloadUtil.getInstance(this@MusicService)
         val playerCache = downloadUtil.playerCache
 
+        // Backoff exponencial 3s -> 30s para no saturar la red intermitente en 2do plano
+        val backoffMs = minOf(3000L * (1 shl currentRetries.coerceAtMost(4)), 30000L)
         recoveryJob?.cancel()
         recoveryJob = serviceScope.launch(Dispatchers.IO) {
             try {
@@ -535,7 +689,7 @@ class MusicService : MediaSessionService() {
                 com.mrtdk.liquid_glass.utils.BotDetectionMitigator.notifyPlaybackFailure(YouTube.cookie != null, error.message)
                 com.mrtdk.liquid_glass.utils.BotDetectionMitigator.rotateGuestSession()
             }
-            delay(300)
+            delay(backoffMs)
             withContext(Dispatchers.Main) {
                 try {
                     targetPlayer.seekTo(currentIndex, currentPos)
@@ -549,6 +703,86 @@ class MusicService : MediaSessionService() {
         }
     }
 
+    /**
+     * Programa un reintento con backoff mientras no hay red. Si la red vuelve antes,
+     * el NetworkCallback dispara el reintento de inmediato ([onNetworkAvailable]).
+     */
+    private fun scheduleNetworkRetry(targetPlayer: ExoPlayer, mediaId: String, retryIndex: Int) {
+        if (retryIndex >= MAX_RETRY_COUNT) {
+            android.util.Log.w("MusicService", "Network retry limit reached for $mediaId. Skipping to next song.")
+            songRetryCounts.remove(mediaId)
+            consecutivePlaybackErr = 0
+            waitingForNetwork = false
+            skipOnError()
+            return
+        }
+        networkRetryJob?.cancel()
+        val backoffMs = minOf(3000L * (1 shl retryIndex.coerceAtMost(4)), 30000L)
+        networkRetryJob = serviceScope.launch {
+            delay(backoffMs)
+            if (!waitingForNetwork) return@launch
+            if (isNetworkConnected) {
+                waitingForNetwork = false
+                try {
+                    targetPlayer.seekTo(targetPlayer.currentMediaItemIndex, targetPlayer.currentPosition)
+                    targetPlayer.prepare()
+                    targetPlayer.play()
+                } catch (e: Exception) {
+                    android.util.Log.e("MusicService", "Network retry prepare failed for $mediaId", e)
+                }
+            } else {
+                // Sigue sin red: reagendar con el siguiente nivel de backoff
+                // (el contador sube hasta agotar MAX_RETRY_COUNT y saltar de canción).
+                songRetryCounts[mediaId] = (songRetryCounts[mediaId] ?: retryIndex) + 1
+                scheduleNetworkRetry(targetPlayer, mediaId, retryIndex + 1)
+            }
+        }
+    }
+
+    private fun onNetworkAvailable() {
+        isNetworkConnected = true
+        if (waitingForNetwork) {
+            android.util.Log.d("MusicService", "Network back, triggering pending retry")
+            waitingForNetwork = false
+            networkRetryJob?.cancel()
+            networkRetryJob = null
+            try {
+                if (::activePlayer.isInitialized) {
+                    activePlayer.seekTo(activePlayer.currentMediaItemIndex, activePlayer.currentPosition)
+                    activePlayer.prepare()
+                    activePlayer.play()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MusicService", "Reconnect retry failed", e)
+            }
+        }
+    }
+
+    /**
+     * Ante fallo definitivo: avanzar a la siguiente canción en vez de detener todo
+     * (igual que Echo-Music). Solo se pausa si ya no queda nada por reproducir.
+     */
+    private fun skipOnError() {
+        consecutivePlaybackErr += 2
+        try {
+            val next = com.mrtdk.liquid_glass.playback.PlaybackQueue.getNextSongAndAdvance(
+                if (::activePlayer.isInitialized) activePlayer.repeatMode
+                else androidx.media3.common.Player.REPEAT_MODE_OFF
+            )
+            if (next != null) {
+                consecutivePlaybackErr = 0
+                persistQueueState(next)
+                playSongState(next)
+            } else {
+                try {
+                    if (::activePlayer.isInitialized) activePlayer.pause()
+                } catch (_: Exception) {}
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MusicService", "skipOnError failed", e)
+        }
+    }
+
     private fun createPlayerListener(targetPlayer: ExoPlayer): Player.Listener {
         return object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -557,13 +791,17 @@ class MusicService : MediaSessionService() {
 
                 if (playbackState == Player.STATE_READY) {
                     songRetryCounts.clear()
+                    consecutivePlaybackErr = 0
+                    waitingForNetwork = false
+                    networkRetryJob?.cancel()
+                    networkRetryJob = null
                     applySoundCheckIfNeeded(targetPlayer.audioSessionId)
                     applyDolbyAtmosIfNeeded(targetPlayer.audioSessionId)
                     if (targetPlayer == activePlayer) {
                         triggerRadioRefillIfNeeded()
-                        if (com.mrtdk.liquid_glass.playback.PlaybackQueue.isAutomixEnabled) {
-                            startTrackEndMonitor()
-                        }
+                        // Monitor siempre para precarga temprana (Echo), el crossfade
+                        // interno ya se autogatea por isAutomixEnabled.
+                        startTrackEndMonitor()
                     }
                 }
 
@@ -574,6 +812,7 @@ class MusicService : MediaSessionService() {
                         }
                         val nextState = com.mrtdk.liquid_glass.playback.PlaybackQueue.getNextSongAndAdvance(activePlayer.repeatMode)
                         if (nextState != null) {
+                            persistQueueState(nextState)
                             playSongState(nextState)
                         } else {
                             // Si la cola se agotó pero el usuario tiene activado autoplay similar,
@@ -586,6 +825,7 @@ class MusicService : MediaSessionService() {
                                     radioRefillJob?.join()
                                     val recoveredNext = com.mrtdk.liquid_glass.playback.PlaybackQueue.getNextSongAndAdvance(activePlayer.repeatMode)
                                     if (recoveredNext != null) {
+                                        persistQueueState(recoveredNext)
                                         playSongState(recoveredNext)
                                     }
                                 }
@@ -598,7 +838,7 @@ class MusicService : MediaSessionService() {
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                 updateWakeLocks()
                 checkForegroundState()
-                if (playWhenReady && targetPlayer == activePlayer && com.mrtdk.liquid_glass.playback.PlaybackQueue.isAutomixEnabled) {
+                if (playWhenReady && targetPlayer == activePlayer) {
                     startTrackEndMonitor()
                 }
             }
@@ -657,8 +897,11 @@ class MusicService : MediaSessionService() {
 
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                15_000,
-                45_000,
+                // Echo usa 360s/360s; 30s/60s es muy justo bloqueado (el resolve del
+                // standby compite con Doze). 60s/120s: colchón para transiciones sin
+                // el coste de 6 min en RAM/red.
+                60_000,
+                120_000,
                 500,
                 1_000
             )
@@ -794,6 +1037,7 @@ class MusicService : MediaSessionService() {
             isCrossfading = false
             com.mrtdk.liquid_glass.playback.PlaybackQueue.isAutoMixing = false
         }
+        persistQueueState(nextState)
         playSongState(nextState)
     }
 
@@ -805,6 +1049,7 @@ class MusicService : MediaSessionService() {
         }
         val prevState = com.mrtdk.liquid_glass.playback.PlaybackQueue.getPreviousSongAndGoBack()
         if (prevState != null) {
+            persistQueueState(prevState)
             playSongState(prevState)
         } else {
             try { activePlayer.seekTo(0); activePlayer.play() } catch (_: Exception) {}
@@ -815,6 +1060,12 @@ class MusicService : MediaSessionService() {
         super.onCreate()
         
         com.mrtdk.liquid_glass.data.LibraryManager.init(applicationContext)
+        // Restaurar la cola persistente (Echo-Music): si el proceso murió con el
+        // celular bloqueado, la reproducción continúa donde quedó al volver.
+        try {
+            com.mrtdk.liquid_glass.playback.PlaybackQueue.restoreQueueFromDisk()
+        } catch (_: Exception) {}
+        registerNetworkObserver()
         com.mrtdk.liquid_glass.playback.PlaybackQueue.isAutomixEnabled =
             com.mrtdk.liquid_glass.data.LibraryManager.getString("automix_enabled", "false") == "true"
         com.mrtdk.liquid_glass.playback.eq.EqualizerService.init(applicationContext)
@@ -982,12 +1233,39 @@ class MusicService : MediaSessionService() {
                     CHANNEL_ID,
                     R.string.app_name
                 ).apply {
-                    setSmallIcon(R.drawable.ic_launcher_foreground)
+                    setSmallIcon(R.mipmap.ic_launcher_foreground)
                 }
             )
         } catch (e: Exception) {
             android.util.Log.e("MusicService", "Error setting media notification provider: ${e.message}")
         }
+
+        // Foreground inmediato (Echo-Music): el servicio nace en foreground para que
+        // el sistema no lo mate con el celular bloqueado, sin esperar al lazy promotion.
+        try {
+            promoteToStartedService()
+            ensureStartedAsForeground()
+        } catch (_: Exception) {}
+
+        // Réplica Echo-Music al reabrir: la cola restaurada entra al player en
+        // PAUSA en la posición guardada (playWhenReady=false + seekTo), con sus
+        // modos. Así la notificación y la UI muestran la canción lista para seguir.
+        try {
+            val restored = com.mrtdk.liquid_glass.playback.PlaybackQueue.currentSong
+            if (restored != null && (restored.videoId?.isNotBlank() == true || restored.contentUri != null)) {
+                activePlayer.repeatMode = com.mrtdk.liquid_glass.playback.PlaybackQueue.restoredRepeatMode
+                activePlayer.shuffleModeEnabled = com.mrtdk.liquid_glass.playback.PlaybackQueue.restoredShuffleMode
+                activePlayer.setMediaItem(buildMediaItem(restored))
+                activePlayer.prepare()
+                val pos = com.mrtdk.liquid_glass.playback.PlaybackQueue.restoredPositionMs
+                if (pos > 0L) {
+                    try { activePlayer.seekTo(pos) } catch (_: Exception) {}
+                }
+                activePlayer.playWhenReady = false
+            }
+        } catch (_: Exception) {}
+
+        startQueueAutosave()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -995,6 +1273,29 @@ class MusicService : MediaSessionService() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
+        // Réplica Echo: se guarda la cola+posición siempre (estuviera o no
+        // sonando) para que reabrir continúe donde quedó.
+        try {
+            persistQueueState(com.mrtdk.liquid_glass.playback.PlaybackQueue.currentSong)
+        } catch (_: Exception) {}
+        // Si se está reproduciendo (o cargando la siguiente canción en 2do plano),
+        // la música debe seguir: solo se asegura el foreground y NO se tocan los players.
+        // Antes esto detenía y limpiaba todo, y al avanzar de canción la UI/notificación
+        // se quedaba pegada con la carátula y el nombre de la canción anterior.
+        try {
+            val playingOrLoading = ::activePlayer.isInitialized && activePlayer.playWhenReady &&
+                    (activePlayer.isPlaying ||
+                            activePlayer.playbackState == Player.STATE_BUFFERING ||
+                            activePlayer.playbackState == Player.STATE_READY ||
+                            isCrossfading || isPreloading ||
+                            activeResolutions.get() > 0)
+            if (playingOrLoading) {
+                promoteToStartedService()
+                ensureStartedAsForeground()
+                super.onTaskRemoved(rootIntent)
+                return
+            }
+        } catch (_: Exception) {}
         try {
             if (::playerA.isInitialized) {
                 playerA.playWhenReady = false
@@ -1018,8 +1319,18 @@ class MusicService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        // Réplica Echo: último guardado antes de morir (cierre por swipe con
+        // música pausada, muerte del sistema, etc.).
+        try {
+            queueAutosaveJob?.cancel()
+            queueAutosaveJob = null
+            persistQueueState(com.mrtdk.liquid_glass.playback.PlaybackQueue.currentSong)
+        } catch (_: Exception) {}
         serviceJob.cancel()
         cancelIdleStop()
+        networkRetryJob?.cancel()
+        networkRetryJob = null
+        unregisterNetworkObserver()
         releaseLocks()
         if (::eqProcessorA.isInitialized) {
             com.mrtdk.liquid_glass.playback.eq.EqualizerService.removeAudioProcessor(eqProcessorA)
@@ -1069,9 +1380,14 @@ class MusicService : MediaSessionService() {
         try {
             if (wakeLock == null) {
                 val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RayMusic:PlaybackWakeLock")
+                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RayMusic:PlaybackWakeLock").apply {
+                    setReferenceCounted(false)
+                }
             }
             if (wakeLock?.isHeld == false) {
+                // Como Echo-Music: lock sin timeout, liberado explícitamente en
+                // releaseLocks(). Un timeout (p.ej. 10min ≈ 2-3 canciones) mataba la
+                // reproducción bloqueada al expirar en Doze sin poder renovarse.
                 wakeLock?.acquire()
                 android.util.Log.d("MusicService", "Acquired playback WakeLock")
             }
@@ -1082,7 +1398,12 @@ class MusicService : MediaSessionService() {
         try {
             if (wifiLock == null) {
                 val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
-                wifiLock = wifiManager.createWifiLock(android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF, "RayMusic:PlaybackWifiLock")
+                // Como Echo-Music: FULL_HIGH_PERF mantiene el chip Wi-Fi activo con
+                // latencia mínima en Doze. FULL permite ahorro (TWT) y corta los
+                // resolves entre canciones con el dispositivo bloqueado.
+                wifiLock = wifiManager.createWifiLock(android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF, "RayMusic:PlaybackWifiLock").apply {
+                    setReferenceCounted(false)
+                }
             }
             if (wifiLock?.isHeld == false) {
                 wifiLock?.acquire()
@@ -1116,12 +1437,23 @@ class MusicService : MediaSessionService() {
 
     private fun updateWakeLocks() {
         val isResolving = activeResolutions.get() > 0
-        val isPlayingA = ::playerA.isInitialized && playerA.playWhenReady &&
-                (playerA.playbackState == Player.STATE_BUFFERING || playerA.playbackState == Player.STATE_READY)
-        val isPlayingB = ::playerB.isInitialized && playerB.playWhenReady &&
-                (playerB.playbackState == Player.STATE_BUFFERING || playerB.playbackState == Player.STATE_READY)
-        val shouldHold = isResolving || isPlayingA || isPlayingB
-        
+        // Como Echo: no soltar locks en los huecos ENDED/IDLE entre canciones si hay
+        // cola, crossfade, preload o reintento en curso. Soltar ahí + Doze = stall.
+        val transitioning = isCrossfading || isPreloading ||
+                waitingForNetwork || networkRetryJob?.isActive == true || recoveryJob?.isActive == true
+        val hasPendingQueue = try {
+            com.mrtdk.liquid_glass.playback.PlaybackQueue.queue.isNotEmpty() ||
+                    com.mrtdk.liquid_glass.playback.PlaybackQueue.upNextSongs.isNotEmpty()
+        } catch (_: Exception) { false }
+        val isActiveA = ::playerA.isInitialized && playerA.playWhenReady &&
+                (playerA.playbackState == Player.STATE_BUFFERING || playerA.playbackState == Player.STATE_READY ||
+                        (playerA.playbackState == Player.STATE_ENDED && (playerA.playWhenReady || hasPendingQueue || transitioning)))
+        val isActiveB = ::playerB.isInitialized && playerB.playWhenReady &&
+                (playerB.playbackState == Player.STATE_BUFFERING || playerB.playbackState == Player.STATE_READY ||
+                        (playerB.playbackState == Player.STATE_ENDED && (playerB.playWhenReady || hasPendingQueue || transitioning)))
+        val shouldHold = isResolving || transitioning || isActiveA || isActiveB ||
+                (hasPendingQueue && (::playerA.isInitialized && playerA.playWhenReady || ::playerB.isInitialized && playerB.playWhenReady))
+
         if (shouldHold) {
             acquireLocks()
         } else {
@@ -1177,7 +1509,8 @@ class MusicService : MediaSessionService() {
             )
 
             NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                // Nuevo logo (R) en vez del vector antiguo de 3 barras.
+                .setSmallIcon(R.mipmap.ic_launcher_foreground)
                 .setContentTitle(getString(R.string.app_name))
                 .setContentText(getString(R.string.app_name))
                 .setContentIntent(contentIntent)
@@ -1230,6 +1563,15 @@ class MusicService : MediaSessionService() {
 
     private fun scheduleStopIfIdle() {
         if (hasBoundClients) return
+        // No apagarse mientras se espera red/reintento (celular bloqueado en Doze):
+        // hay una recuperación en curso.
+        if (waitingForNetwork || networkRetryJob?.isActive == true || recoveryJob?.isActive == true) {
+            cancelIdleStop()
+            return
+        }
+        // Con cola pendiente no apagar a los 30s: dar 30 min antes de soltar el servicio.
+        val hasPendingQueue = com.mrtdk.liquid_glass.playback.PlaybackQueue.queue.isNotEmpty() ||
+                com.mrtdk.liquid_glass.playback.PlaybackQueue.upNextSongs.isNotEmpty()
         val state = player.playbackState
         val keepAlive = player.isPlaying ||
                 (player.playWhenReady && (state == Player.STATE_BUFFERING || state == Player.STATE_READY))
@@ -1238,9 +1580,10 @@ class MusicService : MediaSessionService() {
             return
         }
 
-        val delayMs = when (state) {
-            Player.STATE_READY -> 5 * 60_000L
-            Player.STATE_ENDED, Player.STATE_IDLE -> 30_000L
+        val delayMs = when {
+            hasPendingQueue -> 30 * 60_000L
+            state == Player.STATE_READY -> 5 * 60_000L
+            state == Player.STATE_ENDED || state == Player.STATE_IDLE -> 30_000L
             else -> 60_000L
         }
 
@@ -1248,6 +1591,7 @@ class MusicService : MediaSessionService() {
         idleStopJob = serviceScope.launch {
             delay(delayMs)
             if (hasBoundClients) return@launch
+            if (waitingForNetwork || networkRetryJob?.isActive == true || recoveryJob?.isActive == true) return@launch
             val currentState = player.playbackState
             val shouldKeep = player.isPlaying ||
                     (player.playWhenReady && (currentState == Player.STATE_BUFFERING || currentState == Player.STATE_READY))
@@ -1257,9 +1601,26 @@ class MusicService : MediaSessionService() {
     }
 
     private fun checkForegroundState() {
+        // Mientras se espera red o hay reintento activo, mantener el foreground
+        // aunque el player esté momentáneamente en IDLE/ENDED.
+        if (waitingForNetwork || networkRetryJob?.isActive == true || recoveryJob?.isActive == true) {
+            promoteToStartedService()
+            ensureStartedAsForeground()
+            cancelIdleStop()
+            return
+        }
+        // Como Echo: nunca despromocionar entre canciones si hay cola o transición.
+        // El hueco ENDED->siguiente resolve es donde moría bloqueado.
+        val transitioning = isCrossfading || isPreloading || activeResolutions.get() > 0
+        val hasPendingQueue = try {
+            com.mrtdk.liquid_glass.playback.PlaybackQueue.queue.isNotEmpty() ||
+                    com.mrtdk.liquid_glass.playback.PlaybackQueue.upNextSongs.isNotEmpty()
+        } catch (_: Exception) { false }
         val state = player.playbackState
-        val shouldHold = player.playWhenReady &&
-                (state == Player.STATE_BUFFERING || state == Player.STATE_READY)
+        val shouldHold = (player.playWhenReady &&
+                (state == Player.STATE_BUFFERING || state == Player.STATE_READY)) ||
+                (transitioning && player.playWhenReady) ||
+                (state == Player.STATE_ENDED && (hasPendingQueue || transitioning) && player.playWhenReady)
 
         if (shouldHold) {
             promoteToStartedService()
@@ -1368,6 +1729,10 @@ class MusicService : MediaSessionService() {
         const val CHANNEL_ID = "music_channel_01"
         const val NOTIFICATION_ID = 888
         const val CHUNK_LENGTH = 512 * 1024L
+        // Igual que Echo-Music: hasta 10 reintentos con backoff ante fallos de red
+        // y salto de canción tras 5 errores consecutivos, en vez de detener todo.
+        const val MAX_RETRY_COUNT = 10
+        const val MAX_CONSECUTIVE_ERR = 5
         var updateAudioEffects: (() -> Unit)? = null
     }
 }

@@ -46,6 +46,7 @@ import com.echo.innertube.models.response.PlayerResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import android.util.Log
 
@@ -396,9 +397,10 @@ fun VideoPlayerScreen(
         }
     }
 
-    // Update position periodically
-    LaunchedEffect(isPlaying) {
-        while (true) {
+    // Update position periodically — cancelable y sin loops solapados.
+    // Misma UI, sin fugas: antes while(true) con key isPlaying creaba loops huérfanos.
+    LaunchedEffect(exoPlayer) {
+        while (isActive) {
             currentPosition = exoPlayer.currentPosition.coerceAtLeast(0L)
             duration = exoPlayer.duration.coerceAtLeast(0L)
             isPlaying = exoPlayer.isPlaying

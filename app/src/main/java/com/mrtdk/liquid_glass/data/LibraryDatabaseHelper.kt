@@ -217,7 +217,10 @@ class LibraryDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABA
     fun getSavedItems(): List<LibraryItem> {
         val items = mutableListOf<LibraryItem>()
         val db = this.readableDatabase
-        val selectQuery = "SELECT * FROM $TABLE_SAVED_ITEMS ORDER BY $KEY_TIMESTAMP DESC"
+        // Lo último guardado siempre primero. El desempate por rowid DESC garantiza
+        // un orden determinista incluso cuando varios guardados comparten milisegundo:
+        // re-guardar (REPLACE) renueva el rowid, así que lo más reciente queda arriba.
+        val selectQuery = "SELECT * FROM $TABLE_SAVED_ITEMS ORDER BY $KEY_TIMESTAMP DESC, rowid DESC"
         db.rawQuery(selectQuery, null).use { cursor ->
             if (cursor.moveToFirst()) {
                 val idIdx = cursor.getColumnIndex(KEY_ID)
@@ -250,23 +253,73 @@ class LibraryDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABA
         insertSavedItemDirect(db, item)
     }
 
-    fun insertSavedItems(items: List<LibraryItem>) {
+    /**
+     * Inserción masiva (p. ej. sync de Spotify). A diferencia del guardado manual,
+     * NO pisa el timestamp de canciones que ya existen (para no enterrar lo último
+     * que el usuario guardó a mano en cada arranque); solo refresca sus metadatos.
+     * Las canciones nuevas reciben timestamps escalonados [base - (offset+i)] para
+     * que el orden del lote (el primero = más reciente) quede determinista en el
+     * ORDER BY timestamp DESC incluso entre páginas de la misma sincronización.
+     *
+     * Además la base se capa al máximo preexistente: un sync posterior no puede
+     * quedar POR ENCIMA de un guardado manual (con timestamp más reciente), así
+     * la última canción que el usuario marcó como favorita sigue primera al
+     * abrir Favoritas aunque el sync de Spotify meta 500 likes nuevos debajo.
+     */
+    fun insertSavedItems(
+        items: List<LibraryItem>,
+        baseTimestamp: Long = System.currentTimeMillis(),
+        startOffset: Int = 0
+    ) {
         if (items.isEmpty()) return
         val db = this.writableDatabase
         db.beginTransaction()
         try {
-            val now = System.currentTimeMillis()
-            items.forEach { item ->
-                val values = ContentValues().apply {
-                    put(KEY_ID, item.id)
-                    put(KEY_TITLE, item.title)
-                    put(KEY_SUBTITLE, item.subtitle)
-                    put(KEY_THUMBNAIL, item.thumbnail)
-                    put(KEY_TYPE, item.type.name)
-                    put(KEY_ALBUM, item.album)
-                    put(KEY_TIMESTAMP, now)
+            val maxExisting = try {
+                db.rawQuery("SELECT MAX($KEY_TIMESTAMP) FROM $TABLE_SAVED_ITEMS", null).use { c ->
+                    if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else 0L
                 }
-                db.insertWithOnConflict(TABLE_SAVED_ITEMS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+            } catch (_: Exception) { 0L }
+            // -1ms para no empatar nunca con el tope actual (el desempate rowid
+            // pondría la fila del sync por encima al ser más nueva).
+            val effectiveBase = if (maxExisting > 0L) minOf(baseTimestamp, maxExisting) - 1L else baseTimestamp
+            val ids = items.map { it.id }
+            val existingIds = mutableSetOf<String>()
+            if (ids.isNotEmpty()) {
+                val placeholders = ids.joinToString(",") { "?" }
+                db.rawQuery(
+                    "SELECT $KEY_ID FROM $TABLE_SAVED_ITEMS WHERE $KEY_ID IN ($placeholders)",
+                    ids.toTypedArray()
+                ).use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        do {
+                            cursor.getString(0)?.let { existingIds.add(it) }
+                        } while (cursor.moveToNext())
+                    }
+                }
+            }
+            items.forEachIndexed { index, item ->
+                if (existingIds.contains(item.id)) {
+                    val values = ContentValues().apply {
+                        put(KEY_TITLE, item.title)
+                        put(KEY_SUBTITLE, item.subtitle)
+                        put(KEY_THUMBNAIL, item.thumbnail)
+                        put(KEY_TYPE, item.type.name)
+                        put(KEY_ALBUM, item.album)
+                    }
+                    db.update(TABLE_SAVED_ITEMS, values, "$KEY_ID = ?", arrayOf(item.id))
+                } else {
+                    val values = ContentValues().apply {
+                        put(KEY_ID, item.id)
+                        put(KEY_TITLE, item.title)
+                        put(KEY_SUBTITLE, item.subtitle)
+                        put(KEY_THUMBNAIL, item.thumbnail)
+                        put(KEY_TYPE, item.type.name)
+                        put(KEY_ALBUM, item.album)
+                        put(KEY_TIMESTAMP, effectiveBase - (startOffset + index))
+                    }
+                    db.insertWithOnConflict(TABLE_SAVED_ITEMS, null, values, SQLiteDatabase.CONFLICT_IGNORE)
+                }
             }
             db.setTransactionSuccessful()
         } finally {
@@ -274,7 +327,7 @@ class LibraryDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABA
         }
     }
 
-    fun insertSavedItemDirect(db: SQLiteDatabase, item: LibraryItem) {
+    fun insertSavedItemDirect(db: SQLiteDatabase, item: LibraryItem, timestamp: Long = System.currentTimeMillis()) {
         val values = ContentValues().apply {
             put(KEY_ID, item.id)
             put(KEY_TITLE, item.title)
@@ -282,7 +335,7 @@ class LibraryDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABA
             put(KEY_THUMBNAIL, item.thumbnail)
             put(KEY_TYPE, item.type.name)
             put(KEY_ALBUM, item.album)
-            put(KEY_TIMESTAMP, System.currentTimeMillis())
+            put(KEY_TIMESTAMP, timestamp)
         }
         db.insertWithOnConflict(TABLE_SAVED_ITEMS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }

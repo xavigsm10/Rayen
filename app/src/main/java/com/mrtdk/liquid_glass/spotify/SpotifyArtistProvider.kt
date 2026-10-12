@@ -96,16 +96,22 @@ fun SpotifyArtistAvatar(
         }
     }
 
-    // Never display YouTube Music photo for artists
-    val isYouTube = SpotifyArtistProvider.isYouTubeUrl(fallbackUrl)
-    val effectiveFallback = if (isYouTube) null else fallbackUrl
-    val displayUrl = artistThumbUrl ?: effectiveFallback
+    // Nunca gris primero: el fallback (aunque sea foto de YouTube) se muestra AL
+    // INSTANTE con 0 red extra —esa URL ya venía en los resultados— y al resolver
+    // el retrato Apple se funde encima. Solo gris si no hay ninguna URL.
+    // Optimizado: decode acotado a 480px (cubre el avatar mayor, 160dp@xxxhdpi),
+    // retrato Apple pedido a 600px en vez de 1000px (~3x menos red) y fundido
+    // corto para pintura inmediata.
+    val displayUrl = (artistThumbUrl ?: fallbackUrl)?.let { url ->
+        if (url.contains("1000x1000bb.jpg")) url.replace("1000x1000bb.jpg", "600x600bb.jpg") else url
+    }
 
     if (displayUrl != null) {
         AsyncImage(
             model = ImageRequest.Builder(context)
                 .data(displayUrl)
-                .crossfade(true)
+                .size(480)
+                .crossfade(120)
                 .build(),
             contentDescription = contentDescription,
             contentScale = contentScale,

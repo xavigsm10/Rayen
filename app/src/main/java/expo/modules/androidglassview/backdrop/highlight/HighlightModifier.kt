@@ -98,6 +98,12 @@ internal class HighlightNode(
 
     private var prevStyle: HighlightStyle? = null
 
+    // Caché: el highlight solo depende de tamaño + estilo. No regrabar cada frame.
+    private var lastSize: IntSize? = null
+    private var lastWidthPx: Float = -1f
+    private var lastAlpha: Float = -1f
+    private var lastStyle: HighlightStyle? = null
+
     override fun ContentDrawScope.draw() {
         val highlight = highlight()
         if (highlight == null || highlight.width.value <= 0f) {
@@ -130,14 +136,25 @@ internal class HighlightNode(
 
             highlightLayer.alpha = highlight.alpha
             highlightLayer.blendMode = highlight.style.blendMode
-            highlightLayer.record(safeSize) {
-                translate(1f, 1f) {
-                    val canvas = drawContext.canvas
-                    canvas.save()
-                    canvas.clipOutline(outline, clipPath)
-                    canvas.drawOutline(outline, paint)
-                    canvas.restore()
+            val widthPx = highlight.width.toPx()
+            val needsRecord = lastSize != safeSize ||
+                lastWidthPx != widthPx ||
+                lastAlpha != highlight.alpha ||
+                lastStyle != highlight.style
+            if (needsRecord) {
+                highlightLayer.record(safeSize) {
+                    translate(1f, 1f) {
+                        val canvas = drawContext.canvas
+                        canvas.save()
+                        canvas.clipOutline(outline, clipPath)
+                        canvas.drawOutline(outline, paint)
+                        canvas.restore()
+                    }
                 }
+                lastSize = safeSize
+                lastWidthPx = widthPx
+                lastAlpha = highlight.alpha
+                lastStyle = highlight.style
             }
 
             translate(-1f, -1f) {

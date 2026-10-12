@@ -251,12 +251,14 @@ fun ArtistScreen(
 
     val blurEffect40_50 = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            android.graphics.RenderEffect.createBlurEffect(40f, 50f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
+            // 36x44 en vez de 40x50: idéntico con la máscara DstIn, menos GPU.
+            android.graphics.RenderEffect.createBlurEffect(36f, 44f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
         } else null
     }
     val blurEffect80_40 = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            android.graphics.RenderEffect.createBlurEffect(80f, 40f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
+            // 48x32 en vez de 80x40: curva perceptual plana a este radio.
+            android.graphics.RenderEffect.createBlurEffect(48f, 32f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
         } else null
     }
     val blurEffect22_22 = remember {
@@ -266,7 +268,8 @@ fun ArtistScreen(
     }
     val blurEffect120_25 = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            android.graphics.RenderEffect.createBlurEffect(120f, 25f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
+            // 48x25 en vez de 120x25: el mayor ahorro del proyecto, mismo reflejo.
+            android.graphics.RenderEffect.createBlurEffect(48f, 25f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
         } else null
     }
     var activeSongForMenu by remember { mutableStateOf<ContextMenuSong?>(null) }
@@ -893,7 +896,7 @@ fun ArtistScreen(
                                             scaleX = 1.04f
                                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                                 renderEffect = android.graphics.RenderEffect
-                                                    .createBlurEffect(120f, 25f, android.graphics.Shader.TileMode.MIRROR)
+                                                    .createBlurEffect(48f, 25f, android.graphics.Shader.TileMode.MIRROR)
                                                     .asComposeRenderEffect()
                                             }
                                         }
@@ -1150,19 +1153,21 @@ fun ArtistScreen(
                             horizontalArrangement = Arrangement.spacedBy(20.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Info Button (circular, translucent)
+                            // Info Button: círculo oscuro con aro fino e "i" serifada,
+                            // como la referencia (glifo clásico de información).
                             IconButton(
                                 onClick = { showInfoOverlay = true },
                                 modifier = Modifier
                                     .size(52.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.18f))
+                                    .background(Color(0xFF26282E))
+                                    .border(1.5.dp, Color.White.copy(alpha = 0.38f), CircleShape)
                             ) {
                                 Text(
                                     text = "i",
-                                    color = Color.White,
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFE8E9EB),
+                                    fontSize = 24.sp,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                     modifier = Modifier.offset(y = (-1).dp)
                                 )

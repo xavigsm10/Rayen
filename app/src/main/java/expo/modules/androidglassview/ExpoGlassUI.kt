@@ -46,6 +46,7 @@ import expo.modules.androidglassview.backdrop.highlight.Highlight
 import expo.modules.androidglassview.backdrop.isRenderEffectSupported
 import expo.modules.androidglassview.backdrop.shadow.Shadow
 import expo.modules.androidglassview.components.InteractiveHighlight
+import com.mrtdk.liquid_glass.utils.PerformanceProfileManager
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -179,6 +180,9 @@ fun ExpoGlassPill(
     } else {
         val isDark = com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState().value
         val isLightTheme = !isDark
+        // Downscale del backdrop: 4-9x menos píxeles con blur>=8dp.
+        // Visualmente idéntico (el blur oculta el downscale), mucho menos GPU/batería.
+        val backdropScale = remember { PerformanceProfileManager.getOptimalBackdropScale() }
         val containerColor = if (resolvedTint.isSpecified) {
             resolvedTint
         } else if (isLightTheme) {
@@ -206,6 +210,7 @@ fun ExpoGlassPill(
                     },
                     highlight = { Highlight.Plain },
                     shadow = { Shadow(radius = 16.dp, color = Color.Black.copy(alpha = 0.25f)) },
+                    backdropScale = backdropScale,
                     layerBlock = if (isInteractive) {
                         {
                             val width = size.width
@@ -294,6 +299,7 @@ fun ExpoGlassMenuCard(
     } else {
         val isDark = com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState().value
         val isLightTheme = !isDark
+        val backdropScale = remember { PerformanceProfileManager.getOptimalBackdropScale() }
         val containerColor = if (resolvedTint.isSpecified) {
             resolvedTint
         } else if (isLightTheme) {
@@ -321,6 +327,7 @@ fun ExpoGlassMenuCard(
                     },
                     highlight = { Highlight.Plain },
                     shadow = { Shadow(radius = 16.dp, color = Color.Black.copy(alpha = 0.25f)) },
+                    backdropScale = backdropScale,
                     onDrawSurface = { drawRect(containerColor) }
                 ),
             content = content
@@ -378,6 +385,7 @@ fun GlassBoxScope.GlassBox(
     } else {
         val isDark = com.mrtdk.liquid_glass.ui.theme.ThemeManager.isDarkMode.collectAsState().value
         val isLightTheme = !isDark
+        val backdropScale = remember { PerformanceProfileManager.getOptimalBackdropScale() }
         val containerColor = if (resolvedTint.isSpecified) {
             resolvedTint
         } else if (isLightTheme) {
@@ -408,6 +416,7 @@ fun GlassBoxScope.GlassBox(
                         val shadowRadius = if (elevation > 0.dp) elevation else 16.dp
                         Shadow(radius = shadowRadius, color = Color.Black.copy(alpha = 0.25f))
                     },
+                    backdropScale = backdropScale,
                     onDrawSurface = { drawRect(containerColor) }
                 ),
             contentAlignment = contentAlignment,

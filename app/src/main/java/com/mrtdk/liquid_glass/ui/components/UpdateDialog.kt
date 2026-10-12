@@ -269,6 +269,55 @@ private fun UpdateDialogContent(
     }
 }
 
+private fun extractLocalizedChangelog(body: String, lang: String): String {
+    val langPatterns = listOf(
+        "es" to Regex("##\\s*(?:🇪🇸|Español)", RegexOption.IGNORE_CASE),
+        "en" to Regex("##\\s*(?:🇺🇸|English)", RegexOption.IGNORE_CASE),
+        "pt" to Regex("##\\s*(?:🇧🇷|Português|Portugues)", RegexOption.IGNORE_CASE),
+        "tr" to Regex("##\\s*(?:🇹🇷|Türkçe|Turkce)", RegexOption.IGNORE_CASE)
+    )
+
+    val hasAnyLang = langPatterns.any { it.second.containsMatchIn(body) }
+    if (!hasAnyLang) return body
+
+    val targetLang = if (lang in listOf("es", "en", "pt", "tr")) lang else "es"
+    val targetPattern = langPatterns.firstOrNull { it.first == targetLang }?.second ?: return body
+
+    val lines = body.lines()
+    var capturing = false
+    val captured = mutableListOf<String>()
+
+    for (i in lines.indices) {
+        val line = lines[i]
+        val trimmed = line.trim()
+
+        if (targetPattern.containsMatchIn(trimmed)) {
+            capturing = true
+            continue
+        } else if (capturing && langPatterns.any { it.second.containsMatchIn(trimmed) }) {
+            break
+        }
+
+        if (capturing) {
+            if (trimmed == "---") {
+                var nextIsLang = false
+                for (j in (i + 1) until lines.size) {
+                    val nextTrim = lines[j].trim()
+                    if (nextTrim.isNotEmpty()) {
+                        nextIsLang = langPatterns.any { it.second.containsMatchIn(nextTrim) }
+                        break
+                    }
+                }
+                if (nextIsLang) break
+            }
+            captured.add(line)
+        }
+    }
+
+    val res = captured.joinToString("\n").trim()
+    return if (res.isNotEmpty()) res else body
+}
+
 @Composable
 private fun UpdateInnerContent(
     context: android.content.Context,
@@ -353,7 +402,13 @@ private fun UpdateInnerContent(
                 
                 // Scrollable Changelog Section
                 val scrollState = rememberScrollState()
-                val bodyText = releaseInfo.body?.takeIf { it.isNotBlank() }
+                val currentLang = try {
+                    context.resources.configuration.locales[0].language.lowercase()
+                } catch (_: Exception) {
+                    java.util.Locale.getDefault().language.lowercase()
+                }
+                val rawBody = releaseInfo.body?.takeIf { it.isNotBlank() }
+                val bodyText = rawBody?.let { extractLocalizedChangelog(it, currentLang) }
                 
                 Box(
                     modifier = Modifier
@@ -385,7 +440,7 @@ private fun UpdateInnerContent(
                             .padding(horizontal = 14.dp, vertical = 12.dp)
                     ) {
                         Text(
-                            text = "Novedades de la versión:",
+                            text = stringResource(R.string.update_whats_new_title),
                             color = if (isDark) Color.White else Color(0xFF1C1C1E),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,

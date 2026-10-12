@@ -214,7 +214,7 @@ fun IPodContainer(
             list.add(
                 IPodMenuItem(
                     id = "queue_now_playing",
-                    title = "▶ ${playerState.title}",
+                    title = playerState.title,
                     subtitle = "Reproduciendo ahora • ${playerState.artist}",
                     hasSubmenu = false,
                     artworkUrl = playerState.artUrl?.toString(),
@@ -881,6 +881,30 @@ fun IPodContainer(
         }
     }
 
+    // Garantía de navegación total: si la lista encoge (canciones consumidas,
+    // refill, etc.) y el índice queda fuera de rango, el SELECT quedaría mudo.
+    // Se sujeta al rango válido en cada destino para poder llegar a TODAS.
+    LaunchedEffect(
+        currentDestination,
+        menuItems.size,
+        queueMenuItems.size,
+        viewCoverFlowCards.size,
+        albumCoverFlowCards.size,
+        songLyrics?.size
+    ) {
+        val total = when (currentDestination) {
+            is IPodScreenDestination.QueueScreen -> queueMenuItems.size
+            is IPodScreenDestination.CoverFlowViews -> viewCoverFlowCards.size
+            is IPodScreenDestination.CoverFlowAlbums -> albumCoverFlowCards.size
+            is IPodScreenDestination.LyricsScreen -> songLyrics?.size ?: 0
+            else -> menuItems.size
+        }
+        if (total > 0 && currentSelectedIndex !in 0 until total) {
+            currentSelectedIndex = currentSelectedIndex.coerceIn(0, total - 1)
+            selectionIndices[currentDestination.title] = currentSelectedIndex
+        }
+    }
+
     // Wheel Scroll handler
     val handleScroll: (Int) -> Unit = { steps ->
         when (currentDestination) {
@@ -1372,6 +1396,7 @@ fun IPodContainer(
                     colorStyle = chassisTheme.wheelColorStyle,
                     soundEnabled = ipodWheelSound,
                     hapticsEnabled = true,
+                    isPlaying = isPlaying,
                     onScroll = handleScroll,
                     onMenu = navigateBack,
                     onSelect = handleSelect,

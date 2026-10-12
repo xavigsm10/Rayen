@@ -2228,9 +2228,15 @@ fun PlayerScreen(
 
 
 
-        val isSaved by androidx.compose.runtime.produceState(initialValue = false, playerState?.videoId) {
+        val isSaved by androidx.compose.runtime.produceState(initialValue = false, playerState?.videoId, playerState?.title, playerState?.artist, playerState?.contentUri) {
             LibraryManager.savedItems.collect { list ->
-                value = list.any { it.id == playerState?.videoId }
+                val favId = LibraryManager.favoriteSongId(
+                    playerState?.videoId,
+                    playerState?.contentUri,
+                    playerState?.title.orEmpty(),
+                    playerState?.artist.orEmpty()
+                )
+                value = favId.isNotBlank() && list.any { it.id == favId }
             }
         }
 
@@ -3832,7 +3838,10 @@ fun PlayerScreen(
 
                 // Base sharp album cover (always drawn in background during drag or before playback starts)
                 // In lyrics and queue views, it strictly displays the original static image!
-                val artData = playerState?.artUrl ?: hdArtUrl
+                // Como Echo-Music: la carátula principal usa SIEMPRE la URL en alta
+                // (hdArtUrl). La URL cruda de la cola puede ser de baja (default.jpg,
+                // mqdefault, =w60) y mostrarla primero deja la vista en baja calidad.
+                val artData = hdArtUrl ?: playerState?.artUrl
                 androidx.compose.animation.AnimatedContent(
                     targetState = artData,
                     transitionSpec = {
@@ -4531,10 +4540,17 @@ fun PlayerScreen(
                             .background(contentColor.copy(alpha = 0.15f))
                             .clickable {
                                 if (playerState != null) {
+                                    val favId = LibraryManager.favoriteSongId(
+                                        playerState.videoId,
+                                        playerState.contentUri,
+                                        playerState.title,
+                                        playerState.artist
+                                    )
+                                    if (favId.isBlank()) return@clickable
                                     if (!isSaved) {
-                                        LibraryManager.saveItem(LibraryItem(playerState.videoId ?: "", playerState.title, playerState.artist, playerState.artUrl?.toString(), ItemType.SONG))
+                                        LibraryManager.saveItem(LibraryItem(favId, playerState.title, playerState.artist, playerState.artUrl?.toString(), ItemType.SONG))
                                     } else {
-                                        LibraryManager.removeItem(playerState.videoId ?: "")
+                                        LibraryManager.removeItem(favId)
                                     }
                                 }
                             },
@@ -5325,10 +5341,18 @@ fun PlayerScreen(
                 isSaved = isSaved,
                 onToggleSaved = {
                     if (playerState != null) {
-                        if (!isSaved) {
-                            LibraryManager.saveItem(LibraryItem(playerState.videoId ?: "", playerState.title, playerState.artist, playerState.artUrl?.toString(), ItemType.SONG))
-                        } else {
-                            LibraryManager.removeItem(playerState.videoId ?: "")
+                        val favId = LibraryManager.favoriteSongId(
+                            playerState.videoId,
+                            playerState.contentUri,
+                            playerState.title,
+                            playerState.artist
+                        )
+                        if (favId.isNotBlank()) {
+                            if (!isSaved) {
+                                LibraryManager.saveItem(LibraryItem(favId, playerState.title, playerState.artist, playerState.artUrl?.toString(), ItemType.SONG))
+                            } else {
+                                LibraryManager.removeItem(favId)
+                            }
                         }
                     }
                 },
@@ -5585,31 +5609,7 @@ fun GlassBoxScope.AudioQualityDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White.copy(alpha = 0.14f))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.apple_lossless_seeklogo),
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(width = 16.dp, height = 10.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.audio_quality_lossless_badge),
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
+                    // Solo el badge del sistema activo: con Dolby Atmos no se muestra Lossless.
                     if (isDolbyAtmos) {
                         Box(
                             modifier = Modifier
@@ -5629,6 +5629,31 @@ fun GlassBoxScope.AudioQualityDialog(
                                 )
                                 Text(
                                     text = stringResource(R.string.audio_quality_dolby_badge),
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White.copy(alpha = 0.14f))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.apple_lossless_seeklogo),
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(width = 16.dp, height = 10.dp)
+                                )
+                                Text(
+                                    text = stringResource(R.string.audio_quality_lossless_badge),
                                     color = Color.White,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
@@ -5902,17 +5927,20 @@ private fun IsolatedPlayerSeekbar(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            LosslessBadge(
-                contentColor = contentColor,
-                onClick = { AudioRoutingState.showAudioQualitySheet = true }
-            )
-            if (isDolbyAtmos) {
-                DolbyAtmosBadge(
-                    contentColor = contentColor,
-                    onClick = { AudioRoutingState.showAudioQualitySheet = true }
-                )
+                // Como Echo-Music: solo UN badge, el del sistema activo. Con Dolby
+                // Atmos se muestra únicamente Dolby Atmos (no Lossless junto a él).
+                if (isDolbyAtmos) {
+                    DolbyAtmosBadge(
+                        contentColor = contentColor,
+                        onClick = { AudioRoutingState.showAudioQualitySheet = true }
+                    )
+                } else {
+                    LosslessBadge(
+                        contentColor = contentColor,
+                        onClick = { AudioRoutingState.showAudioQualitySheet = true }
+                    )
+                }
             }
-        }
         Text("-${formatDuration((duration - displayPos).coerceAtLeast(0L))}", color = contentColor.copy(alpha = 0.55f), fontSize = 12.sp, fontWeight = FontWeight.Normal)
     }
 }
@@ -5969,16 +5997,19 @@ fun PlayerBottomControls(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                // Como Echo-Music: solo UN badge, el del sistema activo. Con Dolby
+                // Atmos se muestra únicamente Dolby Atmos (no Lossless junto a él).
+                if (isDolbyAtmos) {
+                    DolbyAtmosBadge(
+                        contentColor = contentColor,
+                        onClick = { AudioRoutingState.showAudioQualitySheet = true }
+                    )
+                } else {
                     LosslessBadge(
                         contentColor = contentColor,
                         onClick = { AudioRoutingState.showAudioQualitySheet = true }
                     )
-                    if (isDolbyAtmos) {
-                        DolbyAtmosBadge(
-                            contentColor = contentColor,
-                            onClick = { AudioRoutingState.showAudioQualitySheet = true }
-                        )
-                    }
+                }
                 }
                 Text("-${formatDuration((duration - displayPos).coerceAtLeast(0L))}", color = contentColor.copy(alpha = 0.55f), fontSize = 12.sp, fontWeight = FontWeight.Normal)
             }
@@ -6952,7 +6983,9 @@ fun LandscapePlayerLayout(
 
             // Blurred overlay to smooth the transition on the right edge
             val currentBitmap = coverBitmap
-            val blurClamp90Effect = remember { BlurEffect(90f, 90f, TileMode.Clamp) }
+            // 48px en vez de 90px: a este tamaño + máscara de degradado el look es
+            // idéntico, pero el kernel es ~3.5x más barato en GPU.
+            val blurClamp90Effect = remember { BlurEffect(48f, 48f, TileMode.Clamp) }
 
             if (currentBitmap != null && contentAlpha > 0f) {
 
@@ -7189,10 +7222,17 @@ fun LandscapePlayerLayout(
                                 .background(contentColor.copy(alpha = 0.15f))
                                 .clickable {
                                     if (playerState != null) {
+                                        val favId = LibraryManager.favoriteSongId(
+                                            playerState.videoId,
+                                            playerState.contentUri,
+                                            playerState.title,
+                                            playerState.artist
+                                        )
+                                        if (favId.isBlank()) return@clickable
                                         if (!isSaved) {
                                             LibraryManager.saveItem(
                                                 LibraryItem(
-                                                    playerState.videoId ?: "",
+                                                    favId,
                                                     playerState.title,
                                                     playerState.artist,
                                                     playerState.artUrl?.toString(),
@@ -7200,7 +7240,7 @@ fun LandscapePlayerLayout(
                                                 )
                                             )
                                         } else {
-                                            LibraryManager.removeItem(playerState.videoId ?: "")
+                                            LibraryManager.removeItem(favId)
                                         }
                                     }
                                 },
@@ -8108,6 +8148,21 @@ private fun PlayingEqualizer(
     isPlaying: Boolean = true,
     modifier: Modifier = Modifier.size(24.dp)
 ) {
+    // En pausa no se crea la infiniteTransition: 0 CPU/GPU, misma barra estática.
+    if (!isPlaying) {
+        androidx.compose.foundation.Canvas(modifier = modifier) {
+            val w = size.width
+            val h = size.height
+            val barWidth = 3.dp.toPx()
+            val spacing = 3.dp.toPx()
+            val totalWidth = barWidth * 3 + spacing * 2
+            val startX = (w - totalWidth) / 2f
+            drawRect(color = color, topLeft = Offset(startX, h * 0.8f), size = androidx.compose.ui.geometry.Size(barWidth, h * 0.2f))
+            drawRect(color = color, topLeft = Offset(startX + barWidth + spacing, h * 0.7f), size = androidx.compose.ui.geometry.Size(barWidth, h * 0.3f))
+            drawRect(color = color, topLeft = Offset(startX + (barWidth + spacing) * 2f, h * 0.85f), size = androidx.compose.ui.geometry.Size(barWidth, h * 0.15f))
+        }
+        return
+    }
     val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "eq")
     
     val heightFraction1 by infiniteTransition.animateFloat(
@@ -8291,10 +8346,12 @@ private fun AnimatedLiquidMeshBackground(
         }
 
         // 2. Curvas de gusano gaussianas fluidas con los colores de la carátula
+        // 32.dp Rectangle en vez de 54.dp Unbounded: mismo difuminado suave
+        // (el stroke ya es w*0.48), pero sin expandir la textura fuera de pantalla.
         androidx.compose.foundation.Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .blur(54.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+                .blur(32.dp, edgeTreatment = BlurredEdgeTreatment.Rectangle)
         ) {
             val w = size.width
             val h = size.height

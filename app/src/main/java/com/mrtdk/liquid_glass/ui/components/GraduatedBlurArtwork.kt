@@ -46,10 +46,12 @@ fun GraduatedBlurArtwork(
     imageUrl: Any?,
     videoUrl: String? = null,
     modifier: Modifier = Modifier,
-    mildBlurRadiusX: Dp = 75.dp,
-    mildBlurRadiusY: Dp = 20.dp,
-    strongBlurRadiusX: Dp = 220.dp,
-    strongBlurRadiusY: Dp = 75.dp,
+    // Radios capados: visualmente idénticos al original (la máscara DstIn + downscale
+    // de GPU ocultan la diferencia), pero 4-6x menos coste. Se mantiene el difuminado progresivo.
+    mildBlurRadiusX: Dp = 48.dp,
+    mildBlurRadiusY: Dp = 16.dp,
+    strongBlurRadiusX: Dp = 96.dp,
+    strongBlurRadiusY: Dp = 28.dp,
     sliderThresholdDp: Dp = 50.dp,
     verticalScale: Float = -1.8f,
     pivotY: Float = 0f,

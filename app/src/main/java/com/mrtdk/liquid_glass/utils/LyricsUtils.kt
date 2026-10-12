@@ -299,6 +299,13 @@ object LyricsUtils {
         Tokenizer()
     }
 
+    // Caché LRU: el karaoke llama a romanize por sílaba (cientos de tokenize Viterbi
+    // con diccionario ~15MB). Mismo romaji, de segundos a ms. No cambia apariencia.
+    private val romajiCache = object : LinkedHashMap<String, String>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > 80
+    }
+    private val romajiCacheLock = Any()
+
     fun parseLyrics(lyrics: String): List<LyricsEntry> =
         lyrics
             .lines()
@@ -385,6 +392,7 @@ object LyricsUtils {
     }
 
     suspend fun romanizeJapanese(text: String): String = withContext(Dispatchers.Default) {
+        synchronized(romajiCacheLock) { romajiCache[text]?.let { return@withContext it } }
         val tokens = kuromojiTokenizer.tokenize(text)
         val romanizedTokens = tokens.mapIndexed { index, token ->
             val currentReading = if (token.reading.isNullOrEmpty() || token.reading == "*") {
@@ -399,7 +407,9 @@ object LyricsUtils {
             }
             katakanaToRomaji(currentReading, nextTokenReading)
         }
-        romanizedTokens.joinToString(" ")
+        val result = romanizedTokens.joinToString(" ")
+        synchronized(romajiCacheLock) { romajiCache[text] = result }
+        result
     }
 
     fun katakanaToRomaji(katakana: String?, nextKatakana: String? = null): String {

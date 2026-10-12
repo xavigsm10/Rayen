@@ -1,8 +1,10 @@
 package com.mrtdk.liquid_glass.utils
 
+import android.content.Context
 import coil.intercept.Interceptor
+import coil.request.ImageRequest
 import coil.request.ImageResult
-import android.util.Log
+import coil.size.Size
 
 object CoilUtils {
     private val REGEX_MZSTATIC_1 = Regex("/\\d+x\\d+bb\\.[a-zA-Z0-9]+$")
@@ -66,8 +68,13 @@ object CoilUtils {
                        .replace("/maxresdefault.jpg", "/mqdefault.jpg")
                        .replace("/hqdefault.jpg", "/mqdefault.jpg")
                 } else {
+                    // hqdefault (480x360) existe siempre que exista mqdefault: una URL
+                    // atascada en mqdefault (320x180) se vería pixelada en la portada.
+                    // (No se usa maxresdefault/sddefault: no existen en todos los vídeos
+                    // y un 404 dejaría la carátula en negro.)
                     url.replace("/default.jpg", "/hqdefault.jpg")
                        .replace("/default.webp", "/hqdefault.jpg")
+                       .replace("/mqdefault.jpg", "/hqdefault.jpg")
                        .replace("/sddefault.jpg", "/hqdefault.jpg")
                        .replace("/sddefault.webp", "/hqdefault.jpg")
                 }
@@ -85,6 +92,32 @@ object CoilUtils {
         }
         
         return upgraded
+    }
+
+    /**
+     * Helper para listas/covers: decodifica al tamaño real en px en vez de full-res.
+     * Misma apariencia (el downscale lo oculta el ImageView), mucha menos RAM/GC en scroll.
+     * Usar: thumbSizePx(48.dp) en listas con crossfade=false, coverSizePx() en player.
+     */
+    fun thumbRequest(
+        context: Context,
+        url: String?,
+        sizePx: Int,
+        crossfade: Boolean = false,
+        allowHardware: Boolean = true,
+    ): ImageRequest {
+        val targetDim = when {
+            sizePx <= 180 -> 200
+            sizePx <= 320 -> 360
+            else -> 540
+        }
+        return ImageRequest.Builder(context)
+            .data(upgradeThumbQuality(url, targetDim))
+            .size(Size(sizePx, sizePx))
+            .crossfade(crossfade)
+            .allowHardware(allowHardware)
+            .memoryCacheKey((url ?: "null") + "@$sizePx")
+            .build()
     }
 
     class HdThumbnailInterceptor : Interceptor {

@@ -24,6 +24,7 @@
     <string name="language_dialog_title">Selecciona un idioma</string>
     <string name="cancelar">Cancelar</string>
     <string name="actualizacion_disponible">Actualización Disponible</string>
+    <string name="update_whats_new_title">Novedades de la versión:</string>
     <string name="playlists">Playlists</string>
     <string name="artistas">Artistas</string>
     <string name="albumes">Álbumes</string>
@@ -787,6 +788,12 @@
     <string name="romanizing_lyrics">Romanizando letra…</string>
     <string name="lyrics_translated_to">Traducida al %1$s</string>
     <string name="lyrics_romanized">Pronunciación romanizada</string>
+    <string name="translation_language">Idioma de traducción</string>
+    <string name="translation_language_description">El idioma al que el botón de traducir convierte la letra.</string>
+    <string name="translation_language_app_default">Idioma de la app</string>
+    <string name="translation_language_subtitle">Sigue el idioma de la app</string>
+    <string name="search_languages">Buscar idiomas</string>
+    <string name="no_languages_match">Sin coincidencias</string>
     <string name="show_original_lyrics">Mostrar letra original</string>
     <string name="translate_lyrics">Traducir letra</string>
     <string name="romanize_lyrics">Romanizar letra</string>

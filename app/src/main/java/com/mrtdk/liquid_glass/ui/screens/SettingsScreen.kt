@@ -15,6 +15,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -1631,6 +1633,22 @@ fun ContentSettingsScreen(onBack: () -> Unit) {
     var contentLanguage by remember { mutableStateOf(LibraryManager.getString("content_language", "system") ?: "system") }
     var contentCountry by remember { mutableStateOf(LibraryManager.getString("content_country", "system") ?: "system") }
     var suggestionRegion by remember { mutableStateOf(LibraryManager.getString("suggestion_region", "system") ?: "system") }
+    // Réplica de BitChord: idioma destino del botón de traducir ("", = sigue a la app).
+    val translationLang by LibraryManager.translationLanguage.collectAsState()
+    // Locale para localizar los nombres (el de la app, no el sistema crudo).
+    val translationAppLocale = remember(currentLang) {
+        if (currentLang.isNullOrBlank() || currentLang == "system" || currentLang == LocaleUtils.SYSTEM_DEFAULT) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                context.resources.configuration.locales[0] ?: java.util.Locale.getDefault()
+            } else {
+                @Suppress("DEPRECATION")
+                context.resources.configuration.locale ?: java.util.Locale.getDefault()
+            }
+        } else {
+            java.util.Locale.forLanguageTag(currentLang).takeUnless { it.language.isBlank() }
+                ?: java.util.Locale.getDefault()
+        }
+    }
 
     var hideExplicit by remember { mutableStateOf(LibraryManager.getString("hide_explicit", "false") == "true") }
     var hideVideoSongs by remember { mutableStateOf(LibraryManager.getString("hide_video_songs", "false") == "true") }
@@ -1639,6 +1657,7 @@ fun ContentSettingsScreen(onBack: () -> Unit) {
     var showLangDialog by remember { mutableStateOf(false) }
     var showCountryDialog by remember { mutableStateOf(false) }
     var showRegionDialog by remember { mutableStateOf(false) }
+    var showTranslationLangDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -1707,6 +1726,24 @@ fun ContentSettingsScreen(onBack: () -> Unit) {
                         title = { Text(stringResource(R.string.content_lang_title)) },
                         description = { Text(if (contentLanguage == "system") stringResource(R.string.predeterminado_sistema) else contentLanguage.uppercase()) },
                         onClick = { showCountryDialog = true }
+                    ),
+                    // Réplica de BitChord: a qué idioma traduce el botón de letras.
+                    Material3SettingsItem(
+                        icon = rememberPainter(Icons.Default.GTranslate),
+                        title = { Text(stringResource(R.string.translation_language)) },
+                        description = {
+                            Text(
+                                if (translationLang.isBlank()) {
+                                    stringResource(R.string.translation_language_subtitle)
+                                } else {
+                                    com.mrtdk.liquid_glass.data.lyrics.translationLanguageName(
+                                        translationLang,
+                                        translationAppLocale
+                                    )
+                                }
+                            )
+                        },
+                        onClick = { showTranslationLangDialog = true }
                     ),
                     Material3SettingsItem(
                         icon = rememberPainter(Icons.Default.Place),
@@ -1834,6 +1871,14 @@ fun ContentSettingsScreen(onBack: () -> Unit) {
                 contentLanguage = it
                 LibraryManager.saveString("content_language", it)
             }
+        )
+    }
+
+    // Réplica de BitChord: picker de idioma destino con buscador (133 idiomas).
+    if (showTranslationLangDialog) {
+        TranslationLanguageDialog(
+            appLocale = translationAppLocale,
+            onDismiss = { showTranslationLangDialog = false }
         )
     }
 
@@ -2083,7 +2128,7 @@ fun AboutSettingsScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // App Brand Logo (Real RayMusic launcher icon)
+            // App Brand Logo (icono del launcher: nuevo logo R)
             val appIconDrawable = remember(context) {
                 try {
                     context.packageManager.getApplicationIcon(context.packageName)
@@ -2094,7 +2139,7 @@ fun AboutSettingsScreen(
             if (appIconDrawable != null) {
                 coil.compose.AsyncImage(
                     model = appIconDrawable,
-                    contentDescription = "Logo RayMusic",
+                    contentDescription = "Logo Rayen",
                     modifier = Modifier
                         .size(96.dp)
                         .clip(RoundedCornerShape(24.dp))
@@ -2102,7 +2147,7 @@ fun AboutSettingsScreen(
             } else {
                 androidx.compose.foundation.Image(
                     painter = painterResource(id = R.drawable.splash_logo),
-                    contentDescription = "Logo RayMusic",
+                    contentDescription = "Logo Rayen",
                     modifier = Modifier
                         .size(96.dp)
                         .clip(RoundedCornerShape(24.dp))
@@ -2111,7 +2156,7 @@ fun AboutSettingsScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "RayMusic",
+                text = "Rayen",
                 color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
@@ -2241,6 +2286,144 @@ fun SingleChoiceDialog(
         containerColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.surfaceColor,
         shape = RoundedCornerShape(20.dp)
     )
+}
+
+/**
+ * Réplica de BitChord: qué idioma traduce el botón de letras.
+ * Primera fila = seguir al idioma de la app (valor ""); el resto, 133 idiomas
+ * con buscador (coincide por nombre localizado y por nombre inglés).
+ * Elegir aplica y cierra, igual que el picker de idioma de la app.
+ */
+@Composable
+private fun TranslationLanguageDialog(
+    appLocale: java.util.Locale,
+    onDismiss: () -> Unit
+) {
+    val selected by LibraryManager.translationLanguage.collectAsState()
+    var query by remember { mutableStateOf("") }
+    // Nombres resueltos una vez por locale (la lista es larga y el lookup no es gratis).
+    val named = remember(appLocale) {
+        com.mrtdk.liquid_glass.data.lyrics.TRANSLATION_LANGUAGES.map {
+            it to com.mrtdk.liquid_glass.data.lyrics.translationLanguageName(it.code, appLocale)
+        }
+    }
+    val shown = remember(named, query) {
+        val needle = query.trim()
+        if (needle.isEmpty()) {
+            named
+        } else {
+            named.filter { (language, name) ->
+                name.contains(needle, ignoreCase = true) ||
+                    language.fallbackName.contains(needle, ignoreCase = true)
+            }
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(R.string.translation_language), color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor, fontSize = 20.sp, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.translation_language_description),
+                    color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor.copy(alpha = 0.65f),
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text(stringResource(R.string.search_languages)) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 340.dp)) {
+                    // Solo con campo vacío: es el valor por defecto, no un idioma.
+                    if (query.isBlank()) {
+                        item {
+                            TranslationLanguageRow(
+                                label = stringResource(R.string.translation_language_app_default),
+                                detail = stringResource(R.string.translation_language_subtitle),
+                                selected = selected.isBlank(),
+                                onClick = {
+                                    LibraryManager.setTranslationLanguage("")
+                                    onDismiss()
+                                }
+                            )
+                        }
+                    }
+                    items(shown, key = { it.first.code }) { (language, name) ->
+                        TranslationLanguageRow(
+                            label = name,
+                            detail = language.fallbackName.takeIf { !it.equals(name, ignoreCase = true) }
+                                ?: language.code,
+                            selected = selected.equals(language.code, ignoreCase = true),
+                            onClick = {
+                                LibraryManager.setTranslationLanguage(language.code)
+                                onDismiss()
+                            }
+                        )
+                    }
+                    if (shown.isEmpty()) {
+                        item {
+                            Text(
+                                text = stringResource(R.string.no_languages_match),
+                                color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor.copy(alpha = 0.6f),
+                                fontSize = 14.sp,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancelar), color = ThemeManager.accentColor)
+            }
+        },
+        containerColor = com.mrtdk.liquid_glass.ui.theme.ThemeManager.surfaceColor,
+        shape = RoundedCornerShape(20.dp)
+    )
+}
+
+@Composable
+private fun TranslationLanguageRow(
+    label: String,
+    detail: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(selectedColor = ThemeManager.accentColor, unselectedColor = Color.Gray)
+        )
+        Column(modifier = Modifier.padding(start = 12.dp)) {
+            Text(
+                text = label,
+                color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor,
+                fontSize = 16.sp,
+                maxLines = 1
+            )
+            Text(
+                text = detail,
+                color = com.mrtdk.liquid_glass.ui.theme.ThemeManager.textColor.copy(alpha = 0.55f),
+                fontSize = 12.sp,
+                maxLines = 1
+            )
+        }
+    }
 }
 
 @Composable

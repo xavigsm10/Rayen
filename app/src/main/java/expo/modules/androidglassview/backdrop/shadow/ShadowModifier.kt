@@ -90,8 +90,17 @@ internal class ShadowNode(
 
     private val paint = Paint()
 
+    // Caché: evita re-grabar la sombra en cada draw si nada cambió.
+    // Misma apariencia, 0 trabajo en reposo/scroll de otros nodos.
+    private var lastRecordedSize: IntSize? = null
+    private var lastRadiusPx: Float = -1f
+    private var lastColor: androidx.compose.ui.graphics.Color? = null
+    private var lastAlpha: Float = -1f
+
     override fun ContentDrawScope.draw() {
         val shadow = shadow() ?: return drawContent()
+        // Sin alpha no hay nada que dibujar: ahorra offscreen completo.
+        if (shadow.alpha <= 0.01f) return drawContent()
 
         val shadowLayer = shadowLayer
         if (shadowLayer != null) {
@@ -112,14 +121,24 @@ internal class ShadowNode(
 
             shadowLayer.alpha = shadow.alpha
             shadowLayer.blendMode = shadow.blendMode
-            shadowLayer.record(shadowSize) {
-                translate(radius * 2f + offsetX, radius * 2f + offsetY) {
-                    val canvas = drawContext.canvas
-                    canvas.drawOutline(outline, paint)
-                    canvas.translate(-offsetX, -offsetY)
-                    canvas.drawOutline(outline, ShadowMaskPaint)
-                    canvas.translate(offsetX, offsetY)
+            val needsRecord = lastRecordedSize != shadowSize ||
+                lastRadiusPx != radius ||
+                lastColor != shadow.color ||
+                lastAlpha != shadow.alpha
+            if (needsRecord) {
+                shadowLayer.record(shadowSize) {
+                    translate(radius * 2f + offsetX, radius * 2f + offsetY) {
+                        val canvas = drawContext.canvas
+                        canvas.drawOutline(outline, paint)
+                        canvas.translate(-offsetX, -offsetY)
+                        canvas.drawOutline(outline, ShadowMaskPaint)
+                        canvas.translate(offsetX, offsetY)
+                    }
                 }
+                lastRecordedSize = shadowSize
+                lastRadiusPx = radius
+                lastColor = shadow.color
+                lastAlpha = shadow.alpha
             }
 
             translate(-radius * 2f, -radius * 2f) {

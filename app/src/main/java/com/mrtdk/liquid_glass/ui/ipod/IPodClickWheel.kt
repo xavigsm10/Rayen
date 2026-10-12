@@ -13,6 +13,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -126,6 +132,7 @@ fun IPodClickWheel(
     colorStyle: String = "silver",
     soundEnabled: Boolean = true,
     hapticsEnabled: Boolean = true,
+    isPlaying: Boolean = false,
     onScroll: (steps: Int) -> Unit,
     onMenu: () -> Unit,
     onSelect: () -> Unit,
@@ -332,48 +339,46 @@ fun IPodClickWheel(
                 )
             }
 
-            // Bottom: PLAY / PAUSE (▶❚❚)
+            // Bottom: PLAY / PAUSE (icono vectorial; antes glifos de texto que en
+            // algunas fuentes se renderizan como emoji).
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 18.dp)
             ) {
-                Text(
-                    text = "▶❚❚",
-                    color = palette.iconColor,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.SansSerif
+                Icon(
+                    imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = null,
+                    tint = palette.iconColor,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
-            // Left: PREV (|◀◀)
+            // Left: PREV (icono vectorial).
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .padding(start = 18.dp)
             ) {
-                Text(
-                    text = "|◀◀",
-                    color = palette.iconColor,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.SansSerif
+                Icon(
+                    imageVector = Icons.Filled.SkipPrevious,
+                    contentDescription = null,
+                    tint = palette.iconColor,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
-            // Right: NEXT (▶▶|)
+            // Right: NEXT (icono vectorial).
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .padding(end = 18.dp)
             ) {
-                Text(
-                    text = "▶▶|",
-                    color = palette.iconColor,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.SansSerif
+                Icon(
+                    imageVector = Icons.Filled.SkipNext,
+                    contentDescription = null,
+                    tint = palette.iconColor,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }

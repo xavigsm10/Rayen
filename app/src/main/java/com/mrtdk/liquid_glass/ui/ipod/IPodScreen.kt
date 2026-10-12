@@ -36,6 +36,8 @@ import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Person
@@ -286,26 +288,17 @@ fun IPodStatusBar(
             .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Left: Play / Pause indicator
+        // Left: Play / Pause indicator (iconos vectoriales, sin glifos de texto).
         Row(
             modifier = Modifier.align(Alignment.CenterStart),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isPlaying) {
-                Text(
-                    text = "▶",
-                    fontSize = 11.sp,
-                    color = Color(0xFF22262B),
-                    fontWeight = FontWeight.Bold
-                )
-            } else {
-                Text(
-                    text = "❚❚",
-                    fontSize = 10.sp,
-                    color = Color(0xFF4A505A),
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Icon(
+                imageVector = if (isPlaying) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
+                contentDescription = null,
+                tint = if (isPlaying) Color(0xFF22262B) else Color(0xFF4A505A),
+                modifier = Modifier.size(14.dp)
+            )
         }
 
         // Center: Section Title
@@ -778,7 +771,7 @@ fun IPodNowPlayingView(
                 if (isScrubbingMode) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "● MODO DESPLAZAMIENTO",
+                        text = "MODO DESPLAZAMIENTO",
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0F72EC)

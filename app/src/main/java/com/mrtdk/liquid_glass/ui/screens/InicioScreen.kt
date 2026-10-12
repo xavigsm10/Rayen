@@ -2709,7 +2709,8 @@ private fun FeaturedSuggestionCard(
             }
             val blurEffect70_32 = remember {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                    android.graphics.RenderEffect.createBlurEffect(70f, 32f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
+                    // 42x28 en vez de 70x32: mismo reflejo con máscara, ~2.5x menos GPU.
+                    android.graphics.RenderEffect.createBlurEffect(42f, 28f, android.graphics.Shader.TileMode.MIRROR).asComposeRenderEffect()
                 } else null
             }
 

@@ -101,6 +101,11 @@ object LibraryManager {
     private val _ipodWheelSound = MutableStateFlow(true)
     val ipodWheelSound: StateFlow<Boolean> = _ipodWheelSound
 
+    // Idioma destino del botón de traducir letras (réplica de BitChord):
+    // "" = sigue al idioma de la app; cualquier código viaja intacto al endpoint.
+    private val _translationLanguage = MutableStateFlow("")
+    val translationLanguage: StateFlow<String> = _translationLanguage
+
 
     private fun parseItemType(value: String): ItemType? {
         return try {
@@ -147,7 +152,10 @@ object LibraryManager {
         _isIpodMode.value = isIpodMode()
         _ipodColorStyle.value = getIpodColorStyle()
         _ipodWheelSound.value = isIpodWheelSound()
-
+        _translationLanguage.value = getTranslationLanguage()
+        // Limpieza única de la fila fantasma "" (guardados antiguos sin id):
+        // un delete por PK indexada, coste despreciable en arranque.
+        try { dbHelper.deleteSavedItem("") } catch (_: Exception) {}
 
         val initialPinned = mutableSetOf<String>()
         try {
@@ -198,6 +206,9 @@ object LibraryManager {
             dbHelper.writableDatabase.use { db ->
                 db.beginTransaction()
                 try {
+                    // Base única para que los items migrados tengan timestamps
+                    // distintos y deterministas (evita empates en el mismo ms).
+                    val migrationBase = System.currentTimeMillis() - 1_000_000L
                     // 1. Migrate saved items
                     val saved = prefs.getString("saved_items", "") ?: ""
                     if (saved.isNotEmpty()) {
@@ -216,8 +227,11 @@ object LibraryManager {
                                 )
                             } else null
                         }
-                        for (item in items) {
-                            dbHelper.insertSavedItemDirect(db, item)
+                        for ((index, item) in items.withIndex()) {
+                            // Timestamps crecientes según el orden almacenado (el último
+                            // de la lista era el más reciente) para que el ORDER BY
+                            // timestamp DESC muestre lo último guardado primero.
+                            dbHelper.insertSavedItemDirect(db, item, migrationBase + index)
                         }
                     }
 
@@ -366,6 +380,14 @@ object LibraryManager {
 
     fun saveItem(item: LibraryItem) {
         if (!isInitialized) return
+        // Defensa: un id en blanco ("") colisionaría en una sola fila fantasma donde
+        // solo sobreviviría la última guardada y el corazón nunca la reflejaría.
+        // Se limpia la fantasma si existe y no se crea otra.
+        if (item.id.isBlank()) {
+            try { dbHelper.deleteSavedItem("") } catch (_: Exception) {}
+            _savedItems.value = dbHelper.getSavedItems()
+            return
+        }
         dbHelper.insertSavedItem(item)
         _savedItems.value = dbHelper.getSavedItems()
     }
@@ -420,8 +442,24 @@ object LibraryManager {
 
     fun removeItem(id: String) {
         if (!isInitialized) return
+        if (id.isBlank()) return
         dbHelper.deleteSavedItem(id)
         _savedItems.value = dbHelper.getSavedItems()
+    }
+
+    /**
+     * Id estable para favoritos de canciones. El videoId manda; sin él (locales,
+     * radio, estados restaurados) se deriva del contentUri o de título+artista
+     * para que cada canción tenga SU fila y la última guardada no pise a otras.
+     * Devuelve "" solo si no hay nada con lo que identificar (no guardar).
+     */
+    fun favoriteSongId(videoId: String?, contentUri: android.net.Uri?, title: String, artist: String): String {
+        if (!videoId.isNullOrBlank()) return videoId
+        if (contentUri != null) return "local:$contentUri"
+        val t = title.trim()
+        val a = artist.trim()
+        if (t.isNotEmpty() || a.isNotEmpty()) return "manual:$t||$a"
+        return ""
     }
 
     fun addRecentlyPlayed(item: LibraryItem) {
@@ -579,6 +617,11 @@ object LibraryManager {
 
             if (playlistId == "spotify_liked_songs") {
                 val previousItemsCount = _playlists.value.find { it.id == playlistId }?.items?.size ?: 0
+                // Base única para toda la sincronización: los tracks nuevos reciben
+                // timestamps escalonados (primera página = más reciente) y los que ya
+                // existen conservan su timestamp (no se entierra lo guardado a mano).
+                val fetchBaseTimestamp = System.currentTimeMillis()
+                var fetchGlobalOffset = 0
                 var offset = 0
                 val limit = 50
                 var consecutiveErrors = 0
@@ -607,7 +650,8 @@ object LibraryManager {
                         )
                     }
                     allItems.addAll(batchItems)
-                    dbHelper.insertSavedItems(batchItems)
+                    dbHelper.insertSavedItems(batchItems, fetchBaseTimestamp, fetchGlobalOffset)
+                    fetchGlobalOffset += batchItems.size
 
                     val isFirstPage = (offset == 0 && previousItemsCount == 0)
                     val isDone = (page.size < limit)
@@ -743,6 +787,23 @@ object LibraryManager {
             init(context)
         }
         dbHelper.saveSetting("app_language", lang)
+    }
+
+    /** "" restaura "seguir al idioma de la app" (réplica de BitChord). */
+    fun getTranslationLanguage(): String {
+        if (isInitialized) return _translationLanguage.value
+        return try {
+            dbHelper.getSetting("translation_language", null)
+                ?: try { prefs.getString("translation_language", null) } catch (_: Exception) { null }
+                ?: ""
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    fun setTranslationLanguage(value: String) {
+        _translationLanguage.value = value
+        saveString("translation_language", value)
     }
 
     fun saveString(key: String, value: String?) {

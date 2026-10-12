@@ -48,7 +48,8 @@ object PerformanceProfileManager {
         lyricsBlurEnabled = true,
         maxThumbnailSizeDp = 200,
         maxCoverArtSizeDp = 600,
-        reflectionBlurRadius = 55f,
+        // Capado: a partir de ~36px la curva perceptual se aplana; mismo look, mitad de GPU.
+        reflectionBlurRadius = 36f,
         reflectionMeshSize = 8,
         maxHistorySize = 80,
         motionCoverIntervalMs = 160L
@@ -61,7 +62,8 @@ object PerformanceProfileManager {
         lyricsBlurEnabled = true,
         maxThumbnailSizeDp = 280,
         maxCoverArtSizeDp = 900,
-        reflectionBlurRadius = 95f,
+        // Capado: 48px equivale visualmente a 95px con el downscale + DstIn, 4x menos coste.
+        reflectionBlurRadius = 48f,
         reflectionMeshSize = 12,
         maxHistorySize = 150,
         motionCoverIntervalMs = 90L
