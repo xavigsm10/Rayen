@@ -101,7 +101,7 @@ object LibraryManager {
     private val _ipodWheelSound = MutableStateFlow(true)
     val ipodWheelSound: StateFlow<Boolean> = _ipodWheelSound
 
-    // Idioma destino del botón de traducir letras (réplica de BitChord):
+    // Idioma destino del botón de traducir letras:
     // "" = sigue al idioma de la app; cualquier código viaja intacto al endpoint.
     private val _translationLanguage = MutableStateFlow("")
     val translationLanguage: StateFlow<String> = _translationLanguage
@@ -317,6 +317,7 @@ object LibraryManager {
                         "player_artwork_style",
                         "full_artwork_backdrop_style",
                         "audio_quality",
+                        "download_quality",
                         "last_player_state",
                         "cache_featured_suggestions",
                         "cache_quick_picks",
@@ -789,7 +790,7 @@ object LibraryManager {
         dbHelper.saveSetting("app_language", lang)
     }
 
-    /** "" restaura "seguir al idioma de la app" (réplica de BitChord). */
+    /** "" restaura "seguir al idioma de la app". */
     fun getTranslationLanguage(): String {
         if (isInitialized) return _translationLanguage.value
         return try {

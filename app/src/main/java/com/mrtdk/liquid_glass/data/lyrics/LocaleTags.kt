@@ -3,7 +3,7 @@ package com.mrtdk.liquid_glass.data.lyrics
 import java.util.Locale
 
 /**
- * Punto único que conoce zh-Hant / zh-Hans (réplica de BitChord).
+ * Punto único que conoce zh-Hant / zh-Hans.
  *
  * La app guarda y compara tags completos con script ("zh-Hant", "zh-Hans").
  * Cada servicio recibe el dialecto que entiende: YouTube / Google Translate
@@ -79,7 +79,7 @@ object LocaleTags {
         tag.trim().replace('_', '-').lowercase(Locale.ROOT).startsWith("zh")
 
     /**
-     * Idioma destino del botón de traducir (réplica de BitChord):
+     * Idioma destino del botón de traducir:
      * 1. Elección explícita del usuario ([stored]) viaja intacta.
      * 2. Si está en blanco, sigue al idioma de la app ([appLanguage]).
      * 3. El chino mapea a región wire; el resto a idioma base, "en" de fallback.

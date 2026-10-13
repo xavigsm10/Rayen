@@ -1,6 +1,6 @@
 [versions]
 agp = "8.12.3"
-kotlin = "2.2.21"
+kotlin = "2.4.10"
 coreKtx = "1.16.0"
 lifecycleRuntimeKtx = "2.9.1"
 activityCompose = "1.10.1"
@@ -13,10 +13,15 @@ vlcj = "4.12.1"
 haze = "0.7.3"
 newpipeextractor = "v0.25.2"
 rhino = "1.9.1"
+ktor = "3.6.0"
 
 [libraries]
 newpipeextractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version.ref = "newpipeextractor" }
 rhino = { module = "org.mozilla:rhino", version.ref = "rhino" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -44,4 +49,5 @@ kmp = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin"}
 android-kmp-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 vanniktech-publishing = { id = "com.vanniktech.maven.publish", version.ref = "vanniktechPublishing"}
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
+
 

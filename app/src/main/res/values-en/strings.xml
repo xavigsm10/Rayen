@@ -1,4 +1,4 @@
-<resources>
+﻿<resources>
     <string name="app_name">Rayen</string>
     <string name="sync_lyrics">Resume auto-scroll</string>
     <string name="nav_inicio">Home</string>
@@ -355,6 +355,7 @@
     <string name="lyrics_statusbar_desc">Hides the system status bar when opening the player</string>
 
     <string name="player_quality_title">Audio Quality</string>
+    <string name="player_download_quality_title">Download quality</string>
     <string name="player_quality_auto">Lossless (Opus 48 kHz - Recommended)</string>
     <string name="player_quality_low">Low (Data Saver)</string>
     <string name="player_quality_high">High Quality (AAC 128 kbps)</string>
@@ -803,4 +804,5 @@
     <string name="no_lyrics_found">No lyrics found</string>
     <string name="lyrics_saved_with_download">Lyrics saved with this download</string>
 </resources>
+
 

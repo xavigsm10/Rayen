@@ -776,7 +776,27 @@ fun PlayerSettingsScreen(
     onOpenEqualizer: () -> Unit
 ) {
     val scrollState = rememberScrollState()
-    var audioQuality by remember { mutableStateOf(LibraryManager.getString("audio_quality", "auto") ?: "auto") }
+    var streamingQuality by remember {
+        mutableStateOf(
+            com.mrtdk.liquid_glass.data.audio.AudioQuality.fromStoredString(
+                LibraryManager.getString(
+                    com.mrtdk.liquid_glass.data.audio.AudioQuality.STREAMING_KEY,
+                    com.mrtdk.liquid_glass.data.audio.AudioQuality.DEFAULT_STREAMING.toString()
+                )
+            )
+        )
+    }
+    var downloadQuality by remember {
+        mutableStateOf(
+            com.mrtdk.liquid_glass.data.audio.AudioQuality.fromStoredString(
+                LibraryManager.getString(
+                    com.mrtdk.liquid_glass.data.audio.AudioQuality.DOWNLOAD_KEY,
+                    com.mrtdk.liquid_glass.data.audio.AudioQuality.DEFAULT_DOWNLOAD.toString()
+                ),
+                com.mrtdk.liquid_glass.data.audio.AudioQuality.DEFAULT_DOWNLOAD
+            )
+        )
+    }
     var autoplaySimilar by remember { mutableStateOf(LibraryManager.getString("autoplay_similar", "true") == "true") }
     var autoDownloadOnLike by remember { mutableStateOf(LibraryManager.getString("auto_download_on_like", "false") == "true") }
     var persistentQueue by remember { mutableStateOf(LibraryManager.getString("persistent_queue", "true") == "true") }
@@ -792,6 +812,7 @@ fun PlayerSettingsScreen(
     var showSleepTimerDialog by remember { mutableStateOf(false) }
 
     var showQualityDialog by remember { mutableStateOf(false) }
+    var showDownloadQualityDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -835,14 +856,22 @@ fun PlayerSettingsScreen(
                         title = { Text(stringResource(R.string.player_quality_title)) },
                         description = {
                             Text(
-                                when (audioQuality) {
-                                    "low" -> stringResource(R.string.player_quality_low_desc)
-                                    "high" -> stringResource(R.string.player_quality_high_desc)
-                                    else -> stringResource(R.string.player_quality_auto)
-                                }
+                                com.mrtdk.liquid_glass.data.audio.AudioQuality.shortLabel(streamingQuality) +
+                                    " • " + com.mrtdk.liquid_glass.data.audio.AudioQuality.badgeFor(streamingQuality)
                             )
                         },
                         onClick = { showQualityDialog = true }
+                    ),
+                    Material3SettingsItem(
+                        icon = rememberPainter(Icons.Default.DownloadForOffline),
+                        title = { Text(stringResource(R.string.player_download_quality_title)) },
+                        description = {
+                            Text(
+                                com.mrtdk.liquid_glass.data.audio.AudioQuality.shortLabel(downloadQuality) +
+                                    " • " + com.mrtdk.liquid_glass.data.audio.AudioQuality.badgeFor(downloadQuality)
+                            )
+                        },
+                        onClick = { showDownloadQualityDialog = true }
                     ),
                     Material3SettingsItem(
                         icon = rememberPainter(Icons.Default.Equalizer),
@@ -1090,18 +1119,45 @@ fun PlayerSettingsScreen(
     }
 
     if (showQualityDialog) {
+        val tiers = com.mrtdk.liquid_glass.data.audio.AudioQuality.TIERS
         SingleChoiceDialog(
             title = stringResource(R.string.player_quality_title),
-            options = listOf(
-                "auto" to stringResource(R.string.player_quality_auto),
-                "high" to stringResource(R.string.player_quality_high_desc),
-                "low" to stringResource(R.string.player_quality_low_desc)
-            ),
-            selectedValue = audioQuality,
+            options = tiers.map { tier ->
+                tier.id.toString() to (
+                    com.mrtdk.liquid_glass.data.audio.AudioQuality.shortLabel(tier.id) +
+                        " (" + tier.badge + ") — " +
+                        com.mrtdk.liquid_glass.data.audio.AudioQuality.shortDesc(tier.id)
+                    )
+            },
+            selectedValue = streamingQuality.toString(),
             onDismiss = { showQualityDialog = false },
             onSelect = {
-                audioQuality = it
-                LibraryManager.saveString("audio_quality", it)
+                it.toIntOrNull()?.let { id ->
+                    streamingQuality = id
+                    com.mrtdk.liquid_glass.data.audio.AudioQuality.saveStreamingQuality(id)
+                }
+            }
+        )
+    }
+
+    if (showDownloadQualityDialog) {
+        val tiers = com.mrtdk.liquid_glass.data.audio.AudioQuality.TIERS
+        SingleChoiceDialog(
+            title = stringResource(R.string.player_download_quality_title),
+            options = tiers.map { tier ->
+                tier.id.toString() to (
+                    com.mrtdk.liquid_glass.data.audio.AudioQuality.shortLabel(tier.id) +
+                        " (" + tier.badge + ") — " +
+                        com.mrtdk.liquid_glass.data.audio.AudioQuality.shortDesc(tier.id)
+                    )
+            },
+            selectedValue = downloadQuality.toString(),
+            onDismiss = { showDownloadQualityDialog = false },
+            onSelect = {
+                it.toIntOrNull()?.let { id ->
+                    downloadQuality = id
+                    com.mrtdk.liquid_glass.data.audio.AudioQuality.saveDownloadQuality(id)
+                }
             }
         )
     }
@@ -1633,7 +1689,7 @@ fun ContentSettingsScreen(onBack: () -> Unit) {
     var contentLanguage by remember { mutableStateOf(LibraryManager.getString("content_language", "system") ?: "system") }
     var contentCountry by remember { mutableStateOf(LibraryManager.getString("content_country", "system") ?: "system") }
     var suggestionRegion by remember { mutableStateOf(LibraryManager.getString("suggestion_region", "system") ?: "system") }
-    // Réplica de BitChord: idioma destino del botón de traducir ("", = sigue a la app).
+    // Idioma destino del botón de traducir ("", = sigue a la app).
     val translationLang by LibraryManager.translationLanguage.collectAsState()
     // Locale para localizar los nombres (el de la app, no el sistema crudo).
     val translationAppLocale = remember(currentLang) {
@@ -1727,7 +1783,7 @@ fun ContentSettingsScreen(onBack: () -> Unit) {
                         description = { Text(if (contentLanguage == "system") stringResource(R.string.predeterminado_sistema) else contentLanguage.uppercase()) },
                         onClick = { showCountryDialog = true }
                     ),
-                    // Réplica de BitChord: a qué idioma traduce el botón de letras.
+                    // A qué idioma traduce el botón de letras.
                     Material3SettingsItem(
                         icon = rememberPainter(Icons.Default.GTranslate),
                         title = { Text(stringResource(R.string.translation_language)) },
@@ -1874,7 +1930,7 @@ fun ContentSettingsScreen(onBack: () -> Unit) {
         )
     }
 
-    // Réplica de BitChord: picker de idioma destino con buscador (133 idiomas).
+    // Picker de idioma destino con buscador (133 idiomas).
     if (showTranslationLangDialog) {
         TranslationLanguageDialog(
             appLocale = translationAppLocale,
@@ -2289,7 +2345,7 @@ fun SingleChoiceDialog(
 }
 
 /**
- * Réplica de BitChord: qué idioma traduce el botón de letras.
+ * Qué idioma traduce el botón de letras.
  * Primera fila = seguir al idioma de la app (valor ""); el resto, 133 idiomas
  * con buscador (coincide por nombre localizado y por nombre inglés).
  * Elegir aplica y cierra, igual que el picker de idioma de la app.

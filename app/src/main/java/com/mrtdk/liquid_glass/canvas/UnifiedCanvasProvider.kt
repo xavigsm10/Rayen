@@ -123,6 +123,18 @@ object UnifiedCanvasProvider {
             }
         }
 
+        // 3. SEGUNDA OPCIÓN (Rayen): índice comunitario. Solo se alcanza si
+        // todo lo anterior falló; el manifiesto se retiene 30 min así que esto
+        // casi nunca toca red.
+        if (candidateArtwork == null) {
+            try {
+                val rayenRes = RayenCanvasProvider.getBySongArtist(rawTitle, rawArtist, requestedAlbum.ifBlank { null })
+                if (!rayenRes?.preferredAnimationUrl.isNullOrBlank()) {
+                    candidateArtwork = rayenRes
+                }
+            } catch (_: Exception) {}
+        }
+
         // Strict motion validation algorithm
         val validated = candidateArtwork?.let { artwork ->
             val localArtists = splitAndNormalizeArtists(rawArtist)
@@ -254,6 +266,16 @@ object UnifiedCanvasProvider {
             } catch (_: Exception) {}
         }
 
+        // 4. SEGUNDA OPCIÓN (Rayen): índice comunitario, solo si todo falló.
+        if (candidateArtwork == null) {
+            try {
+                val rayenRes = RayenCanvasProvider.getByAlbumArtist(rawAlbum, rawArtist)
+                if (!rayenRes?.preferredAnimationUrl.isNullOrBlank()) {
+                    candidateArtwork = rayenRes
+                }
+            } catch (_: Exception) {}
+        }
+
         val validated = candidateArtwork?.let { artwork ->
             val localArtists = splitAndNormalizeArtists(rawArtist)
             val returnedArtists = splitAndNormalizeArtists(artwork.artist.orEmpty())
@@ -300,6 +322,30 @@ object UnifiedCanvasProvider {
         } else {
             getSongCanvas(songTitle = songOrAlbum, artist = artist, album = album)
         }
+    }
+
+    /**
+     * SEGUNDA OPCIÓN (Rayen) aislada: solo el índice comunitario, sin pasar
+     * por la cadena principal. Para el fallback en caliente cuando la URL
+     * primaria no carga: un único intento, resultado validado igual.
+     */
+    suspend fun getRayenCanvas(
+        songOrAlbum: String,
+        artist: String,
+        album: String? = null
+    ): String? = withContext(Dispatchers.IO) {
+        if (songOrAlbum.isBlank() || artist.isBlank()) return@withContext null
+        val rawTitle = songOrAlbum.trim()
+        val rawArtist = artist.trim()
+        val requestedAlbum = album?.trim().orEmpty()
+        try {
+            val res = if (!requestedAlbum.isBlank() && rawTitle.equals(requestedAlbum, ignoreCase = true)) {
+                RayenCanvasProvider.getByAlbumArtist(requestedAlbum, rawArtist)
+            } else {
+                RayenCanvasProvider.getBySongArtist(rawTitle, rawArtist, requestedAlbum.ifBlank { null })
+            }
+            res?.preferredAnimationUrl
+        } catch (_: Exception) { null }
     }
 
     /**

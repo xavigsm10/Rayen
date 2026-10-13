@@ -25,6 +25,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.mrtdk.liquid_glass.R
+import kotlinx.coroutines.launch
 
 object CanvasVideoCache {
     @Volatile
@@ -159,12 +160,21 @@ fun AnimatedArtworkPlayer(
     onPlayerCreated: (ExoPlayer) -> Unit = {},
     onPlaybackStarted: () -> Unit = {},
     onPlaybackFailed: () -> Unit = {},
+    /**
+     * SEGUNDA OPCIÓN (Rayen): si [videoUrl] no carga, se resuelve UNA vez
+     * esta alternativa y se monta de inmediato. Null = comportamiento anterior.
+     * Solo se invoca al fallar, así que en éxito no consume nada.
+     */
+    fallbackVideoUrlProvider: (suspend () -> String?)? = null,
     onFrameCaptured: ((android.graphics.Bitmap) -> Unit)? = null,
     cornerRadius: Dp = 0.dp,
     clipToBounds: Boolean = false
 ) {
     val context = LocalContext.current
     var isFirstFrameRendered by remember(videoUrl) { mutableStateOf(false) }
+    var fallbackAttempted by remember(videoUrl) { mutableStateOf(false) }
+    val currentFallbackProvider by rememberUpdatedState(fallbackVideoUrlProvider)
+    val scope = rememberCoroutineScope()
 
     // Initialize ExoPlayer with disk-cached media source and forced highest bitrate/resolution
     val exoPlayer = remember {
@@ -272,7 +282,7 @@ fun AnimatedArtworkPlayer(
     }
 
     // Handle ExoPlayer lifecycle & frame callback
-    DisposableEffect(exoPlayer) {
+    DisposableEffect(exoPlayer, videoUrl) {
         val listener = object : Player.Listener {
             override fun onRenderedFirstFrame() {
                 isFirstFrameRendered = true
@@ -281,7 +291,30 @@ fun AnimatedArtworkPlayer(
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 isFirstFrameRendered = false
-                onPlaybackFailed()
+                val provider = currentFallbackProvider
+                // Un único intento de segunda opción; si no hay o ya se probó,
+                // se informa el fallo como antes (sin bucles ni reintentos).
+                if (provider != null && !fallbackAttempted) {
+                    fallbackAttempted = true
+                    scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        val fallbackUrl = try { provider() } catch (_: Exception) { null }
+                        if (!fallbackUrl.isNullOrBlank() &&
+                            fallbackUrl != videoUrl &&
+                            com.mrtdk.liquid_glass.canvas.CanvasArtwork.isValidVideoUrl(fallbackUrl)
+                        ) {
+                            try {
+                                exoPlayer.setMediaItem(MediaItem.fromUri(fallbackUrl))
+                                exoPlayer.prepare()
+                                return@launch
+                            } catch (_: Exception) {}
+                        }
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            onPlaybackFailed()
+                        }
+                    }
+                } else {
+                    onPlaybackFailed()
+                }
             }
         }
         exoPlayer.addListener(listener)

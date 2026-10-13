@@ -672,6 +672,21 @@ class MusicService : MediaSessionService() {
         com.mrtdk.liquid_glass.playback.MusicPlayer.clearCache(mediaId)
         com.echo.innertube.YouTubeExtractor.clearCache()
 
+        // Estilo Echo-Music: si el 403 trae URL, se atribuye al cliente que la
+        // acuñó (se excluye 10 min) y se refresca el cipher tras el rechazo.
+        if (is403) {
+            var cause: Throwable? = error.cause
+            while (cause != null) {
+                if (cause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
+                    val urlStr = cause.dataSpec.uri.toString()
+                    android.util.Log.d("MusicService", "Extracted 403 URL: $urlStr")
+                    com.mrtdk.liquid_glass.utils.YTPlayerUtils.reportRefusedStream(urlStr)
+                    break
+                }
+                cause = cause.cause
+            }
+        }
+
         val currentPos = if (is416) 0L else targetPlayer.currentPosition
         val currentIndex = targetPlayer.currentMediaItemIndex
 
@@ -897,13 +912,13 @@ class MusicService : MediaSessionService() {
 
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                // Echo usa 360s/360s; 30s/60s es muy justo bloqueado (el resolve del
-                // standby compite con Doze). 60s/120s: colchón para transiciones sin
-                // el coste de 6 min en RAM/red.
-                60_000,
-                120_000,
-                500,
-                1_000
+                // Paridad Echo-Music: 6 min de colchón para leer muy por delante
+                // (con ChunkedDataSource a velocidad de línea) y arranque casi
+                // instantáneo tras rebuffer.
+                360_000,
+                360_000,
+                150,
+                500
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
@@ -914,6 +929,9 @@ class MusicService : MediaSessionService() {
             .setAudioAttributes(mediaAudioAttributes, handleAudioFocus)
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
+            .setSeekBackIncrementMs(5000)
+            .setSeekForwardIncrementMs(5000)
+            .setDeviceVolumeControlEnabled(true)
             .build()
     }
 
@@ -1636,13 +1654,18 @@ class MusicService : MediaSessionService() {
         val downloadCache = downloadUtil.downloadCache
         val playerCache = downloadUtil.playerCache
 
+        // Paridad Echo-Music: CacheDataSource(download) -> CacheDataSource(player)
+        // -> ChunkedDataSource (rangos acotados a velocidad de línea) -> OkHttp.
         return androidx.media3.datasource.cache.CacheDataSource.Factory()
             .setCache(downloadCache)
             .setUpstreamDataSourceFactory(
                 androidx.media3.datasource.cache.CacheDataSource.Factory()
                     .setCache(playerCache)
                     .setUpstreamDataSourceFactory(
-                        androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(okHttpClient)
+                        com.mrtdk.liquid_glass.playback.ChunkedDataSource.Factory(
+                            androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(okHttpClient),
+                            1024 * 1024
+                        )
                     )
             )
             .setCacheWriteDataSinkFactory(null)
@@ -1708,9 +1731,17 @@ class MusicService : MediaSessionService() {
             }
 
             if (!streamUrl.isNullOrBlank()) {
+                // Paridad Echo-Music: vestir la descarga con los headers de
+                // InnerTubeX (o del cliente que acuñó la URL). Sin esto,
+                // googlevideo estrangula o devuelve 403.
+                val finalHeaders = try {
+                    com.mrtdk.liquid_glass.utils.YTPlayerUtils.streamHeadersFor(streamUrl)
+                } catch (_: Exception) { emptyMap<String, String>() }
+                android.util.Log.d("MusicService", "EXOPLAYER REQUEST: url=$streamUrl headers=$finalHeaders")
                 dataSpec.buildUpon()
                     .setUri(android.net.Uri.parse(streamUrl))
                     .setKey(mediaId)
+                    .setHttpRequestHeaders(finalHeaders)
                     .build()
             } else if (cachedSpans.isNotEmpty() || playerCache.isCached(mediaId, dataSpec.position, 1)) {
                 // Offline fallback if network fails

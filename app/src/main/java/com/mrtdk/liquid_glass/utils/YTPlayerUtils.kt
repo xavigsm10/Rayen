@@ -78,16 +78,60 @@ object YTPlayerUtils {
     data class PlaybackData(
         val format: PlayerResponse.StreamingData.Format?,
         val streamUrl: String,
-        val expiresInSeconds: Int = 21600
+        val expiresInSeconds: Int = 21600,
+        val headers: Map<String, String>? = null
     )
 
     fun init(context: Context) {
         YouTubeExtractor.cacheDir = context.cacheDir
+        InnerTubeXResolver.init(context)
     }
 
     /**
-     * Resolves the exact audio stream URL adopting ViviMusic's fast streaming architecture:
-     * - Tier 1: Direct YouTube InnerTube Playback (Instant <150ms start with ANDROID_VR_1_43_32).
+     * Vía principal estilo Echo-Music: InnerTubeX (catálogo de clientes con
+     * benchmark en vivo + cipher + PoToken). Devuelve la URL con los headers
+     * con los que hay que vestir la descarga, o null para seguir al fallback.
+     */
+    suspend fun resolveInnerTubeX(
+        videoId: String,
+        qualityIdOverride: Int? = null
+    ): PlaybackData? = withContext(Dispatchers.IO) {
+        val AQ = com.mrtdk.liquid_glass.data.audio.AudioQuality
+        val qid = qualityIdOverride ?: try { AQ.readStreamingQuality() } catch (_: Exception) { AQ.DEFAULT_STREAMING }
+        // Echo usa maxKbps=160 fijo; Data Saver pide el peldaño LOW (<=64).
+        val maxKbps = if (qid == AQ.QUALITY_DATA_SAVER) 64 else 160
+        val extracted = try {
+            InnerTubeXResolver.extract(videoId = videoId, maxKbps = maxKbps, requireM4a = false)
+        } catch (e: Exception) {
+            Log.w(TAG, "InnerTubeX extract failed for $videoId: ${e.message}")
+            null
+        } ?: return@withContext null
+        Log.d(TAG, "InnerTubeX hit for $videoId via ${extracted.clientName} (${extracted.kbps}kbps)")
+        PlaybackData(
+            format = null,
+            streamUrl = extracted.url,
+            expiresInSeconds = 21600,
+            headers = extracted.headers
+        )
+    }
+
+    /** Headers para vestir la descarga de [url]: InnerTubeX, o el cliente que la acuñó. */
+    fun streamHeadersFor(url: String): Map<String, String> =
+        InnerTubeXResolver.headersFor(url)
+            ?: PlayerClient.forStreamUrl(url).mediaHeaders()
+
+    /**
+     * Registra un 403 de googlevideo: excluye el cliente 10 min y refresca el
+     * cipher. Igual que Echo-Music (InnerTubeXResolver.onRefused).
+     *
+     * @return el videoId afectado, o null si la URL no la acuñó InnerTubeX.
+     */
+    fun reportRefusedStream(url: String): String? = InnerTubeXResolver.onRefused(url)
+
+    /**
+     * Resolves the exact audio stream URL, vía principal Echo-Music primero:
+     * - Tier 0: InnerTubeX (catálogo con benchmark en vivo + cipher + PoToken).
+     * - Tier 1: Direct YouTube InnerTube Playback (legacy).
      * - Tier 2: Bot Detection Mitigation & Session Rotation.
      * - Tier 3: NewPipeExtractor direct stream resolution.
      * - Tier 4: Lossless 320kbps Matcher fallback.
@@ -97,10 +141,17 @@ object YTPlayerUtils {
     suspend fun resolveStreamUrl(
         videoId: String,
         preferLow: Boolean = false,
-        playlistId: String? = null
+        playlistId: String? = null,
+        qualityIdOverride: Int? = null
     ): String? = withContext(Dispatchers.IO) {
+        // ── Tier 0: InnerTubeX (Echo-Music) ──────────────────────────────────
+        val itx = resolveInnerTubeX(videoId, qualityIdOverride)
+        if (!itx?.streamUrl.isNullOrBlank()) {
+            BotDetectionMitigator.notifyPlaybackSuccess()
+            return@withContext itx!!.streamUrl
+        }
         // ── Tier 1: Direct YouTube InnerTube Playback Resolution (<150ms) ─────
-        val firstAttempt = resolvePlaybackData(videoId, preferLow, playlistId)
+        val firstAttempt = resolvePlaybackData(videoId, preferLow, playlistId, qualityIdOverride)
         if (firstAttempt.isSuccess) {
             val url = firstAttempt.getOrNull()?.streamUrl
             if (!url.isNullOrBlank()) {
@@ -113,7 +164,7 @@ object YTPlayerUtils {
         if (YouTube.cookie == null) {
             Log.w(TAG, "Tier 1 playback failed for $videoId. Rotating guest session and retrying...")
             BotDetectionMitigator.rotateGuestSession()
-            val retryAttempt = resolvePlaybackData(videoId, preferLow, playlistId)
+            val retryAttempt = resolvePlaybackData(videoId, preferLow, playlistId, qualityIdOverride)
             if (retryAttempt.isSuccess) {
                 val url = retryAttempt.getOrNull()?.streamUrl
                 if (!url.isNullOrBlank()) {
@@ -138,7 +189,7 @@ object YTPlayerUtils {
 
         // ── Tier 4: Lossless 320kbps Matcher Fallback ─────────────────────────
         try {
-            val losslessUrl = resolveLosslessStreamStrict(videoId)
+            val losslessUrl = resolveLosslessStreamStrict(videoId, qualityIdOverride)
             if (!losslessUrl.isNullOrBlank()) {
                 Log.d(TAG, "Tier 4 (Lossless 320kbps) hit for $videoId")
                 return@withContext losslessUrl
@@ -172,7 +223,7 @@ object YTPlayerUtils {
      * 3. The duration is within +/- 4 seconds
      * Returns null immediately if not strictly matching, falling back to YouTube InnerTube.
      */
-    private suspend fun resolveLosslessStreamStrict(videoId: String): String? = coroutineScope {
+    private suspend fun resolveLosslessStreamStrict(videoId: String, qualityIdOverride: Int? = null): String? = coroutineScope {
         val songItem = try {
             val nextResult = YouTube.next(WatchEndpoint(videoId = videoId)).getOrNull()
             nextResult?.items?.getOrNull(nextResult.currentIndex ?: 0)
@@ -223,7 +274,15 @@ object YTPlayerUtils {
         }
 
         if (strictMatch != null) {
-            val streamUrl = SaavnService.selectBestUrl(strictMatch.downloadUrl, "320kbps")
+            val AQ = com.mrtdk.liquid_glass.data.audio.AudioQuality
+            val qid = qualityIdOverride ?: try { AQ.readStreamingQuality() } catch (_: Exception) { AQ.DEFAULT_STREAMING }
+            val target = when (qid) {
+                AQ.QUALITY_DATA_SAVER -> "96kbps"
+                AQ.QUALITY_MP3_320 -> "160kbps"
+                else -> "320kbps"
+            }
+            // Data Saver pide exacta 96k; el resto intenta su target y cae a 320k dentro de selectBestUrl.
+            val streamUrl = SaavnService.selectBestUrl(strictMatch.downloadUrl, target)
             if (!streamUrl.isNullOrBlank()) {
                 val artistNames = strictMatch.artists.primary.joinToString { it.name }
                 Log.i(TAG, "Lossless 320kbps verified exact match for $videoId: '${strictMatch.name}' by '$artistNames'")
@@ -237,7 +296,8 @@ object YTPlayerUtils {
     suspend fun resolvePlaybackData(
         videoId: String,
         preferLow: Boolean = false,
-        playlistId: String? = null
+        playlistId: String? = null,
+        qualityIdOverride: Int? = null
     ): Result<PlaybackData> = runCatching {
         Log.d(TAG, "Resolving YouTube playback data for videoId=$videoId, playlistId=$playlistId")
 
@@ -316,7 +376,7 @@ object YTPlayerUtils {
             }
 
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
-                val foundFormat = findFormat(streamPlayerResponse, preferLow) ?: continue
+                val foundFormat = findFormat(streamPlayerResponse, preferLow, qualityIdOverride) ?: continue
                 var currentUrl = findUrlOrNull(foundFormat, videoId, streamPlayerResponse, skipNewPipe = wasOriginallyAgeRestricted) ?: continue
 
                 val currentClient = if (clientIndex == -1) (usedAgeRestrictedClient ?: MAIN_CLIENT) else STREAM_FALLBACK_CLIENTS[clientIndex]
@@ -418,21 +478,36 @@ object YTPlayerUtils {
 
     private fun findFormat(
         playerResponse: PlayerResponse,
-        preferLow: Boolean
+        preferLow: Boolean,
+        qualityIdOverride: Int? = null
     ): PlayerResponse.StreamingData.Format? {
         val adaptiveFormats = playerResponse.streamingData?.adaptiveFormats ?: return null
         val formats = adaptiveFormats.filter { it.isAudio && it.isOriginal }
             .ifEmpty { adaptiveFormats.filter { it.isAudio } }
             .ifEmpty { return null }
 
-        val qualitySetting = try {
-            com.mrtdk.liquid_glass.data.LibraryManager.getString("audio_quality", "auto")?.lowercase() ?: "auto"
-        } catch (_: Exception) { "auto" }
-
-        val isLow = preferLow || qualitySetting == "low"
-
-        return formats.maxByOrNull {
-            it.bitrate * (if (isLow) -1 else 1) + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0)
+        // Paridad LastWave-Native: tiers 28/27/7/6/5/4/-1 (AudioQuality).
+        // Sin backend lossless, se resuelve best-effort sobre YouTube con cap por tier.
+        val qualityId = qualityIdOverride ?: try {
+            com.mrtdk.liquid_glass.data.audio.AudioQuality.readStreamingQuality()
+        } catch (_: Exception) {
+            com.mrtdk.liquid_glass.data.audio.AudioQuality.DEFAULT_STREAMING
+        }
+        val isLow = preferLow || com.mrtdk.liquid_glass.data.audio.AudioQuality.isDataSaver(qualityId)
+        if (isLow) {
+            return formats.minByOrNull {
+                it.bitrate - (if (it.mimeType.startsWith("audio/webm")) 10240 else 0)
+            }
+        }
+        val capBps = com.mrtdk.liquid_glass.data.audio.AudioQuality.maxBitrateKbps(qualityId) * 1000L
+        val inCap = if (capBps >= Int.MAX_VALUE) formats else formats.filter { it.bitrate <= capBps }
+        val pool = inCap.ifEmpty {
+            // Nada bajo el cap (YouTube real > cap): lo más cercano por encima.
+            listOf(formats.minByOrNull { it.bitrate }!!)
+        }
+        // Igual que LastWave en playback: mejor bitrate, bonus a Opus/WebM.
+        return pool.maxByOrNull {
+            it.bitrate + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0)
         }
     }
 

@@ -1,5 +1,5 @@
 plugins {
-    kotlin("plugin.serialization") version "2.2.21"
+    kotlin("plugin.serialization") version "2.4.10"
     kotlin("jvm")
 }
 
@@ -22,3 +22,4 @@ dependencies {
     implementation("io.ktor:ktor-client-encoding:$ktorVersion")
     testImplementation("junit:junit:4.13.2")
 }
+

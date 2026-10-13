@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    kotlin("plugin.serialization") version "2.2.21"
+    kotlin("plugin.serialization") version "2.4.10"
     kotlin("jvm")
 }
 
@@ -26,3 +26,4 @@ dependencies {
     implementation(libs.rhino)
     testImplementation("junit:junit:4.13.2")
 }
+

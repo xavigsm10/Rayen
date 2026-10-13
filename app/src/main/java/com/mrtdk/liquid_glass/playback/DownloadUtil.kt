@@ -53,18 +53,21 @@ class DownloadUtil private constructor(private val context: Context) {
         CacheDataSource.Factory()
             .setCache(playerCache)
             .setUpstreamDataSourceFactory(
-                OkHttpDataSource.Factory(
-                    OkHttpClient.Builder()
-                        .proxy(YouTube.proxy)
-                        .proxyAuthenticator { _, response ->
-                            YouTube.proxyAuth?.let { auth ->
-                                response.request.newBuilder()
-                                    .header("Proxy-Authorization", auth)
-                                    .build()
-                            } ?: response.request
-                        }
-                        .fastFallback(true)
-                        .build()
+                ChunkedDataSource.Factory(
+                    OkHttpDataSource.Factory(
+                        OkHttpClient.Builder()
+                            .proxy(YouTube.proxy)
+                            .proxyAuthenticator { _, response ->
+                                YouTube.proxyAuth?.let { auth ->
+                                    response.request.newBuilder()
+                                        .header("Proxy-Authorization", auth)
+                                        .build()
+                                } ?: response.request
+                            }
+                            .fastFallback(true)
+                            .build()
+                    ),
+                    1024 * 1024
                 )
             )
             .setCacheWriteDataSinkFactory(null)
@@ -81,14 +84,24 @@ class DownloadUtil private constructor(private val context: Context) {
             return@Factory dataSpec.buildUpon().setKey(mediaId).build()
         }
 
-        // Otherwise resolve stream url
+        // Otherwise resolve stream url (usa calidad de DESCARGA, como LastWave lw_download_quality)
         val streamUrl = runBlocking(Dispatchers.IO) {
-            com.mrtdk.liquid_glass.playback.MusicPlayer.resolveUrl(mediaId)
+            val qid = try {
+                com.mrtdk.liquid_glass.data.audio.AudioQuality.readDownloadQuality()
+            } catch (_: Exception) {
+                com.mrtdk.liquid_glass.data.audio.AudioQuality.DEFAULT_DOWNLOAD
+            }
+            com.mrtdk.liquid_glass.playback.MusicPlayer.resolveUrl(mediaId, qid)
         } ?: error("Failed to resolve URL for download: $mediaId")
 
         dataSpec.buildUpon()
             .setUri(Uri.parse(streamUrl))
             .setKey(mediaId)
+            .setHttpRequestHeaders(
+                try {
+                    com.mrtdk.liquid_glass.utils.YTPlayerUtils.streamHeadersFor(streamUrl)
+                } catch (_: Exception) { emptyMap() }
+            )
             .build()
     }
 

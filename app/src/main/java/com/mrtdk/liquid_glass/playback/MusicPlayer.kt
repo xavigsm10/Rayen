@@ -128,8 +128,19 @@ class MusicPlayer(private val context: Context) {
                                 com.echo.innertube.YouTubeExtractor.clearCache()
                             }
                             if (errorMsg.contains("403") || causeMsg.contains("403") || rootCause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
+                                // Estilo Echo-Music: atribuir el 403 al cliente que acuñó
+                                // la URL (exclusión 10 min + refresh del cipher).
+                                var refused: Throwable? = error.cause
+                                while (refused != null) {
+                                    if (refused is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
+                                        com.mrtdk.liquid_glass.utils.YTPlayerUtils.reportRefusedStream(refused.dataSpec.uri.toString())
+                                        break
+                                    }
+                                    refused = refused.cause
+                                }
                                 com.mrtdk.liquid_glass.utils.BotDetectionMitigator.notifyPlaybackFailure(YouTube.cookie != null, error.message)
                                 com.mrtdk.liquid_glass.utils.BotDetectionMitigator.rotateGuestSession()
+                                com.mrtdk.liquid_glass.utils.InnerTubeXResolver.onSessionChanged()
                             }
                             delay(350)
                             withContext(Dispatchers.Main) {
@@ -396,9 +407,17 @@ class MusicPlayer(private val context: Context) {
             return id.length == 11 && !id.contains(" ") && !id.contains(":") && !id.contains("/")
         }
 
-        suspend fun resolveUrl(videoId: String): String? = withContext(Dispatchers.IO) {
-            val quality = com.mrtdk.liquid_glass.data.LibraryManager.getString("audio_quality", "auto") ?: "auto"
-            val preferLow = quality.equals("low", ignoreCase = true)
+        suspend fun resolveUrl(videoId: String, qualityIdOverride: Int? = null): String? = withContext(Dispatchers.IO) {
+            // Paridad LastWave-Native: tier int (28/27/7/6/5/4/-1), legacy "low" migra a 4.
+            // qualityIdOverride != null => las descargas usan su propio ajuste.
+            val qualityId = qualityIdOverride ?: try {
+                com.mrtdk.liquid_glass.data.audio.AudioQuality.readStreamingQuality()
+            } catch (_: Exception) {
+                com.mrtdk.liquid_glass.data.audio.AudioQuality.DEFAULT_STREAMING
+            }
+            val preferLow = try {
+                com.mrtdk.liquid_glass.data.audio.AudioQuality.isDataSaver(qualityId)
+            } catch (_: Exception) { false }
 
             // Check cache for this exact videoId (Spotify or YT)
             songUrlCache[videoId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
@@ -489,7 +508,7 @@ class MusicPlayer(private val context: Context) {
             }
 
             // Extract stream URL for targetVideoId
-            var formatUrl = extractDirectStreamUrl(targetVideoId, preferLow)
+            var formatUrl = extractDirectStreamUrl(targetVideoId, preferLow, qualityIdOverride)
 
             // Fallback: If direct stream extraction failed, attempt metadata lookup and search fallback
             if (formatUrl == null) {
@@ -520,7 +539,7 @@ class MusicPlayer(private val context: Context) {
                         } catch (_: Exception) { null }
 
                         if (fallbackYtId != null && isYouTubeId(fallbackYtId) && fallbackYtId != targetVideoId) {
-                            formatUrl = extractDirectStreamUrl(fallbackYtId, preferLow)
+                            formatUrl = extractDirectStreamUrl(fallbackYtId, preferLow, qualityIdOverride)
                             if (formatUrl != null) {
                                 spotifyToYtCache[videoId] = fallbackYtId
                                 android.util.Log.d("MusicPlayer", "Recovered dead videoId $videoId -> playable $fallbackYtId for '$fallbackQuery'")
@@ -538,7 +557,7 @@ class MusicPlayer(private val context: Context) {
             formatUrl
         }
 
-        private suspend fun extractDirectStreamUrl(videoId: String, preferLow: Boolean): String? = withContext(Dispatchers.IO) {
+        private suspend fun extractDirectStreamUrl(videoId: String, preferLow: Boolean, qualityIdOverride: Int? = null): String? = withContext(Dispatchers.IO) {
             if (!isYouTubeId(videoId)) return@withContext null
 
             if (YouTube.cookie == null && YouTube.visitorData == null) {
@@ -546,7 +565,7 @@ class MusicPlayer(private val context: Context) {
             }
 
             try {
-                com.mrtdk.liquid_glass.utils.YTPlayerUtils.resolveStreamUrl(videoId, preferLow)
+                com.mrtdk.liquid_glass.utils.YTPlayerUtils.resolveStreamUrl(videoId, preferLow, null, qualityIdOverride)
             } catch (e: Exception) {
                 android.util.Log.e("MusicPlayer", "YTPlayerUtils resolution failed: ${e.message}")
                 null

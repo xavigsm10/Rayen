@@ -3956,6 +3956,18 @@ fun PlayerScreen(
                                 com.mrtdk.liquid_glass.ui.components.AnimatedArtworkCache.removeForSong(artist, title, album)
                             }
                         },
+                        // SEGUNDA OPCIÓN (Rayen): si la portada primaria no
+                        // carga, se monta la del índice comunitario (1 intento).
+                        fallbackVideoUrlProvider = {
+                            val artist = playerState?.artist
+                            val title = playerState?.title
+                            if (artist.isNullOrBlank() || title.isNullOrBlank()) null
+                            else com.mrtdk.liquid_glass.canvas.UnifiedCanvasProvider.getRayenCanvas(
+                                songOrAlbum = title,
+                                artist = artist,
+                                album = playerState?.album
+                            )
+                        },
                             onFrameCaptured = { frameBitmap ->
                                 val bmp = frameBitmap.asImageBitmap()
                                 coverBitmap = bmp
@@ -4317,6 +4329,9 @@ fun PlayerScreen(
                             .padding(horizontal = 34.dp)
                             .padding(top = 0.dp)
                             .padding(bottom = 0.dp)
+                            // Los controles no deben quedar debajo de la barra de
+                            // navegación del sistema (edge-to-edge activo).
+                            .navigationBarsPadding()
                     ) {
                         Spacer(modifier = Modifier.height(72.dp))
 
@@ -6918,6 +6933,19 @@ fun LandscapePlayerLayout(
 
                     onPlaybackFailed = { onVideoPlayingChange(false) },
 
+                    // SEGUNDA OPCIÓN (Rayen): si la portada primaria no
+                    // carga, se monta la del índice comunitario (1 intento).
+                    fallbackVideoUrlProvider = {
+                        val artist = playerState?.artist
+                        val title = playerState?.title
+                        if (artist.isNullOrBlank() || title.isNullOrBlank()) null
+                        else com.mrtdk.liquid_glass.canvas.UnifiedCanvasProvider.getRayenCanvas(
+                            songOrAlbum = title,
+                            artist = artist,
+                            album = playerState?.album
+                        )
+                    },
+
                     onFrameCaptured = { frameBitmap ->
 
                         onCoverBitmapChange(frameBitmap.asImageBitmap())
@@ -7999,7 +8027,13 @@ private fun LandscapeControlsView(
     onVolumeChange: (Float) -> Unit,
     hideVolumeBar: Boolean = false
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            // Los controles no deben quedar debajo de la barra de
+            // navegación del sistema (edge-to-edge activo).
+            .navigationBarsPadding()
+    ) {
         Spacer(modifier = Modifier.weight(1f))
 
         IsolatedLandscapeSeekbar(

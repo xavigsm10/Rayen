@@ -4,19 +4,19 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.21"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.4.10"
 }
 
 android {
     namespace = "com.mrtdk.liquid_glass"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.mrtdk.liquid_glass"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.6.6"
+        versionCode = 9
+        versionName = "0.6.7"
         missingDimensionStrategy("edition", "standard")
     }
 
@@ -98,12 +98,20 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation("androidx.compose.material:material-icons-extended")
     
-    // Media playback
+    // Media playback (paridad Echo-Music en datasource/resolver; se mantiene
+    // Media3 1.5.1 porque 1.7.x arrastra Compose 1.10 y rompe los iconos Cupertino)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.hls)
     implementation("androidx.media3:media3-datasource-okhttp:1.5.1")
+
+    // ResoluciÃ³n de streams estilo Echo-Music (InnerTubeX + cipher + PoToken)
+    implementation("com.github.MetrolistGroup.innertubex:innertubex-android:v0.7.0")
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.json)
     
     // Image loading
     implementation("io.coil-kt:coil-compose:2.6.0")
@@ -129,6 +137,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("org.jsoup:jsoup:1.17.2")
 }
+
 
 
 

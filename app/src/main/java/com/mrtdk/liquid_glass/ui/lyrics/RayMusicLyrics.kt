@@ -339,7 +339,7 @@ fun rememberLyricsTranslation(
             context.resources.configuration.locale ?: Locale.getDefault()
         }
     }
-    // Réplica de BitChord: el destino NO es siempre el locale del dispositivo.
+    // El destino NO es siempre el locale del dispositivo.
     // 1) Ajuste explícito del usuario ("translation_language"), 2) idioma de la
     // app, 3) dispositivo; el chino mapea a región wire (zh-TW/zh-CN).
     // Cambiarlo en Ajustes recompone y reinicia el estado de traducción.
@@ -358,7 +358,7 @@ fun rememberLyricsTranslation(
             device = currentLocale
         )
     }
-    // Nombres localizados según el idioma de la app (BitChord), no el sistema crudo.
+    // Nombres localizados según el idioma de la app, no el sistema crudo.
     val displayLocale = remember(appLanguageTag, currentLocale) {
         if (appLanguageTag.isBlank() || appLanguageTag == "SYSTEM_DEFAULT" || appLanguageTag.equals("system", ignoreCase = true)) {
             currentLocale
@@ -1001,7 +1001,7 @@ fun RayMusicLyrics(
                 ),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                // Como BitChord (estilo Apple Music): el panel conserva siempre la
+                // Estilo Apple Music: el panel conserva siempre la
                 // letra original y la traducción va en pequeño debajo (subLines).
                 // El karaoke y los tiempos solo tienen sentido en el original.
                 itemsIndexed(

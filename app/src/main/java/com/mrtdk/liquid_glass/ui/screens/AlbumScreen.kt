@@ -788,6 +788,14 @@ fun AlbumScreen(
                                                 isVideoPlaying = false
                                                 animatedArtworkUrl = null
                                                 com.mrtdk.liquid_glass.ui.components.AnimatedArtworkCache.remove(albumState.artist, albumState.title)
+                                            },
+                                            // SEGUNDA OPCIÓN (Rayen) para el álbum (1 intento).
+                                            fallbackVideoUrlProvider = {
+                                                com.mrtdk.liquid_glass.canvas.UnifiedCanvasProvider.getRayenCanvas(
+                                                    songOrAlbum = albumState.title,
+                                                    artist = albumState.artist,
+                                                    album = albumState.title
+                                                )
                                             }
                                         )
                                     }
@@ -942,6 +950,14 @@ fun AlbumScreen(
                                                             isVideoPlaying = false
                                                             animatedArtworkUrl = null
                                                             com.mrtdk.liquid_glass.ui.components.AnimatedArtworkCache.remove(albumState.artist, albumState.title)
+                                                        },
+                                                        // SEGUNDA OPCIÓN (Rayen) para el álbum (1 intento).
+                                                        fallbackVideoUrlProvider = {
+                                                            com.mrtdk.liquid_glass.canvas.UnifiedCanvasProvider.getRayenCanvas(
+                                                                songOrAlbum = albumState.title,
+                                                                artist = albumState.artist,
+                                                                album = albumState.title
+                                                            )
                                                         }
                                                     )
                                                 }
