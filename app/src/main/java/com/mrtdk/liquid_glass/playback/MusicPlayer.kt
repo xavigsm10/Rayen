@@ -129,7 +129,10 @@ class MusicPlayer(private val context: Context) {
                             }
                             if (errorMsg.contains("403") || causeMsg.contains("403") || rootCause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
                                 // Estilo Echo-Music: atribuir el 403 al cliente que acuñó
-                                // la URL (exclusión 10 min + refresh del cipher).
+                                // la URL (exclusión 10 min + refresh del cipher). OJO: NO
+                                // llamar a onSessionChanged() aquí — borraría las
+                                // exclusiones recién registradas y reintentaría el mismo
+                                // cliente en bucle.
                                 var refused: Throwable? = error.cause
                                 while (refused != null) {
                                     if (refused is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
@@ -140,7 +143,6 @@ class MusicPlayer(private val context: Context) {
                                 }
                                 com.mrtdk.liquid_glass.utils.BotDetectionMitigator.notifyPlaybackFailure(YouTube.cookie != null, error.message)
                                 com.mrtdk.liquid_glass.utils.BotDetectionMitigator.rotateGuestSession()
-                                com.mrtdk.liquid_glass.utils.InnerTubeXResolver.onSessionChanged()
                             }
                             delay(350)
                             withContext(Dispatchers.Main) {
@@ -393,12 +395,22 @@ class MusicPlayer(private val context: Context) {
         private val spotifyToYtCache = java.util.concurrent.ConcurrentHashMap<String, String>()
         val songMetadataCache = java.util.concurrent.ConcurrentHashMap<String, Pair<String, String>>()
 
-        fun getCachedUrl(videoId: String): String? {
-            return songUrlCache[videoId]?.takeIf { it.second > System.currentTimeMillis() }?.first
+        // Igual que Echo-Music: la caché se indexa por canción+calidad con el
+        // expiry del servidor (6h), para no reusar URLs caducadas ni de otra
+        // calidad (p. ej. streaming vs descarga).
+        fun getCachedUrl(videoId: String, qualityId: Int? = null): String? {
+            if (qualityId != null) {
+                return songUrlCache["${videoId}_$qualityId"]
+                    ?.takeIf { it.second > System.currentTimeMillis() }?.first
+            }
+            val now = System.currentTimeMillis()
+            return songUrlCache.entries
+                .firstOrNull { it.key.startsWith("${videoId}_") && it.value.second > now }
+                ?.value?.first
         }
 
         fun clearCache(videoId: String) {
-            songUrlCache.remove(videoId)
+            songUrlCache.keys.removeAll { it == videoId || it.startsWith("${videoId}_") }
             spotifyToYtCache.remove(videoId)
             songMetadataCache.remove(videoId)
         }
@@ -419,8 +431,9 @@ class MusicPlayer(private val context: Context) {
                 com.mrtdk.liquid_glass.data.audio.AudioQuality.isDataSaver(qualityId)
             } catch (_: Exception) { false }
 
-            // Check cache for this exact videoId (Spotify or YT)
-            songUrlCache[videoId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
+            // Check cache for this exact videoId+quality (Spotify or YT)
+            val cacheKey = "${videoId}_$qualityId"
+            songUrlCache[cacheKey]?.takeIf { it.second > System.currentTimeMillis() }?.let {
                 return@withContext it.first
             }
 
@@ -550,8 +563,8 @@ class MusicPlayer(private val context: Context) {
             }
 
             if (formatUrl != null) {
-                // Cache stream URL for 6 hours
-                songUrlCache[videoId] = Pair(formatUrl, System.currentTimeMillis() + 6 * 60 * 60 * 1000L)
+                // Cache stream URL for 6 hours (= expiresInSeconds del servidor)
+                songUrlCache[cacheKey] = Pair(formatUrl, System.currentTimeMillis() + 6 * 60 * 60 * 1000L)
             }
 
             formatUrl

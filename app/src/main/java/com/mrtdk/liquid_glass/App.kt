@@ -25,6 +25,19 @@ class App : Application() {
         LibraryManager.init(this)
         com.mrtdk.liquid_glass.utils.PerformanceProfileManager.init(this)
         YouTubeExtractor.cacheDir = cacheDir
+
+        // Pre-warm de reproducción (igual que Echo-Music): locale de sesión,
+        // WebView de PoToken e InnerTubeX (cipher + player config) antes de
+        // que la primera pista los necesite.
+        try {
+            YouTube.locale = com.echo.innertube.models.YouTubeLocale.fromSystem()
+        } catch (_: Exception) {}
+        try {
+            com.mrtdk.liquid_glass.utils.YTPlayerUtils.initialize()
+        } catch (_: Exception) {}
+        try {
+            com.mrtdk.liquid_glass.utils.InnerTubeXResolver.init(this)
+        } catch (_: Exception) {}
         
         appScope.launch {
             try {

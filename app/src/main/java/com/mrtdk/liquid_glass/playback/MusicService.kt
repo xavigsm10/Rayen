@@ -1711,7 +1711,12 @@ class MusicService : MediaSessionService() {
             }
 
             // 2. If valid stream URL is cached in memory, use it with 512KB chunking
-            val cachedUrl = com.mrtdk.liquid_glass.playback.MusicPlayer.getCachedUrl(mediaId)
+            val streamingQualityId = try {
+                com.mrtdk.liquid_glass.data.audio.AudioQuality.readStreamingQuality()
+            } catch (_: Exception) {
+                com.mrtdk.liquid_glass.data.audio.AudioQuality.DEFAULT_STREAMING
+            }
+            val cachedUrl = com.mrtdk.liquid_glass.playback.MusicPlayer.getCachedUrl(mediaId, streamingQualityId)
             val streamUrl = if (!cachedUrl.isNullOrBlank()) {
                 cachedUrl
             } else {

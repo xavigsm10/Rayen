@@ -88,6 +88,14 @@ object YTPlayerUtils {
     }
 
     /**
+     * Pre-crea el WebView de PoToken en segundo plano (igual que Echo-Music):
+     * evita pagar el arranque en frío en la primera reproducción.
+     */
+    fun initialize() {
+        poTokenGenerator.initialize()
+    }
+
+    /**
      * Vía principal estilo Echo-Music: InnerTubeX (catálogo de clientes con
      * benchmark en vivo + cipher + PoToken). Devuelve la URL con los headers
      * con los que hay que vestir la descarga, o null para seguir al fallback.
@@ -413,7 +421,7 @@ object YTPlayerUtils {
                 }
 
                 // Pre-validation for fallback web clients to ensure working link
-                if (validateStatus(currentUrl, currentClient.userAgent)) {
+                if (validateStatus(currentUrl, foundFormat.contentLength, currentClient.clientName)) {
                     Log.d(TAG, "Stream validated OK with client: ${currentClient.clientName}")
                     format = foundFormat
                     streamUrl = currentUrl
@@ -424,7 +432,7 @@ object YTPlayerUtils {
                     if (currentClient.useWebPoTokens) {
                         try {
                             val nTransformed = YouTubeExtractor.deobfuscateUrlNParam(currentUrl)
-                            if (nTransformed != currentUrl && validateStatus(nTransformed, currentClient.userAgent)) {
+                            if (nTransformed != currentUrl && validateStatus(nTransformed, foundFormat.contentLength, currentClient.clientName)) {
                                 Log.d(TAG, "Alternate n-transform validated OK!")
                                 format = foundFormat
                                 streamUrl = nTransformed
@@ -449,7 +457,7 @@ object YTPlayerUtils {
                 val bestAudio = npStreams.firstOrNull { it.first == 251 }?.second
                     ?: npStreams.firstOrNull { it.first == 140 }?.second
                     ?: npStreams.firstOrNull()?.second
-                if (!bestAudio.isNullOrBlank() && validateStatus(bestAudio, YouTubeClient.USER_AGENT_WEB)) {
+                if (!bestAudio.isNullOrBlank() && validateStatus(bestAudio)) {
                     Log.d(TAG, "NewPipe direct stream extraction successful!")
                     streamUrl = bestAudio
                 }
@@ -650,16 +658,45 @@ object YTPlayerUtils {
         null
     }
 
-    private fun validateStatus(urlStr: String, userAgent: String? = null): Boolean {
+    /**
+     * Valida una URL de stream (igual que Echo-Music): cuando se conoce el
+     * `contentLength` del formato se sondea el ÚLTIMO byte del archivo — una
+     * URL que sirve su byte final no es un preview truncado. La sonda de solo
+     * primer chunk acepta streams capados a ~60s que mueren a mitad.
+     * Se envían los headers del cliente que acuñó la URL + Cookie, sin los
+     * cuales googlevideo rechaza sondas válidas.
+     */
+    private fun validateStatus(
+        urlStr: String,
+        contentLength: Long? = null,
+        label: String = ""
+    ): Boolean {
         return try {
+            // Último byte si se conoce el tamaño, si no el primer chunk que pedirá ExoPlayer.
+            val range = if (contentLength != null && contentLength > 0) {
+                "bytes=${contentLength - 1}-${contentLength - 1}"
+            } else {
+                "bytes=0-${512 * 1024 - 1}"
+            }
             val requestBuilder = Request.Builder()
                 .head()
                 .url(urlStr)
-                .header("User-Agent", userAgent ?: YouTubeClient.USER_AGENT_WEB)
-                .header("Range", "bytes=0-524287")
+                .header("Range", range)
+            val extraHeaders = try {
+                InnerTubeXResolver.headersFor(urlStr)
+                    ?: PlayerClient.forStreamUrl(urlStr).mediaHeaders()
+            } catch (_: Exception) { emptyMap<String, String>() }
+            for ((k, v) in extraHeaders) {
+                requestBuilder.header(k, v)
+            }
+            YouTube.cookie?.let { cookie -> requestBuilder.addHeader("Cookie", cookie) }
 
             httpClient.newCall(requestBuilder.build()).execute().use { response ->
-                response.isSuccessful || response.code == 206 || response.code == 200 || response.code == 405
+                val accepted = response.isSuccessful || response.code == 405
+                if (!accepted) {
+                    Log.w(TAG, "Stream URL REJECTED: code=${response.code} range=$range $label")
+                }
+                accepted
             }
         } catch (e: java.io.IOException) {
             // Network timeout / reset while HEAD-probing. Stream itself may still be fine; accept optimistically

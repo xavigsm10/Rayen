@@ -70,6 +70,12 @@ data class YouTubeClient(
             useWebPoTokens = true,
         )
 
+        /**
+         * `useWebPoTokens` es load-bearing: web_creator requiere GVS PO token y
+         * el flag es lo que hace que se anexe `pot=` a la URL descifrada. Sin él
+         * la URL sale con firma correcta pero googlevideo la rechaza con 403 al
+         * primer byte.
+         */
         val WEB_CREATOR = YouTubeClient(
             clientName = "WEB_CREATOR",
             clientVersion = "1.20260213.00.00",
@@ -78,6 +84,7 @@ data class YouTubeClient(
             loginSupported = true,
             loginRequired = true,
             useSignatureTimestamp = true,
+            useWebPoTokens = true,
         )
 
         val TVHTML5 = YouTubeClient(
